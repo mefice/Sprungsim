@@ -95,18 +95,19 @@ Der Slice setzt die Mechanik aus dem Game Design Document um, nicht die Karriere
 
 ## Präsentation
 
-Bild und Ton liegen über der Mechanik, die Wertung bleibt dieselbe.
+Bild und Ton liegen über der Mechanik, die Wertung bleibt dieselbe. Die Halle ist eine Three.js-Szene: gefliestes Becken, Licht und ein rigged Körpermodell. Timing, Phasen und Note sind unverändert.
 
-- Halle mit Lichtschächten, Publikum als Silhouette, Brett mit sichtbarer Federung.
-- Kamera wechselt sanft: Turmseite, Flug, Wasserkante, Unterwasser, danach eine weite Replay-Ansicht. Die Bezeichnung steht links unten.
-- Wasser zeigt Spiegelung, Kaustik und eine andere Eintrittssignatur: Rip ist eng, mit Blasenschlauch und goldenem Ring. Ein schlechter Eintritt wirft eine breite Gischt.
-- Der Timing-Hinweis ist ein Ring. Kraft und Eintrittslinie bleiben Balken.
-- Kurzklänge ohne Audiodateien: Brettknarren, Luftrauschen, Crowd-Rauschen, trockener Rip oder breiter Platscher.
+- Athlet aus einem CC0-glTF (MakeHuman-Basis, 53 Knochen). Haut und Badeanzug kommen aus dem Material, die Hocke beugt Beine und Rücken.
+- Becken mit CC0-Fliesen und dem HDRI `indoor_pool`. Kamera: Turmseite, Flug, Wasserkante, Unterwasser, Replay.
+- Öffnen-Linie und Greif-Ring liegen weiter im Wasser und färben sich nach der Note.
+- Der Timing-Hinweis in der Leiste bleibt. Kurzklänge ohne Audiodateien.
+
+Lizenzen der mitgelieferten Dateien stehen in `ASSETS.md`.
 
 Bewusst nicht in diesem Prototyp: Kalender, Sponsoren, Kader, Unreal, filmische Fluid-Simulation.
 
 ## Danach
 
-Der nächste sinnvolle Slice: der Zielring in der Leiste friert nach dem Greifen auf demselben Moment ein und nimmt dieselbe Farbe an wie der Ring im Wasser. Leiste und Wasserlinie lesen sich dann gleich.
+Der nächste sinnvolle Slice: die Hocke und das Öffnen an den Armen und Händen des glTF feiner führen, damit Streckung, Griff und Eintritt am Körper selbst lesbar sind.
 
-Der Code liegt in `src/sim.js` (Phasen und Physik), `src/scoring.js` (Note), `src/career.js` (Punkte und Gegner), `src/render.js` (Bild und Kamera) und `src/audio.js` (Klänge). Die Sprünge stehen in `src/dives.js`.
+Der Code liegt in `src/sim.js` (Phasen und Physik), `src/scoring.js` (Note), `src/career.js` (Punkte und Gegner), `src/view3d.js` (Three.js-Halle und Athlet) und `src/audio.js` (Klänge). Die Sprünge stehen in `src/dives.js`.

@@ -19,12 +19,11 @@ import {
 } from './career.js';
 import { DIVES } from './dives.js';
 import { createLatch, policyInput } from './policy.js';
-import { draw } from './render.js';
+import { draw, resizeView } from './view3d.js';
 import { formatPoints } from './scoring.js';
 import { present, startDive, step } from './sim.js';
 
 const canvas = document.getElementById('gameCanvas');
-const ctx = canvas.getContext('2d');
 const ui = {
   overlay: document.getElementById('ui-overlay'),
   menu: document.getElementById('menu-overlay'),
@@ -143,12 +142,7 @@ function consumeInput() {
 }
 
 function resize() {
-  const dpr = Math.min(window.devicePixelRatio || 1, 2);
-  const width = canvas.clientWidth;
-  const height = canvas.clientHeight;
-  canvas.width = Math.max(1, Math.floor(width * dpr));
-  canvas.height = Math.max(1, Math.floor(height * dpr));
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  resizeView(canvas);
 }
 
 function renderMenu() {
@@ -517,7 +511,7 @@ function frame(now) {
     if (reference) pressed.clear();
     step(state, input, dt);
   } else pressed.clear();
-  draw(ctx, running ? state : null, canvas.clientWidth, canvas.clientHeight);
+  draw(canvas, running ? state : null);
   if (running) sync(present(state));
   requestAnimationFrame(frame);
 }

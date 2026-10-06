@@ -13,10 +13,18 @@
     "type": "git",
     "url": "git+https://github.com/mefice/Sprungsim.git"
   },
-  "keywords": ["diving", "sports", "simulation", "wasserspringen"],
+  "keywords": [
+    "diving",
+    "sports",
+    "simulation",
+    "wasserspringen"
+  ],
   "author": "",
   "license": "MIT",
   "devDependencies": {
     "vite": "^6.3.5"
+  },
+  "dependencies": {
+    "three": "^0.170.0"
   }
 }
