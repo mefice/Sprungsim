@@ -55,6 +55,19 @@ export function predictRotation(state, seconds) {
     + (state.omegaTuck - state.omegaStraight) * poseIntegral;
 }
 
+/** Dieselbe Lage wie die Öffnen-Nadel: −1 kurz, 0 senkrecht, +1 überdreht. Sonst null. */
+export function lineupMeter(state) {
+  if (!state || state.opened) return null;
+  if (state.phase !== 'flight' && state.phase !== 'kickout') return null;
+  const remaining = timeToWater(state.y, state.vy);
+  const visible = state.phase === 'kickout' || (state.airTime > 0.45 && remaining < 1.35);
+  if (!visible) return null;
+  const errorScale = state.training ? 0.7 : 1;
+  return clampMeter((predictError(state) * errorScale) / (Math.PI / 2));
+}
+
+export const LINEUP_CENTER = 0.16;
+
 export function predictError(state) {
   const t = timeToWater(state.y, state.vy);
   return predictRotation(state, t) - state.targetRad;
@@ -512,19 +525,13 @@ export function present(state) {
 
   const showTiming = state.phase === 'approach' || (state.phase === 'takeoff' && state.stage === 'snap');
   const showPower = state.phase === 'takeoff' && state.stage === 'charge';
-  const remaining = state.phase === 'flight' || state.phase === 'kickout'
-    ? timeToWater(state.y, state.vy)
-    : 99;
-  const showLineup = !state.opened && (
-    state.phase === 'kickout' || (state.phase === 'flight' && state.airTime > 0.45 && remaining < 1.35)
-  );
+  const lineup = lineupMeter(state);
   const showGrab = state.phase === 'entry';
   const showTwist = state.dive.twistHalves > 0 && (state.phase === 'flight' || state.phase === 'kickout') && !state.opened;
   const twistOsc = oscAt(state.airTime, state.twistPeriod);
   const grabOsc = showGrab ? grabMarker(state) : 0;
   const active = showTwist ? twistOsc : showGrab ? grabOsc : osc;
   const hotAt = state.training ? 0.78 : 0.86;
-  const errorScale = state.training ? 0.7 : 1;
 
   return {
     phase: state.phase,
@@ -539,8 +546,8 @@ export function present(state) {
     power: state.power,
     powerHot: inBand && state.phase === 'takeoff' && state.stage === 'charge',
     powerBand: band,
-    showLineup,
-    lineup: showLineup ? clampMeter((predictError(state) * errorScale) / (Math.PI / 2)) : 0,
+    showLineup: lineup !== null,
+    lineup: lineup ?? 0,
     showGrab,
     grab: grabOsc,
     showTwist,
@@ -604,7 +611,7 @@ function cues(state, inBand) {
   if (state.phase === 'kickout') {
     return {
       instruction: 'Öffnen — S loslassen, wenn die Nadel in der Mitte steht',
-      tip: 'Links ist zu kurz, rechts überdreht.',
+      tip: 'Die gestrichelte Linie im Wasser zeigt dieselbe Lage wie die Nadel.',
     };
   }
   if (state.phase === 'entry') {

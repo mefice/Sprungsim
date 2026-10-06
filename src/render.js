@@ -1,4 +1,4 @@
-import { WORLD, grabOpen } from './sim.js';
+import { LINEUP_CENTER, WORLD, grabOpen, lineupMeter } from './sim.js';
 
 const cam = { x: 640, y: 390, zoom: 1.04, water: 0, label: 'Halle' };
 let lastStamp = 0;
@@ -106,6 +106,7 @@ function drawWorld(ctx, state) {
   drawReflection(ctx, state);
   drawWater(ctx, state);
   if (state) drawGrabGate(ctx, state);
+  if (state) drawLineupGhost(ctx, state);
   drawTower(ctx, state?.bend ?? 0);
   if (state && state.phase !== 'approach' && state.phase !== 'takeoff') drawShadow(ctx, state);
   for (let i = 0; i < trail.length; i += 1) {
@@ -333,6 +334,25 @@ function drawGrabGate(ctx, state) {
     ctx.lineTo(x, y - 2);
     ctx.stroke();
   }
+  ctx.restore();
+}
+
+function drawLineupGhost(ctx, state) {
+  const value = lineupMeter(state);
+  if (value === null) return;
+  const aligned = Math.abs(value) <= LINEUP_CENTER;
+  const tilt = value * (Math.PI / 2) * 0.85;
+  ctx.save();
+  ctx.translate(state.x, WORLD.waterY + 6);
+  ctx.rotate(tilt);
+  ctx.strokeStyle = aligned ? 'rgba(241, 196, 15, 0.95)' : 'rgba(255,255,255,0.62)';
+  ctx.lineWidth = aligned ? 4 : 2.5;
+  ctx.setLineDash([7, 6]);
+  ctx.beginPath();
+  ctx.moveTo(0, 0);
+  ctx.lineTo(0, 86);
+  ctx.stroke();
+  ctx.setLineDash([]);
   ctx.restore();
 }
 

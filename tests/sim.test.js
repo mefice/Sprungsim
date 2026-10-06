@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { DIVES } from '../src/dives.js';
 import { createLatch, policyInput } from '../src/policy.js';
-import { WORLD, grabOpen, startDive, step } from '../src/sim.js';
+import { WORLD, grabOpen, lineupMeter, startDive, step } from '../src/sim.js';
 
 function run(dive, mode, training = false) {
   const state = startDive(dive, { training });
@@ -54,6 +54,29 @@ test('der Ring an der Wasserlinie ist offen, wenn der Hand-Grab ideal ist', () =
   }
   assert.ok(best.open >= 0.85, JSON.stringify(best));
   assert.ok(best.dist < 40, JSON.stringify(best));
+});
+
+test('die Geisterlinie im Wasser zeigt dieselbe Lage wie die Öffnen-Nadel', () => {
+  const vertical = {
+    opened: false,
+    phase: 'kickout',
+    airTime: 1,
+    training: false,
+    y: WORLD.waterY - 180,
+    vy: 420,
+    rotation: 1,
+    targetRad: 1,
+    pose: 0,
+    omegaStraight: 0,
+    omegaTuck: 0,
+  };
+  assert.equal(lineupMeter(vertical), 0);
+  assert.equal((lineupMeter(vertical) + 1) * 50, 50);
+
+  const over = { ...vertical, rotation: 1 + Math.PI / 2, targetRad: 1 };
+  const value = lineupMeter(over);
+  assert.ok(value > 0.9, String(value));
+  assert.equal(lineupMeter({ ...vertical, phase: 'flight', airTime: 0.1, y: WORLD.waterY - 600, vy: 20 }), null);
 });
 
 test('derselbe Sprung wird bei schlechtem Timing klar schlechter', () => {

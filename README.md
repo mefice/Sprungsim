@@ -23,7 +23,7 @@ Die Tests spielen denselben Sprung mit sauberem Timing, mit frühem Öffnen, ohn
 
 Standard ist **Training**: die Fenster sind weiter, im grünen Kraftband läuft die Anzeige langsamer, und ein zu früher Hand-Grab wird vom besseren Moment ersetzt. **Wettkampf** ist enger. Ein sauberer Sprung bleibt in beiden Modi bei Ausführung 10, also 14 bis 20 Punkten je nach DD. Knapp daneben ist brauchbar, weit daneben nicht.
 
-Unten im Bild steht immer die eine Aktion der aktuellen Phase, darunter ein kurzer Tipp. Der Anlauf beginnt mit „Bereit“, damit der erste Schritt nicht überrascht. Wird der Ring gold, pulsiert er und davor steht „Jetzt“. Im Flug füllt ein Ring an der Figur jede halbe Drehung und blitzt, wenn sie voll ist. Oben steht „Halbe 2 von 3“. Die Nadel zum Öffnen kommt erst danach. Beim Eintritt liegt ein Ring auf der Wasserlinie und geht auf, wenn die Hände greifen sollen. Die Note bleibt an diesem Moment.
+Unten im Bild steht immer die eine Aktion der aktuellen Phase, darunter ein kurzer Tipp. Der Anlauf beginnt mit „Bereit“, damit der erste Schritt nicht überrascht. Wird der Ring gold, pulsiert er und davor steht „Jetzt“. Im Flug füllt ein Ring an der Figur jede halbe Drehung und blitzt, wenn sie voll ist. Oben steht „Halbe 2 von 3“. Die Nadel zum Öffnen kommt erst danach. Beim Eintritt liegt ein Ring auf der Wasserlinie und geht auf, wenn die Hände greifen sollen. Die Note bleibt an diesem Moment. Zum Öffnen steht eine gestrichelte Linie im Wasser: senkrecht und gold, wenn die Nadel in der Mitte ist, geneigt, wenn sie nach links oder rechts wandert.
 
 `Esc` pausiert, `R` startet denselben Sprung neu. In der Pause kannst du weitermachen, neu starten oder den Sprung wechseln.
 
@@ -107,6 +107,6 @@ Bewusst nicht in diesem Prototyp: Kalender, Sponsoren, Kader, Unreal, filmische 
 
 ## Danach
 
-Der nächste sinnvolle Slice ist die Öffnen-Linie im Bild: eine senkrechte Geisterlinie im Wasser, an der der Körper ausgerichtet sein soll. Die Nadel in der Leiste und die Linie im Becken zeigen dann dasselbe.
+Der nächste sinnvolle Slice ist, dass die Geisterlinie nach dem Loslassen auf dem tatsächlichen Eintrittswinkel stehen bleibt und sich wie die Öffnen-Note färbt. Der Moment der Entscheidung und die Wertung liegen dann auf derselben Linie.
 
 Der Code liegt in `src/sim.js` (Phasen und Physik), `src/scoring.js` (Note), `src/career.js` (Punkte und Gegner), `src/render.js` (Bild und Kamera) und `src/audio.js` (Klänge). Die Sprünge stehen in `src/dives.js`.
