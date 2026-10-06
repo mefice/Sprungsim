@@ -2,13 +2,13 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { DIVES } from '../src/dives.js';
 import { createLatch, policyInput } from '../src/policy.js';
-import { WORLD, commitGrab, commitLine, grabOpen, lineupMeter, startDive, step } from '../src/sim.js';
+import { WORLD, commitGrab, commitLine, grabOpen, lineupMeter, oscAt, predictError, startDive, step } from '../src/sim.js';
 
 function run(dive, mode, training = false) {
   const state = startDive(dive, { training });
   const seen = new Set([state.phase]);
   const latch = createLatch();
-  for (let i = 0; i < 60 * 18; i += 1) {
+  for (let i = 0; i < 60 * 26; i += 1) {
     if (state.phase === 'result') break;
     step(state, policyInput(state, mode, latch), 1 / 60);
     seen.add(state.phase);
@@ -159,6 +159,51 @@ test('früher öffnen und verpasster Hand-Grab kosten Punkte', () => {
   assert.ok(noGrab.result.phases.entry < 0.2, dump(noGrab));
   assert.ok(noGrab.result.total < run(DIVES[0], 'perfect').state.result.total - 1.5);
 });
+
+test('im Training schafft ein früher 101C mehr als 10 Punkte', () => {
+  const state = startDive(DIVES[0], { training: true });
+  const latch = createLatch();
+  for (let i = 0; i < 60 * 26; i += 1) {
+    if (state.phase === 'result') break;
+    step(state, learnerInput(state, latch), 1 / 60);
+  }
+  assert.equal(state.phase, 'result');
+  assert.ok(state.result.total > 10, dump(state));
+});
+
+function learnerInput(state, latch) {
+  const input = { spaceDown: false, spacePressed: false, tuckDown: false, twistPressed: false };
+  if (state.phase === 'approach' && state.approachLead <= 0) {
+    const beat = Math.floor(state.time / state.approachPeriod);
+    if (latch.approachBeat !== beat) {
+      latch.approachBeat = beat;
+      latch.approach = false;
+    }
+    const osc = oscAt(state.time, state.approachPeriod);
+    if (osc >= 0.42 && osc <= 0.7 && !latch.approach) {
+      input.spacePressed = true;
+      latch.approach = true;
+    }
+  }
+  if (state.phase === 'takeoff' && state.stage === 'charge' && !state.needFreshPress) {
+    input.spaceDown = state.power < 0.48;
+  }
+  if (state.phase === 'takeoff' && state.stage === 'snap' && !state.needFreshPress) {
+    const osc = oscAt(state.boardT, state.takeoffPeriod);
+    if (osc >= 0.4 && osc <= 0.62 && !latch.snap) {
+      input.spacePressed = true;
+      latch.snap = true;
+    }
+  }
+  if ((state.phase === 'flight' || state.phase === 'kickout') && !state.opened) {
+    input.tuckDown = state.phase === 'flight' || predictError(state) < -0.35;
+  }
+  if (state.phase === 'entry' && !state.grabbed) {
+    const dist = WORLD.waterY - state.y;
+    if (dist <= 170 && dist >= 90) input.spacePressed = true;
+  }
+  return input;
+}
 
 test('Training und Wettkampf behalten einen sauberen Sprung oben', () => {
   const trained = run(DIVES[0], 'perfect', true).state.result;

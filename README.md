@@ -21,9 +21,9 @@ Die Tests spielen denselben Sprung mit sauberem Timing, mit frühem Öffnen, ohn
 
 ## Spielbarkeit
 
-Standard ist **Training**: die Fenster sind weiter, im grünen Kraftband läuft die Anzeige langsamer, und ein zu früher Hand-Grab wird vom besseren Moment ersetzt. **Wettkampf** ist enger. Ein sauberer Sprung bleibt in beiden Modi bei Ausführung 10, also 14 bis 20 Punkten je nach DD. Knapp daneben ist brauchbar, weit daneben nicht.
+Standard ist **Training**: die Marker laufen langsamer, „Jetzt“ gilt für das ganze grüne Feld, und ein Druck knapp nach dem Scheitel zählt noch. Der Kopfsprung 101C vergibt dafür schon eine hohe Note. **Wettkampf** bleibt enger. Ein sauberer Sprung liegt weiter bei Ausführung 10, also 14 bis 20 Punkten je nach DD.
 
-Unten im Bild steht immer die eine Aktion der aktuellen Phase, darunter ein kurzer Tipp. Der Anlauf beginnt mit „Bereit“, damit der erste Schritt nicht überrascht. Wird der Ring gold, pulsiert er und davor steht „Jetzt“. Im Flug füllt ein Ring an der Figur jede halbe Drehung und blitzt, wenn sie voll ist. Oben steht „Halbe 2 von 3“. Die Nadel zum Öffnen kommt erst danach. Beim Eintritt liegt ein Ring auf der Wasserlinie und geht auf, wenn die Hände greifen sollen. Nach dem Greifen bleibt er auf dieser Öffnung stehen und färbt sich wie die Hand-Grab-Note: grün, gold oder rot. Ein verpasster Griff bleibt als roter Ring. Zum Öffnen steht eine gestrichelte Linie im Wasser: senkrecht und gold, wenn die Nadel in der Mitte ist, geneigt, wenn sie nach links oder rechts wandert. Nach dem Loslassen bleibt sie auf diesem Winkel stehen und färbt sich wie die Öffnen-Note: grün, gold oder rot.
+Unten im Bild steht immer die eine Aktion der aktuellen Phase, darunter ein kurzer Tipp. Der Anlauf beginnt mit „Bereit“, damit der erste Schritt nicht überrascht. Liegt der Marker im grünen Feld, erscheint groß **JETZT**. Im Flug füllt ein Ring an der Figur jede halbe Drehung und blitzt, wenn sie voll ist. Oben steht „Halbe 2 von 3“. Die Nadel zum Öffnen kommt erst danach. Beim Eintritt liegt ein Ring auf der Wasserlinie und geht auf, wenn die Hände greifen sollen. Nach dem Greifen bleibt er auf dieser Öffnung stehen und färbt sich wie die Hand-Grab-Note: grün, gold oder rot. Ein verpasster Griff bleibt als roter Ring. Zum Öffnen steht eine gestrichelte Linie im Wasser: senkrecht und gold, wenn die Nadel in der Mitte ist, geneigt, wenn sie nach links oder rechts wandert. Nach dem Loslassen bleibt sie auf diesem Winkel stehen und färbt sich wie die Öffnen-Note: grün, gold oder rot.
 
 `Esc` pausiert, `R` startet denselben Sprung neu. In der Pause kannst du weitermachen, neu starten oder den Sprung wechseln.
 
@@ -97,8 +97,8 @@ Der Slice setzt die Mechanik aus dem Game Design Document um, nicht die Karriere
 
 Bild und Ton liegen über der Mechanik, die Wertung bleibt dieselbe. Die Halle ist eine Three.js-Szene: gefliestes Becken, Licht und ein rigged Körpermodell. Timing, Phasen und Note sind unverändert.
 
-- Athlet aus einem CC0-glTF (MakeHuman-Basis, 53 Knochen). Haut und Badeanzug kommen aus dem Material, die Hocke beugt Beine und Rücken.
-- Becken mit CC0-Fliesen und dem HDRI `indoor_pool`. Kamera: Turmseite, Flug, Wasserkante, Unterwasser, Replay.
+- Athlet aus einem CC0-glTF. In der Hocke sind Knie und Arme angezogen, die Drehung läuft in der Seitenansicht. Nach dem Öffnen gehen die Arme über den Kopf.
+- Becken mit CC0-Fliesen und dem HDRI `indoor_pool`. Die Kamera ist eine feste weite Seitenansicht von Turm bis Becken.
 - Öffnen-Linie und Greif-Ring liegen weiter im Wasser und färben sich nach der Note.
 - Der Timing-Hinweis in der Leiste bleibt. Kurzklänge ohne Audiodateien.
 
@@ -108,6 +108,6 @@ Bewusst nicht in diesem Prototyp: Kalender, Sponsoren, Kader, Unreal, filmische 
 
 ## Danach
 
-Der nächste sinnvolle Slice: die Hocke und das Öffnen an den Armen und Händen des glTF feiner führen, damit Streckung, Griff und Eintritt am Körper selbst lesbar sind.
+Der nächste sinnvolle Slice: Öffnen-Linie und Greif-Ring in der festen Weitansicht größer zeichnen, damit beide Momente auf die Distanz noch lesbar sind.
 
 Der Code liegt in `src/sim.js` (Phasen und Physik), `src/scoring.js` (Note), `src/career.js` (Punkte und Gegner), `src/view3d.js` (Three.js-Halle und Athlet) und `src/audio.js` (Klänge). Die Sprünge stehen in `src/dives.js`.

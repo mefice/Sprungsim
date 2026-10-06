@@ -211,7 +211,30 @@ body {
   background: rgba(6, 12, 18, 0.72);
   font-size: 16px;
 }
-#instructions.hot { color: #f1c40f; }
+#instructions.hot { color: #071018; background: #f1c40f; }
+#now-banner {
+  position: absolute;
+  left: 50%;
+  bottom: 118px;
+  z-index: 5;
+  display: none;
+  padding: 6px 28px 8px;
+  border-radius: 14px;
+  color: #071018;
+  background: #f1c40f;
+  font-size: 72px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  line-height: 1;
+  transform: translateX(-50%);
+  pointer-events: none;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.28);
+  animation: now-pulse 0.42s ease-in-out infinite;
+}
+#now-banner.visible { display: block; }
+@keyframes now-pulse {
+  50% { transform: translateX(-50%) scale(1.06); }
+}
 #tip {
   padding: 0 16px 10px;
   border-radius: 0 0 14px 14px;

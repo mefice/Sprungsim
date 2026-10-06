@@ -63,7 +63,7 @@ function ensure(canvas) {
 
   scene = new THREE.Scene();
   scene.fog = new THREE.FogExp2(0xb9c6d2, 0.004);
-  camera = new THREE.PerspectiveCamera(34, 1, 0.08, 80);
+  camera = new THREE.OrthographicCamera(-16, 16, 9, -9, 0.1, 90);
 
   scene.add(new THREE.HemisphereLight(0xe7f2ff, 0x6e7c86, 0.55));
   const sun = new THREE.DirectionalLight(0xfff4e0, 2.4);
@@ -141,7 +141,6 @@ function buildHall() {
   box(0.35, 3.2, 12, tiles, poolX - 11, -1.55, poolZ);
   box(0.35, 3.2, 12, tiles, poolX + 11, -1.55, poolZ);
   box(22, 3.2, 0.35, tiles, poolX, -1.55, -6);
-  box(22, 3.2, 0.35, tiles, poolX, -1.55, 6);
 
   waterMat = new THREE.MeshPhysicalMaterial({
     color: 0x1c7ea0,
@@ -156,6 +155,9 @@ function buildHall() {
   const water = new THREE.Mesh(new THREE.PlaneGeometry(21.4, 11.4), waterMat);
   water.rotation.x = -Math.PI / 2;
   water.position.set(poolX, 0.02, poolZ);
+  const volume = new THREE.Mesh(new THREE.BoxGeometry(21.2, 3.0, 10.5), waterMat);
+  volume.position.set(poolX, -1.5, poolZ);
+  scene.add(volume);
   water.receiveShadow = true;
   water.renderOrder = 2;
   waterMat.depthWrite = false;
@@ -170,10 +172,11 @@ function buildHall() {
     scene.add(lane);
   }
 
-  box(3.4, 10, 2.4, plaster, 1.2, 5, 0);
-  box(3.6, 0.28, 2.8, deck, 1.5, 10.05, 0);
+  const towerMat = new THREE.MeshStandardMaterial({ color: 0x9aa3ad, roughness: 0.72, metalness: 0.08 });
+  box(3.4, 10, 2.4, towerMat, 1.2, 5, 0);
+  box(3.6, 0.35, 2.8, towerMat, 1.5, 10.1, 0);
   const boardLen = (408 - 86) * M;
-  board = new THREE.Mesh(new THREE.BoxGeometry(boardLen, 0.06, 0.48), metal);
+  board = new THREE.Mesh(new THREE.BoxGeometry(boardLen, 0.22, 0.5), metal);
   board.geometry.translate(boardLen / 2, 0, 0);
   board.position.set(86 * M, 10.02, 0);
   board.castShadow = true;
@@ -346,24 +349,54 @@ function poseAthlete(state) {
     if (bone) bone.quaternion.copy(rest);
   });
   if (!state || rests.size === 0) return;
-  const t = state.pose ?? 0;
-  const opened = Boolean(state.opened || state.phase === 'entry' || state.phase === 'result');
-  if (!opened && t > 0.04) {
-    bend('thigh_l', 1.35 * t, 0, 0);
-    bend('thigh_r', 1.35 * t, 0, 0);
-    bend('calf_l', -1.55 * t, 0, 0);
-    bend('calf_r', -1.55 * t, 0, 0);
-    bend('spine_01', 0.4 * t, 0, 0);
-    bend('spine_02', 0.28 * t, 0, 0);
-    bend('upperarm_l', 0.9 * t, 0, 0);
-    bend('upperarm_r', 0.9 * t, 0, 0);
+  const laidOut = Boolean(state.opened || state.phase === 'entry' || state.phase === 'result');
+  const tuck = laidOut ? 0 : (state.pose ?? 0);
+  const airborne = state.phase === 'flight' || state.phase === 'kickout' || state.phase === 'entry' || state.phase === 'result';
+  if (!airborne) {
+    bend('upperarm_l', -0.5, 0, -0.6);
+    bend('upperarm_r', -0.5, 0, 0.6);
+    bend('lowerarm_l', -0.3, 0, 0);
+    bend('lowerarm_r', -0.3, 0, 0);
+    return;
   }
-  if (opened) {
-    bend('upperarm_l', -2.2, 0, 0.15);
-    bend('upperarm_r', -2.2, 0, -0.15);
-    bend('lowerarm_l', -0.25, 0, 0);
-    bend('lowerarm_r', -0.25, 0, 0);
+  if (laidOut) {
+    bend('upperarm_l', 2.2, 0, 0.3);
+    bend('upperarm_r', 2.2, 0, -0.3);
+    bend('lowerarm_l', 0, 0, 0);
+    bend('lowerarm_r', 0, 0, 0);
+    return;
   }
+  bend('thigh_l', -2.15 * tuck, 0, 0);
+  bend('thigh_r', -2.15 * tuck, 0, 0);
+  bend('calf_l', 1.7 * tuck, 0, 0);
+  bend('calf_r', 1.7 * tuck, 0, 0);
+  bend('spine_01', 0.55 * tuck, 0, 0);
+  bend('spine_02', 0.4 * tuck, 0, 0);
+  bend('upperarm_l', 1.4 * tuck, 0, -1.2 * tuck);
+  bend('upperarm_r', 1.4 * tuck, 0, 1.2 * tuck);
+  bend('lowerarm_l', -1.4 * tuck, 0, 0);
+  bend('lowerarm_r', -1.4 * tuck, 0, 0);
+}
+
+function frameSideCamera(width, height) {
+  const aspect = Math.max(0.6, width / Math.max(1, height));
+  const worldW = 31;
+  const worldH = 15;
+  let viewW = worldW;
+  let viewH = viewW / aspect;
+  if (viewH < worldH) {
+    viewH = worldH;
+    viewW = viewH * aspect;
+  }
+  const cx = 13;
+  const cy = 3.2;
+  camera.left = cx - viewW / 2;
+  camera.right = cx + viewW / 2;
+  camera.top = cy + viewH / 2;
+  camera.bottom = cy - viewH / 2;
+  camera.position.set(cx, cy, 28);
+  camera.lookAt(cx, cy, 0);
+  camera.updateProjectionMatrix();
 }
 
 function stepCamera(state, dt) {
@@ -481,8 +514,7 @@ export function resizeView(canvas) {
   const height = Math.max(1, canvas.clientHeight);
   renderer.setPixelRatio(dpr);
   renderer.setSize(width, height, false);
-  camera.aspect = width / height;
-  camera.updateProjectionMatrix();
+  frameSideCamera(width, height);
   } catch (err) {
     console.warn(err);
     flat = true;
@@ -503,23 +535,17 @@ export function draw(canvas, state) {
   if (renderer.domElement.width !== Math.floor(canvas.clientWidth * Math.min(window.devicePixelRatio || 1, 2))) {
     resizeView(canvas);
   }
-  stepCamera(state, dt);
-  const worldH = (WORLD.height / cam.zoom) * M;
-  const fov = THREE.MathUtils.degToRad(camera.fov);
-  const dist = (worldH * 0.5) / Math.tan(fov * 0.5);
-  look.copy(to3(cam.x, cam.y, 0));
-  camera.position.set(look.x, look.y, dist);
-  camera.lookAt(look);
+  frameSideCamera(canvas.clientWidth, canvas.clientHeight);
 
   const drop = (state?.bend ?? 0) * M;
   const boardLen = (408 - 86) * M;
   board.rotation.z = -Math.atan2(drop, boardLen);
 
-  scene.fog.density = cam.water > 0.35 ? 0.08 : 0.004;
-  scene.fog.color.set(cam.water > 0.35 ? 0x0c4c66 : 0xb9c6d2);
+  scene.fog.density = 0.004;
+  scene.fog.color.set(0xb9c6d2);
   updateCues(state);
-  if (tag) tag.textContent = `KAMERA  ${cam.label.toUpperCase()}`;
-  if (wash) wash.style.opacity = String(Math.min(0.55, cam.water * 0.5));
+  if (tag) tag.textContent = 'KAMERA  SEITE';
+  if (wash) wash.style.opacity = '0';
   renderer.render(scene, camera);
   } catch (err) {
     console.warn(err);

@@ -21,16 +21,16 @@ export function peakScore(value) {
   return (v / 0.28) * 0.34;
 }
 
-/** Training zieht einen knapp verpassten Druck näher an den Scheitel. */
+/** Training zieht einen knapp verpassten Druck deutlich näher an den Scheitel. */
 export function rateOsc(osc, training = false) {
-  const eased = training ? osc + (1 - osc) * 0.16 : osc;
+  const eased = training ? osc + (1 - osc) * 0.5 : osc;
   return peakScore(eased);
 }
 
 export function bandFor(band, training = false) {
   if (!training) return band;
   const [min, max] = band;
-  return [Math.max(0.05, min - 0.08), Math.min(1, max + 0.07)];
+  return [Math.max(0.08, min - 0.24), Math.min(1, max + 0.2)];
 }
 
 /** 1 innerhalb des Kraftbands, linear abfallend außerhalb. */

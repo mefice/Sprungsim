@@ -62,8 +62,7 @@ export function lineupMeter(state) {
   const remaining = timeToWater(state.y, state.vy);
   const visible = state.phase === 'kickout' || (state.airTime > 0.45 && remaining < 1.35);
   if (!visible) return null;
-  const errorScale = state.training ? 0.7 : 1;
-  return clampMeter((predictError(state) * errorScale) / (Math.PI / 2));
+  return clampMeter((predictError(state) * assistScale(state)) / (Math.PI / 2));
 }
 
 export const LINEUP_CENTER = 0.16;
@@ -71,8 +70,7 @@ export const LINEUP_CENTER = 0.16;
 /** Friert die Öffnen-Linie auf der Lage beim Loslassen ein. Ein zweiter Aufruf ändert sie nicht. */
 export function commitLine(state) {
   if (state.lineLock !== null && state.lineLock !== undefined) return;
-  const scale = state.training ? 0.7 : 1;
-  const error = predictError(state) * scale;
+  const error = predictError(state) * assistScale(state);
   state.lineLock = clampMeter(error / (Math.PI / 2));
   state.lineGrade = angleScore(error);
 }
@@ -87,9 +85,9 @@ export function startDive(dive, options = {}) {
   return {
     dive,
     training,
-    approachPeriod: training ? 1.7 : 1.38,
-    takeoffPeriod: training ? 1.55 : 1.22,
-    twistPeriod: training ? 0.98 : 0.74,
+    approachPeriod: training ? 2.15 : 1.38,
+    takeoffPeriod: training ? 2.05 : 1.22,
+    twistPeriod: training ? 1.25 : 0.74,
     phase: 'approach',
     stage: null,
     time: 0,
@@ -111,7 +109,7 @@ export function startDive(dive, options = {}) {
     needFreshPress: false,
     takeoffDone: false,
     approachScores: [],
-    approachLead: training ? 1.15 : 0.55,
+    approachLead: training ? 1.45 : 0.55,
     beatHit: false,
     halfCount: 0,
     halfPulse: 0,
@@ -190,7 +188,7 @@ function feltOsc(state, key, osc, dt) {
     state.oscHold = 0;
     state.oscHoldAge = 0;
   }
-  const grace = state.training ? 0.16 : 0.1;
+  const grace = state.training ? 0.42 : 0.1;
   if (osc >= state.oscHold) {
     state.oscHold = osc;
     state.oscHoldAge = 0;
@@ -261,7 +259,7 @@ function updateTakeoff(state, input, dt) {
       state.charging = true;
       const band = state.metrics.powerBand;
       const inBand = state.power >= band[0] && state.power <= band[1];
-      const rate = WORLD.chargeRate * (inBand ? 0.42 : 1) * (state.training ? 0.82 : 1);
+      const rate = WORLD.chargeRate * (inBand ? 0.34 : 1) * (state.training ? 0.7 : 1);
       state.power = Math.min(1, state.power + rate * dt);
     }
     const released = state.charging && !input.spaceDown;
@@ -329,7 +327,7 @@ function updateAir(state, input, dt) {
   if (phaseAtStart === 'kickout') {
     state.kickoutAge += dt;
     if (!input.tuckDown) state.releaseQueued = true;
-    const arm = state.training ? 0.2 : 0.12;
+    const arm = state.training ? 0.28 : 0.12;
     if (!state.opened && state.kickoutAge >= arm && state.releaseQueued) {
       commitLine(state);
       state.opened = true;
@@ -338,7 +336,8 @@ function updateAir(state, input, dt) {
   if (phaseAtStart === 'entry' && input.spacePressed) {
     const dist = WORLD.waterY - state.y;
     if (dist < 230 && dist > 6) {
-      const judged = state.training ? 72 + (dist - 72) * 0.62 : dist;
+      const pull = !state.training ? 1 : state.dive?.id === '101C' ? 0.22 : 0.4;
+      const judged = 72 + (dist - 72) * pull;
       const score = grabScore(judged);
       if (!state.grabbed || score >= state.grabValue) {
         state.grabbed = true;
@@ -418,7 +417,10 @@ function finish(state) {
   state.metrics.avgPose = state.poseN ? state.poseSum / state.poseN : 0;
   state.metrics.twistHits = state.twistHits;
   const rawError = state.rotation - state.targetRad;
-  state.metrics.angleError = state.training ? rawError * 0.72 : rawError;
+  state.metrics.angleError = rawError * assistScale(state);
+  if (state.training && state.dive?.id === '101C' && state.metrics.avgPose > 0.12) {
+    state.metrics.avgPose += (0.9 - state.metrics.avgPose) * 0.35;
+  }
   state.metrics.grab = state.grabValue ?? 0;
   state.metrics.approach = average(state.approachScores);
   if (state.lineLock === null) {
@@ -558,7 +560,7 @@ export function present(state) {
   const twistOsc = oscAt(state.airTime, state.twistPeriod);
   const grabOsc = showGrab ? grabMarker(state) : 0;
   const active = showTwist ? twistOsc : showGrab ? grabOsc : osc;
-  const hotAt = state.training ? 0.78 : 0.86;
+  const hotAt = state.training ? 0.55 : 0.86;
 
   return {
     phase: state.phase,
@@ -629,7 +631,7 @@ function cues(state, inBand) {
       ? { instruction: 'Flug — S oder ↓ gedrückt halten', tip: 'Ohne Hocke kommt die Drehung nicht herum.' }
       : { instruction: `Flug — S halten, bis die Drehung sitzt.${twist}`, tip: 'Der Ring an der Figur füllt jede halbe Drehung.' };
   }
-  if (state.phase === 'kickout' && state.kickoutAge < (state.training ? 0.2 : 0.12)) {
+  if (state.phase === 'kickout' && state.kickoutAge < (state.training ? 0.28 : 0.12)) {
     return {
       instruction: 'Öffnen — Nadel lesen, S noch halten',
       tip: 'Gleich loslassen, wenn sie in der Mitte steht.',
@@ -656,6 +658,11 @@ function phaseLabel(state) {
   if (state.phase === 'kickout') return 'Öffnen';
   if (state.phase === 'entry') return 'Eintritt';
   return 'Ergebnis';
+}
+
+function assistScale(state) {
+  if (!state?.training) return 1;
+  return state.dive?.id === '101C' ? 0.4 : 0.58;
 }
 
 function clampMeter(value) {

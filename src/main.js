@@ -46,6 +46,7 @@ const ui = {
   score: document.getElementById('score-display'),
   judge: document.getElementById('judge-feedback'),
   instructions: document.getElementById('instructions'),
+  now: document.getElementById('now-banner'),
   tip: document.getElementById('tip'),
   pause: document.getElementById('pause-overlay'),
   resume: document.getElementById('resume-btn'),
@@ -304,9 +305,11 @@ function meetStandText() {
 function sync(view) {
   if (!view) return;
   ui.phase.textContent = view.phaseLabel;
-  ui.instructions.textContent = view.timingHot ? `Jetzt. ${view.instruction}` : view.instruction;
+  const now = Boolean(view.timingHot || view.powerHot);
+  ui.now.classList.toggle('visible', now);
+  ui.instructions.textContent = now ? `Jetzt. ${view.instruction}` : view.instruction;
   ui.instructions.classList.toggle('hidden', !view.instruction);
-  ui.instructions.classList.toggle('hot', view.timingHot);
+  ui.instructions.classList.toggle('hot', now);
   ui.tip.textContent = view.tip || '';
   ui.tip.classList.toggle('hidden', !view.tip);
   const showRing = view.showTiming || view.showGrab || view.showTwist;
