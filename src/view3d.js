@@ -4,6 +4,11 @@ import { RGBELoader } from 'three/addons/loaders/RGBELoader.js';
 import { draw as drawFlat } from './render.js';
 import { LINEUP_CENTER, WORLD, grabOpen, lineupMeter } from './sim.js';
 
+function assetUrl(file) {
+  const base = import.meta.env.BASE_URL || './';
+  return `${base}${base.endsWith('/') ? '' : '/'}assets/${file}`;
+}
+
 const M = 10 / (WORLD.waterY - WORLD.platformY);
 
 const cam = { x: 640, y: 390, zoom: 1.04, water: 0, label: 'Halle' };
@@ -55,7 +60,7 @@ function ensure(canvas) {
   if (renderer) return;
   renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.05;
+  renderer.toneMappingExposure = 0.92;
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -65,8 +70,8 @@ function ensure(canvas) {
   scene.fog = new THREE.FogExp2(0xb9c6d2, 0.004);
   camera = new THREE.OrthographicCamera(-16, 16, 9, -9, 0.1, 90);
 
-  scene.add(new THREE.HemisphereLight(0xe7f2ff, 0x6e7c86, 0.55));
-  const sun = new THREE.DirectionalLight(0xfff4e0, 2.4);
+  scene.add(new THREE.HemisphereLight(0xe7f2ff, 0x6e7c86, 0.4));
+  const sun = new THREE.DirectionalLight(0xfff4e0, 1.15);
   sun.position.set(8, 22, 14);
   sun.castShadow = true;
   sun.shadow.mapSize.set(2048, 2048);
@@ -95,10 +100,33 @@ function ensure(canvas) {
   document.getElementById('app').append(tag, wash);
 }
 
+function paintedTiles() {
+  const canvas = document.createElement('canvas');
+  canvas.width = 256;
+  canvas.height = 256;
+  const ctx = canvas.getContext('2d');
+  for (let y = 0; y < 4; y += 1) {
+    for (let x = 0; x < 4; x += 1) {
+      ctx.fillStyle = (x + y) % 2 === 0 ? '#1a6d90' : '#2186ad';
+      ctx.fillRect(x * 64, y * 64, 64, 64);
+      ctx.strokeStyle = '#e7f4f6';
+      ctx.lineWidth = 4;
+      ctx.strokeRect(x * 64 + 2, y * 64 + 2, 60, 60);
+    }
+  }
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.wrapS = THREE.RepeatWrapping;
+  tex.wrapT = THREE.RepeatWrapping;
+  tex.repeat.set(8, 4);
+  return tex;
+}
+
 function tileMaterial() {
   const mat = new THREE.MeshStandardMaterial({
+    map: paintedTiles(),
     color: 0xffffff,
-    roughness: 0.42,
+    roughness: 0.45,
     metalness: 0.04,
   });
   const loader = new THREE.TextureLoader();
@@ -106,20 +134,21 @@ function tileMaterial() {
     tex.colorSpace = slot === 'map' ? THREE.SRGBColorSpace : THREE.NoColorSpace;
     tex.wrapS = THREE.RepeatWrapping;
     tex.wrapT = THREE.RepeatWrapping;
-    tex.repeat.set(10, 6);
+    tex.repeat.set(8, 4);
     mat[slot] = tex;
     mat.needsUpdate = true;
   };
-  loader.load('/assets/tiles_diff.jpg', (tex) => apply(tex, 'map'));
-  loader.load('/assets/tiles_nor.jpg', (tex) => apply(tex, 'normalMap'));
-  loader.load('/assets/tiles_rough.jpg', (tex) => apply(tex, 'roughnessMap'));
+  const quiet = () => {};
+  loader.load(assetUrl('tiles_diff.jpg'), (tex) => apply(tex, 'map'), undefined, quiet);
+  loader.load(assetUrl('tiles_nor.jpg'), (tex) => apply(tex, 'normalMap'), undefined, quiet);
+  loader.load(assetUrl('tiles_rough.jpg'), (tex) => apply(tex, 'roughnessMap'), undefined, quiet);
   return mat;
 }
 
 function buildHall() {
-  const plaster = new THREE.MeshStandardMaterial({ color: 0xe4ddd2, roughness: 0.9, metalness: 0 });
-  const deck = new THREE.MeshStandardMaterial({ color: 0xcfc6b8, roughness: 0.82, metalness: 0.02 });
-  const metal = new THREE.MeshStandardMaterial({ color: 0xb7c0c8, roughness: 0.35, metalness: 0.72 });
+  const wall = new THREE.MeshBasicMaterial({ color: 0x5c7386 });
+  const deckMat = new THREE.MeshStandardMaterial({ color: 0xc8c2b6, roughness: 0.84 });
+  const metal = new THREE.MeshStandardMaterial({ color: 0xd5dbe2, roughness: 0.32, metalness: 0.65 });
   const tiles = tileMaterial();
   const box = (w, h, d, material, x, y, z, shadow = true) => {
     const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), material);
@@ -130,37 +159,28 @@ function buildHall() {
     return mesh;
   };
 
-  box(36, 14, 0.4, plaster, 14, 7, -9.2, false);
-  box(36, 0.35, 18, deck, 14, -0.18, 0, false);
-  box(0.4, 14, 18, plaster, -2.2, 7, 0, false);
-  box(36, 0.3, 18, plaster, 14, 13.6, -2, false);
+  box(22, 7.2, 0.28, wall, 15.5, 3.6, -7.2, false);
+  box(8, 0.28, 3.2, deckMat, 2.2, 0.1, 0, false);
 
-  const poolX = 15.5;
+  const poolX = 15.2;
   const poolZ = 0;
-  box(22, 0.25, 12, tiles, poolX, -3.15, poolZ);
-  box(0.35, 3.2, 12, tiles, poolX - 11, -1.55, poolZ);
-  box(0.35, 3.2, 12, tiles, poolX + 11, -1.55, poolZ);
-  box(22, 3.2, 0.35, tiles, poolX, -1.55, -6);
+  box(20, 0.22, 8, tiles, poolX, -3.05, poolZ);
+  box(0.28, 3.0, 8, tiles, poolX - 10, -1.5, poolZ);
+  box(0.28, 3.0, 8, tiles, poolX + 10, -1.5, poolZ);
+  box(20, 3.0, 0.28, tiles, poolX, -1.5, -4);
 
-  waterMat = new THREE.MeshPhysicalMaterial({
-    color: 0x1c7ea0,
-    roughness: 0.06,
-    metalness: 0.02,
-    transmission: 0.55,
-    thickness: 1.4,
+  waterMat = new THREE.MeshBasicMaterial({
+    color: 0x1a9ec8,
     transparent: true,
-    opacity: 0.88,
-    envMapIntensity: 1.15,
+    opacity: 0.9,
   });
   const water = new THREE.Mesh(new THREE.PlaneGeometry(21.4, 11.4), waterMat);
   water.rotation.x = -Math.PI / 2;
   water.position.set(poolX, 0.02, poolZ);
-  const volume = new THREE.Mesh(new THREE.BoxGeometry(21.2, 3.0, 10.5), waterMat);
-  volume.position.set(poolX, -1.5, poolZ);
+  const volume = new THREE.Mesh(new THREE.BoxGeometry(19.4, 2.9, 7.2), waterMat);
+  volume.position.set(poolX, -1.45, poolZ);
   scene.add(volume);
   water.receiveShadow = true;
-  water.renderOrder = 2;
-  waterMat.depthWrite = false;
   scene.add(water);
 
   for (let i = 0; i < 6; i += 1) {
@@ -172,7 +192,7 @@ function buildHall() {
     scene.add(lane);
   }
 
-  const towerMat = new THREE.MeshStandardMaterial({ color: 0x9aa3ad, roughness: 0.72, metalness: 0.08 });
+  const towerMat = new THREE.MeshBasicMaterial({ color: 0x2c3b4a });
   box(3.4, 10, 2.4, towerMat, 1.2, 5, 0);
   box(3.6, 0.35, 2.8, towerMat, 1.5, 10.1, 0);
   const boardLen = (408 - 86) * M;
@@ -183,26 +203,7 @@ function buildHall() {
   board.receiveShadow = true;
   scene.add(board);
 
-  const rail = new THREE.MeshStandardMaterial({ color: 0x8d98a3, roughness: 0.4, metalness: 0.6 });
-  box(16, 0.9, 1.1, plaster, 16, 1.3, -7.4, false);
-  box(16, 0.7, 1.1, plaster, 16, 2.2, -7.7, false);
-  for (let i = 0; i < 8; i += 1) {
-    box(0.35, 1.15, 0.35, rail, 9 + i * 2, 1.7, -7.2, false);
-  }
-
-  for (let i = 0; i < 4; i += 1) {
-    const win = new THREE.Mesh(
-      new THREE.PlaneGeometry(2.2, 3.2),
-      new THREE.MeshStandardMaterial({
-        color: 0xfff1d2,
-        emissive: 0xffe2b0,
-        emissiveIntensity: 0.85,
-        roughness: 0.2,
-      }),
-    );
-    win.position.set(4 + i * 6.5, 11.2, -8.95);
-    scene.add(win);
-  }
+  box(12, 1.4, 0.8, wall, 16, 0.9, -5.6, false);
 }
 
 function cueMaterial() {
@@ -278,28 +279,57 @@ function buildAthlete() {
   facing.add(athlete);
   diver.add(facing);
   scene.add(diver);
+  athlete.add(buildFigure());
+}
 
-  const skin = new THREE.MeshPhysicalMaterial({
-    color: 0xc6866a,
-    roughness: 0.62,
-    metalness: 0,
-    sheen: 0.35,
-    sheenColor: new THREE.Color(0xffc8b0),
-    sheenRoughness: 0.55,
-  });
-  const suit = new THREE.MeshStandardMaterial({ color: 0x0c3f78, roughness: 0.45, metalness: 0.08 });
-  const part = (geo, material, x, y, z) => {
-    const mesh = new THREE.Mesh(geo, material);
-    mesh.position.set(x, y, z);
+function buildFigure() {
+  const skin = new THREE.MeshStandardMaterial({ color: 0xc6866a, roughness: 0.58 });
+  const suit = new THREE.MeshStandardMaterial({ color: 0x0d4f86, roughness: 0.42 });
+  const hair = new THREE.MeshStandardMaterial({ color: 0x2c241f, roughness: 0.7 });
+  const figure = new THREE.Group();
+  figure.name = 'fallback-athlete';
+  const capsule = (radius, length, material) => new THREE.Mesh(
+    new THREE.CapsuleGeometry(radius, Math.max(0.04, length), 5, 8),
+    material,
+  );
+  const torso = capsule(0.16, 0.36, suit);
+  torso.position.y = 0.28;
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.13, 16, 12), skin);
+  head.position.set(0, 0.74, 0.02);
+  const cap = new THREE.Mesh(new THREE.SphereGeometry(0.136, 12, 8), hair);
+  cap.scale.set(1, 0.62, 1.05);
+  cap.position.set(0, 0.82, -0.01);
+  const hang = (length, radius, material) => {
+    const pivot = new THREE.Group();
+    const mesh = capsule(radius, length, material);
+    mesh.position.y = -length / 2;
     mesh.castShadow = true;
-    athlete.add(mesh);
-    return mesh;
+    pivot.add(mesh);
+    return pivot;
   };
-  part(new THREE.CapsuleGeometry(0.16, 0.42, 6, 10), suit, 0, 0.15, 0);
-  part(new THREE.CapsuleGeometry(0.11, 0.28, 4, 8), skin, 0, 0.62, 0);
-  part(new THREE.SphereGeometry(0.13, 16, 14), skin, 0, 0.92, 0.02);
-  part(new THREE.CapsuleGeometry(0.07, 0.34, 4, 8), skin, 0.02, -0.42, 0.02);
-  athlete.userData.placeholder = true;
+  const thighL = hang(0.42, 0.075, skin);
+  thighL.position.set(0.1, 0.02, 0);
+  const calfL = hang(0.4, 0.055, skin);
+  calfL.position.y = -0.42;
+  thighL.add(calfL);
+  const thighR = hang(0.42, 0.075, skin);
+  thighR.position.set(-0.1, 0.02, 0);
+  const calfR = hang(0.4, 0.055, skin);
+  calfR.position.y = -0.42;
+  thighR.add(calfR);
+  const armL = hang(0.32, 0.05, skin);
+  armL.position.set(0.24, 0.5, 0);
+  const foreL = hang(0.28, 0.042, skin);
+  foreL.position.y = -0.32;
+  armL.add(foreL);
+  const armR = hang(0.32, 0.05, skin);
+  armR.position.set(-0.24, 0.5, 0);
+  const foreR = hang(0.28, 0.042, skin);
+  foreR.position.y = -0.32;
+  armR.add(foreR);
+  figure.add(torso, head, cap, thighL, thighR, armL, armR);
+  figure.userData.limbs = { thighL, thighR, calfL, calfR, armL, armR, foreL, foreR };
+  return figure;
 }
 
 function skinMaterial() {
@@ -329,7 +359,7 @@ function skinMaterial() {
 
 function loadAthlete() {
   const loader = new GLTFLoader();
-  loader.load('/assets/athlete.glb', (gltf) => {
+  loader.load(assetUrl('athlete.glb'), (gltf) => {
     const root = gltf.scene;
     const mat = skinMaterial();
     root.traverse((obj) => {
@@ -352,14 +382,14 @@ function loadAthlete() {
       root.position.sub(local);
     }
     bones.forEach((bone, name) => rests.set(name, bone.quaternion.clone()));
-  });
+  }, undefined, () => {});
 }
 
 function loadEnvironment() {
-  new RGBELoader().load('/assets/indoor_pool_1k.hdr', (tex) => {
+  new RGBELoader().load(assetUrl('indoor_pool_1k.hdr'), (tex) => {
     tex.mapping = THREE.EquirectangularReflectionMapping;
     scene.environment = tex;
-  });
+  }, undefined, () => {});
 }
 
 function bend(name, x, y, z) {
@@ -371,12 +401,45 @@ function bend(name, x, y, z) {
   bone.quaternion.copy(rest).multiply(extra);
 }
 
+function poseFigure(state) {
+  const figure = athlete.getObjectByName('fallback-athlete');
+  const limbs = figure?.userData.limbs;
+  if (!limbs) return;
+  Object.values(limbs).forEach((limb) => limb.rotation.set(0, 0, 0));
+  if (!state) return;
+  const laidOut = Boolean(state.opened || state.phase === 'entry' || state.phase === 'result');
+  const tuck = laidOut ? 0 : (state.pose ?? 0);
+  const airborne = state.phase === 'flight' || state.phase === 'kickout' || state.phase === 'entry' || state.phase === 'result';
+  if (!airborne) {
+    limbs.armL.rotation.z = 0.4;
+    limbs.armR.rotation.z = -0.4;
+    return;
+  }
+  if (laidOut) {
+    limbs.armL.rotation.x = -2.5;
+    limbs.armR.rotation.x = -2.5;
+    return;
+  }
+  limbs.thighL.rotation.x = -1.45 * tuck;
+  limbs.thighR.rotation.x = -1.45 * tuck;
+  limbs.calfL.rotation.x = 1.6 * tuck;
+  limbs.calfR.rotation.x = 1.6 * tuck;
+  limbs.armL.rotation.x = -1.15 * tuck;
+  limbs.armR.rotation.x = -1.15 * tuck;
+  limbs.foreL.rotation.x = -1.05 * tuck;
+  limbs.foreR.rotation.x = -1.05 * tuck;
+}
+
 function poseAthlete(state) {
+  if (rests.size === 0) {
+    poseFigure(state);
+    return;
+  }
   rests.forEach((rest, name) => {
     const bone = bones.get(name);
     if (bone) bone.quaternion.copy(rest);
   });
-  if (!state || rests.size === 0) return;
+  if (!state) return;
   const laidOut = Boolean(state.opened || state.phase === 'entry' || state.phase === 'result');
   const tuck = laidOut ? 0 : (state.pose ?? 0);
   const airborne = state.phase === 'flight' || state.phase === 'kickout' || state.phase === 'entry' || state.phase === 'result';
@@ -408,20 +471,20 @@ function poseAthlete(state) {
 
 function frameSideCamera(width, height) {
   const aspect = Math.max(0.6, width / Math.max(1, height));
-  const worldW = 31;
-  const worldH = 15;
+  const worldW = 26;
+  const worldH = 16;
   let viewW = worldW;
   let viewH = viewW / aspect;
   if (viewH < worldH) {
     viewH = worldH;
     viewW = viewH * aspect;
   }
-  const cx = 13;
-  const cy = 3.2;
-  camera.left = cx - viewW / 2;
-  camera.right = cx + viewW / 2;
-  camera.top = cy + viewH / 2;
-  camera.bottom = cy - viewH / 2;
+  const cx = 11;
+  const cy = 4;
+  camera.left = -viewW / 2;
+  camera.right = viewW / 2;
+  camera.top = viewH / 2;
+  camera.bottom = -viewH / 2;
   camera.position.set(cx, cy, 28);
   camera.lookAt(cx, cy, 0);
   camera.updateProjectionMatrix();
@@ -469,7 +532,10 @@ function updateCues(state) {
     lineup.visible = false;
     grabRing.visible = false;
     spinRing.visible = false;
-    diver.visible = false;
+    diver.visible = true;
+    diver.position.copy(to3(210, WORLD.platformY - 42));
+    diver.rotation.set(0, 0, 0);
+    poseAthlete({ phase: 'approach', pose: 0, opened: false, rotation: 0 });
     drops.forEach((drop) => { drop.visible = false; });
     return;
   }

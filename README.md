@@ -11,6 +11,8 @@ npm run dev
 
 Im Browser `http://localhost:3000` öffnen. **Referenz ansehen** spielt den gewählten Sprung einmal sauber vor, ohne die Session zu werten. Danach selbst springen. Produktion bauen mit `npm run build`, lokal prüfen mit `npm run preview`.
 
+Die 3D-Dateien liegen in `public/assets/` (`athlete.glb`, `indoor_pool_1k.hdr`, `tiles_diff.jpg`, `tiles_nor.jpg`, `tiles_rough.jpg`). Geladen wird `import.meta.env.BASE_URL` plus `assets/…`, damit `base: './'` in Dev und Preview stimmt. Fehlt eine Datei, bleibt eine gezeichnete Figur auf dem Turm und ein blaues Becken.
+
 Die Wertung ist deterministisch getestet:
 
 ```bash
