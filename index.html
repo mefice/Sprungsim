@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ZEHN METER - Vertical Slice</title>
+  <link rel="stylesheet" href="/src/style.css">
+</head>
+<body>
+  <div id="app">
+    <canvas id="gameCanvas"></canvas>
+    <div id="ui-overlay">
+      <div id="phase-indicator"></div>
+      <div id="timing-bar-container">
+        <div id="timing-bar">
+          <div id="timing-marker"></div>
+          <div id="timing-target"></div>
+        </div>
+      </div>
+      <div id="dive-info"></div>
+      <div id="score-display"></div>
+      <div id="judge-feedback"></div>
+      <div id="instructions"></div>
+    </div>
+    <div id="menu-overlay">
+      <div id="menu">
+        <h1>ZEHN METER</h1>
+        <p class="subtitle">Wasserspringen Skill-Prototype</p>
+        <div id="dive-selection">
+          <h2>Sprung wählen</h2>
+          <div id="dive-buttons"></div>
+        </div>
+        <button id="start-btn" class="menu-btn">Sprung starten</button>
+        <div id="session-stats"></div>
+      </div>
+    </div>
+  </div>
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>

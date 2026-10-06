@@ -1,0 +1,21 @@
+{
+  "name": "zehn-meter-prototype",
+  "version": "0.1.0",
+  "description": "ZEHN METER / Sprungsim - Vertical Slice Prototype",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mefice/Sprungsim.git"
+  },
+  "keywords": ["diving", "sports", "simulation", "wasserspringen"],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "vite": "^6.3.5"
+  }
+}
