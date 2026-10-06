@@ -23,7 +23,7 @@ Die Tests spielen denselben Sprung mit sauberem Timing, mit frühem Öffnen, ohn
 
 Standard ist **Training**: die Marker laufen langsamer, „Jetzt“ gilt für das ganze grüne Feld, und ein Druck knapp nach dem Scheitel zählt noch. Der Kopfsprung 101C vergibt dafür schon eine hohe Note. **Wettkampf** bleibt enger. Ein sauberer Sprung liegt weiter bei Ausführung 10, also 14 bis 20 Punkten je nach DD.
 
-Unten im Bild steht immer die eine Aktion der aktuellen Phase, darunter ein kurzer Tipp. Der Anlauf beginnt mit „Bereit“, damit der erste Schritt nicht überrascht. Liegt der Marker im grünen Feld, erscheint groß **JETZT**. Im Flug füllt ein Ring an der Figur jede halbe Drehung und blitzt, wenn sie voll ist. Oben steht „Halbe 2 von 3“. Die Nadel zum Öffnen kommt erst danach. Beim Eintritt liegt ein Ring auf der Wasserlinie und geht auf, wenn die Hände greifen sollen. Nach dem Greifen bleibt er auf dieser Öffnung stehen und färbt sich wie die Hand-Grab-Note: grün, gold oder rot. Ein verpasster Griff bleibt als roter Ring. Zum Öffnen steht eine gestrichelte Linie im Wasser: senkrecht und gold, wenn die Nadel in der Mitte ist, geneigt, wenn sie nach links oder rechts wandert. Nach dem Loslassen bleibt sie auf diesem Winkel stehen und färbt sich wie die Öffnen-Note: grün, gold oder rot.
+Unten im Bild steht immer die eine Aktion der aktuellen Phase, darunter ein kurzer Tipp. Der Anlauf beginnt mit „Bereit“, damit der erste Schritt nicht überrascht. Liegt der Marker im grünen Feld, erscheint groß **JETZT**. Im Flug füllt ein Ring an der Figur jede halbe Drehung und blitzt, wenn sie voll ist. Oben steht „Halbe 2 von 3“. Die Nadel zum Öffnen kommt erst danach. Beim Eintritt liegt ein Ring auf der Wasserlinie und geht auf, wenn die Hände greifen sollen. Nach dem Greifen bleibt er auf dieser Öffnung stehen und färbt sich wie die Hand-Grab-Note: grün, gold oder rot. Ein verpasster Griff bleibt als roter Ring. Zum Öffnen steht eine dicke gestrichelte Linie im Wasser: senkrecht und gold, wenn die Nadel in der Mitte ist, geneigt, wenn sie nach links oder rechts wandert. Der Greif-Ring ist in der Weitansicht groß, der innere Ring geht auf. Nach dem Loslassen bleibt sie auf diesem Winkel stehen und färbt sich wie die Öffnen-Note: grün, gold oder rot.
 
 `Esc` pausiert, `R` startet denselben Sprung neu. In der Pause kannst du weitermachen, neu starten oder den Sprung wechseln.
 
@@ -99,7 +99,7 @@ Bild und Ton liegen über der Mechanik, die Wertung bleibt dieselbe. Die Halle i
 
 - Athlet aus einem CC0-glTF. In der Hocke sind Knie und Arme angezogen, die Drehung läuft in der Seitenansicht. Nach dem Öffnen gehen die Arme über den Kopf.
 - Becken mit CC0-Fliesen und dem HDRI `indoor_pool`. Die Kamera ist eine feste weite Seitenansicht von Turm bis Becken.
-- Öffnen-Linie und Greif-Ring liegen weiter im Wasser und färben sich nach der Note.
+- Öffnen-Linie und Greif-Ring sind in der Weitansicht dicke Marken vor dem Wasser. Die Linie kippt mit der Nadel, der innere Ring geht auf, wenn gegriffen werden soll. Die Farben bleiben an der Note.
 - Der Timing-Hinweis in der Leiste bleibt. Kurzklänge ohne Audiodateien.
 
 Lizenzen der mitgelieferten Dateien stehen in `ASSETS.md`.
@@ -108,6 +108,6 @@ Bewusst nicht in diesem Prototyp: Kalender, Sponsoren, Kader, Unreal, filmische 
 
 ## Danach
 
-Der nächste sinnvolle Slice: Öffnen-Linie und Greif-Ring in der festen Weitansicht größer zeichnen, damit beide Momente auf die Distanz noch lesbar sind.
+Der nächste sinnvolle Slice: der Halbe-Drehung-Ring an der Figur in derselben Weitansicht dicker machen, damit jede halbe Drehung auch aus der Distanz aufblitzt.
 
 Der Code liegt in `src/sim.js` (Phasen und Physik), `src/scoring.js` (Note), `src/career.js` (Punkte und Gegner), `src/view3d.js` (Three.js-Halle und Athlet) und `src/audio.js` (Klänge). Die Sprünge stehen in `src/dives.js`.

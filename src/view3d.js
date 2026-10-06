@@ -205,23 +205,33 @@ function buildHall() {
   }
 }
 
+function cueMaterial() {
+  return new THREE.MeshBasicMaterial({ color: 0xffffff });
+}
+
 function buildCues() {
-  lineup = new THREE.Line(
-    new THREE.BufferGeometry().setFromPoints([
-      new THREE.Vector3(0, 0.05, 0),
-      new THREE.Vector3(0, -1.8, 0),
-    ]),
-    new THREE.LineDashedMaterial({ color: 0xffffff, dashSize: 0.14, gapSize: 0.1, linewidth: 1 }),
-  );
-  lineup.computeLineDistances();
+  const lineMat = cueMaterial();
+  lineup = new THREE.Group();
+  lineup.userData.material = lineMat;
+  const dash = 0.7;
+  const gap = 0.32;
+  for (let i = 0; i < 5; i += 1) {
+    const mesh = new THREE.Mesh(new THREE.BoxGeometry(0.38, dash, 0.16), lineMat);
+    mesh.position.y = -0.15 - dash / 2 - i * (dash + gap);
+    lineup.add(mesh);
+  }
   lineup.visible = false;
   scene.add(lineup);
 
-  grabRing = new THREE.Mesh(
-    new THREE.TorusGeometry(0.72, 0.035, 10, 48),
-    new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.35, metalness: 0.1, emissive: 0x000000 }),
-  );
-  grabRing.rotation.x = Math.PI / 2;
+  const ringMat = cueMaterial();
+  const coreMat = cueMaterial();
+  grabRing = new THREE.Group();
+  grabRing.userData.ringMat = ringMat;
+  grabRing.userData.coreMat = coreMat;
+  grabRing.add(new THREE.Mesh(new THREE.TorusGeometry(2.05, 0.18, 14, 72), ringMat));
+  const core = new THREE.Mesh(new THREE.TorusGeometry(2.05, 0.12, 12, 64), coreMat);
+  core.name = 'grab-core';
+  grabRing.add(core);
   grabRing.visible = false;
   scene.add(grabRing);
 
@@ -454,11 +464,11 @@ function updateCues(state) {
   const value = state.lineLock ?? lineupMeter(state);
   lineup.visible = value !== null && value !== undefined;
   if (lineup.visible) {
-    const at = to3(state.x, WORLD.waterY, 0.05);
+    const at = to3(state.x, WORLD.waterY, 6.2);
     lineup.position.copy(at);
     lineup.rotation.z = -value * (Math.PI / 2) * 0.85;
     const graded = state.lineGrade !== null && state.lineGrade !== undefined;
-    lineup.material.color.setHex(graded
+    lineup.userData.material.color.setHex(graded
       ? gradeHex(state.lineGrade)
       : Math.abs(value) <= LINEUP_CENTER ? 0xf1c40f : 0xffffff);
   }
@@ -468,15 +478,15 @@ function updateCues(state) {
   grabRing.visible = gradedGrab || liveGrab;
   if (grabRing.visible) {
     const open = gradedGrab ? Math.max(state.grabLock ?? 0, 0.55) : grabOpen(state);
-    grabRing.position.copy(to3(state.x, WORLD.waterY, 0));
-    grabRing.position.y = 0.04;
-    grabRing.scale.setScalar(0.45 + open * 0.85);
+    grabRing.position.copy(to3(state.x, WORLD.waterY, 6.2));
+    grabRing.position.y = 0.15;
+    const core = grabRing.getObjectByName('grab-core');
+    core.scale.setScalar(0.28 + open * 0.66);
     const color = gradedGrab
       ? gradeHex(state.grabGrade)
       : open >= 0.78 ? 0xf1c40f : 0xffffff;
-    grabRing.material.color.setHex(color);
-    grabRing.material.emissive.setHex(color);
-    grabRing.material.emissiveIntensity = gradedGrab ? 0.25 : 0.05;
+    grabRing.userData.ringMat.color.setHex(color);
+    grabRing.userData.coreMat.color.setHex(color);
   }
 
   const showSpin = state.phase !== 'approach' && state.phase !== 'takeoff';
