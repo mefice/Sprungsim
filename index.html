@@ -24,14 +24,18 @@
         <div id="dive-name" class="dive-name"></div>
         <div id="dive-dd" class="dive-dd"></div>
       </div>
-      <div id="meters">
-        <div id="timing-bar-container">
-          <div class="meter-label">Ziel</div>
-          <div id="timing-bar">
-            <div id="timing-target"></div>
-            <div id="timing-marker"></div>
-          </div>
+      <div id="hud-cues">
+      <div id="cue-ring" class="hidden">
+        <div class="ring-label" id="cue-label">Ziel</div>
+        <div class="ring">
+          <svg viewBox="0 0 100 100" aria-hidden="true">
+            <circle cx="50" cy="50" r="40" class="ring-track"></circle>
+            <path id="cue-zone" class="ring-zone"></path>
+            <circle id="cue-dot" class="ring-dot" cx="50" cy="10" r="4.5"></circle>
+          </svg>
         </div>
+      </div>
+      <div id="meters">
         <div id="power-meter" class="meter hidden">
           <div class="meter-label">Kraft <span id="power-target"></span></div>
           <div class="bar">
@@ -47,21 +51,7 @@
           </div>
           <div class="meter-scale"><span>kurz</span><span>vertikal</span><span>überdreht</span></div>
         </div>
-        <div id="grab-meter" class="meter hidden">
-          <div class="meter-label">Hand-Grab — Leertaste im Ziel</div>
-          <div class="bar">
-            <div class="zone grab-zone"></div>
-            <div class="needle" id="grab-needle"></div>
-          </div>
-          <div class="meter-scale"><span>zu früh</span><span>Rip</span><span>Wasser</span></div>
-        </div>
-        <div id="twist-meter" class="meter hidden">
-          <div class="meter-label">Schraube <span id="twist-count"></span> — T im Ziel</div>
-          <div class="bar">
-            <div class="zone twist-zone"></div>
-            <div class="needle" id="twist-needle"></div>
-          </div>
-        </div>
+      </div>
       </div>
       <div id="score-display"></div>
       <div id="judge-feedback"></div>

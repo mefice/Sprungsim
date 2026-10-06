@@ -67,7 +67,17 @@ Der Slice setzt die Mechanik aus dem Game Design Document um, nicht die Karriere
 - **Kapitel 6** — Sprungnummern 101C, 103B und 5132D, DD in der Größenordnung der 10-m-Tabelle.
 - **Kapitel 7** — Punkte als Ausführung mal Schwierigkeit. Im vollen Spiel streichen sieben Kampfrichter die Extremwerte. Hier gibt es eine offene Ausführung, damit jeder Abzug nachvollziehbar bleibt.
 
-Bewusst nicht in diesem Prototyp: Kalender, Sponsoren, Kader, Unreal, Wasser-Simulation in Filmqualität.
+## Präsentation
+
+Bild und Ton liegen über der Mechanik, die Wertung bleibt dieselbe.
+
+- Halle mit Lichtschächten, Publikum als Silhouette, Brett mit sichtbarer Federung.
+- Kamera wechselt sanft: Turmseite, Flug, Wasserkante, Unterwasser, danach eine weite Replay-Ansicht. Die Bezeichnung steht links unten.
+- Wasser zeigt Spiegelung, Kaustik und eine andere Eintrittssignatur: Rip ist eng, mit Blasenschlauch und goldenem Ring. Ein schlechter Eintritt wirft eine breite Gischt.
+- Der Timing-Hinweis ist ein Ring. Kraft und Eintrittslinie bleiben Balken.
+- Kurzklänge ohne Audiodateien: Brettknarren, Luftrauschen, Crowd-Rauschen, trockener Rip oder breiter Platscher.
+
+Bewusst nicht in diesem Prototyp: Kalender, Sponsoren, Kader, Unreal, filmische Fluid-Simulation.
 
 ## Nächste Schritte
 
@@ -76,4 +86,4 @@ Bewusst nicht in diesem Prototyp: Kalender, Sponsoren, Kader, Unreal, Wasser-Sim
 3. Replay der fünf Inputs, damit ein Sprung erklärbar bleibt.
 4. Erst danach Venue, Athlet und Wettkampf in der Zielengine.
 
-Der Code liegt in `src/sim.js` (Phasen und Physik), `src/scoring.js` (Note) und `src/render.js` (Bild). Die Sprünge stehen in `src/dives.js`.
+Der Code liegt in `src/sim.js` (Phasen und Physik), `src/scoring.js` (Note), `src/render.js` (Bild und Kamera) und `src/audio.js` (Klänge). Die Sprünge stehen in `src/dives.js`.

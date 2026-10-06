@@ -1,220 +1,450 @@
 import { WORLD } from './sim.js';
 
+const cam = { x: 640, y: 390, zoom: 1.04, water: 0, label: 'Halle' };
+let lastStamp = 0;
+const trail = [];
+let trailTick = 0;
+
+const CROWD = Array.from({ length: 26 }, (_, i) => ({
+  x: 500 + (i % 13) * 52,
+  row: i < 13 ? 0 : 1,
+  h: 22 + (i * 5) % 12,
+  lean: (i % 4) - 1.5,
+}));
+
+function verticalGradient(ctx, y0, y1, stops) {
+  const grad = ctx.createLinearGradient(0, y0, 0, y1);
+  stops.forEach((color, index) => grad.addColorStop(index / (stops.length - 1), color));
+  return grad;
+}
+
 export function draw(ctx, state, viewW, viewH) {
-  ctx.fillStyle = '#071018';
+  const now = performance.now();
+  const dt = lastStamp ? Math.min(0.05, (now - lastStamp) / 1000) : 0.016;
+  lastStamp = now;
+  stepCamera(state, dt);
+  stepTrail(state);
+
+  ctx.fillStyle = '#05080d';
   ctx.fillRect(0, 0, viewW, viewH);
 
-  const scale = Math.min(viewW / WORLD.width, viewH / WORLD.height);
-  const ox = (viewW - WORLD.width * scale) / 2;
-  const oy = (viewH - WORLD.height * scale) / 2;
+  const worldW = WORLD.width / cam.zoom;
+  const worldH = WORLD.height / cam.zoom;
+  let left = cam.x - worldW / 2;
+  let top = cam.y - worldH / 2;
+  left = clamp(left, -50, WORLD.width - worldW + 50);
+  top = clamp(top, -40, WORLD.height - worldH + 40);
+  const scale = Math.min(viewW / worldW, viewH / worldH);
+  const ox = (viewW - worldW * scale) / 2;
+  const oy = (viewH - worldH * scale) / 2;
+
   ctx.save();
   ctx.translate(ox, oy);
   ctx.scale(scale, scale);
+  ctx.translate(-left, -top);
   drawWorld(ctx, state);
   ctx.restore();
+
+  if (cam.water > 0.08) drawUnderwaterGrade(ctx, viewW, viewH, cam.water);
+  drawCameraTag(ctx, ox, oy + worldH * scale);
+}
+
+function stepCamera(state, dt) {
+  const time = (state?.age ?? lastStamp / 1000);
+  let target = {
+    x: 620 + Math.sin(time * 0.12) * 24,
+    y: 400,
+    zoom: 1.06,
+    water: 0,
+    label: 'Halle',
+  };
+  if (state && (state.phase === 'approach' || state.phase === 'takeoff')) {
+    target = { x: 330, y: 360, zoom: 1.34, water: 0, label: 'Turmseite' };
+  } else if (state && (state.phase === 'flight' || state.phase === 'kickout')) {
+    target = {
+      x: state.x + 30,
+      y: state.y * 0.72 + WORLD.waterY * 0.28,
+      zoom: 1.58,
+      water: 0,
+      label: 'Flug',
+    };
+  } else if (state && state.phase === 'entry') {
+    const close = WORLD.waterY - state.y < 190;
+    target = close
+      ? { x: state.x, y: WORLD.waterY - 10, zoom: 1.82, water: 0.2, label: 'Wasserkante' }
+      : { x: state.x, y: state.y + 30, zoom: 1.62, water: 0, label: 'Flug' };
+  } else if (state && state.phase === 'result') {
+    target = state.splashT < 1.15
+      ? { x: state.x, y: WORLD.waterY + 78, zoom: 2.05, water: 1, label: 'Unterwasser' }
+      : { x: state.x - 20, y: WORLD.waterY - 90, zoom: 1.48, water: 0, label: 'Replay' };
+  }
+  const k = 1 - Math.exp(-3.1 * dt);
+  cam.x += (target.x - cam.x) * k;
+  cam.y += (target.y - cam.y) * k;
+  cam.zoom += (target.zoom - cam.zoom) * k;
+  cam.water += (target.water - cam.water) * (1 - Math.exp(-5.5 * dt));
+  cam.label = target.label;
+}
+
+function stepTrail(state) {
+  if (!state || state.phase === 'approach' || state.phase === 'takeoff') {
+    trail.length = 0;
+    return;
+  }
+  trailTick += 1;
+  if (trailTick % 3 !== 0) return;
+  if (state.phase === 'result') return;
+  trail.push({ x: state.x, y: state.y, rotation: state.rotation, pose: state.pose, opened: state.opened, phase: state.phase });
+  if (trail.length > 7) trail.shift();
 }
 
 function drawWorld(ctx, state) {
-  const sky = ctx.createLinearGradient(0, 0, 0, WORLD.waterY);
-  sky.addColorStop(0, '#102033');
-  sky.addColorStop(0.55, '#1b3f5c');
-  sky.addColorStop(1, '#24587a');
-  ctx.fillStyle = sky;
-  ctx.fillRect(0, 0, WORLD.width, WORLD.waterY);
-
-  ctx.fillStyle = 'rgba(255, 244, 214, 0.05)';
-  ctx.beginPath();
-  ctx.moveTo(180, 0);
-  ctx.lineTo(460, 0);
-  ctx.lineTo(390, WORLD.waterY);
-  ctx.lineTo(250, WORLD.waterY);
-  ctx.fill();
-
-  ctx.fillStyle = 'rgba(255,255,255,0.04)';
-  for (let i = 0; i < 4; i += 1) {
-    ctx.fillRect(860 + i * 90, 36, 54, 90);
-  }
-
-  drawCrowd(ctx);
+  ctx.fillStyle = verticalGradient(ctx, 0, WORLD.waterY, ['#08111c', '#16324c', '#1d4e6e']);
+  ctx.fillRect(-80, -80, WORLD.width + 160, WORLD.waterY + 80);
+  drawArchitecture(ctx, state);
+  drawCrowd(ctx, state);
+  drawReflection(ctx, state);
   drawWater(ctx, state);
   drawTower(ctx, state?.bend ?? 0);
-
-  if (state && state.phase !== 'approach' && state.phase !== 'takeoff') {
-    drawShadow(ctx, state);
+  if (state && state.phase !== 'approach' && state.phase !== 'takeoff') drawShadow(ctx, state);
+  for (let i = 0; i < trail.length; i += 1) {
+    drawAthlete(ctx, trail[i], 0.05 + (i / trail.length) * 0.12);
   }
-  if (state) drawDiver(ctx, state);
+  if (state) {
+    drawAthlete(ctx, state, 1);
+    if (state.y < WORLD.waterY - 8) drawRefractedAthlete(ctx, state);
+  }
   if (state?.splash) drawSplash(ctx, state);
-  if (state?.flash) drawFlash(ctx, state);
-  if (state?.result?.rip && state.splashT < 1.1) drawRip(ctx, state);
+  if (state?.flash && cam.water < 0.65) drawFlash(ctx, state);
+  if (state?.result?.rip && state.splashT < 1.25) drawRipMark(ctx, state);
 }
 
-function drawCrowd(ctx) {
-  for (let i = 0; i < 18; i += 1) {
-    const x = 470 + i * 42;
-    const y = WORLD.waterY - 58;
-    ctx.fillStyle = i % 3 === 0 ? '#c4554a' : i % 3 === 1 ? '#d7d2c6' : '#2f6f8f';
-    ctx.fillRect(x, y, 16, 28);
-    ctx.fillStyle = '#e7c2a4';
+function drawArchitecture(ctx, state) {
+  const time = state?.age ?? 0;
+  ctx.fillStyle = '#101820';
+  ctx.fillRect(0, 28, WORLD.width, 70);
+  ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+  ctx.lineWidth = 2;
+  for (let x = 60; x < WORLD.width; x += 160) {
     ctx.beginPath();
-    ctx.arc(x + 8, y - 6, 7, 0, Math.PI * 2);
+    ctx.moveTo(x, 36);
+    ctx.lineTo(x + 80, 92);
+    ctx.lineTo(x + 160, 36);
+    ctx.stroke();
+  }
+  for (let i = 0; i < 3; i += 1) {
+    const x = 220 + i * 340 + Math.sin(time * 0.25 + i) * 10;
+    const glow = ctx.createLinearGradient(x, 0, x, WORLD.waterY - 40);
+    glow.addColorStop(0, 'rgba(255, 232, 190, 0.14)');
+    glow.addColorStop(1, 'rgba(255, 232, 190, 0)');
+    ctx.fillStyle = glow;
+    ctx.beginPath();
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x + 28, 0);
+    ctx.lineTo(x + 10, WORLD.waterY - 50);
+    ctx.lineTo(x + 4, WORLD.waterY - 50);
     ctx.fill();
   }
+  ctx.fillStyle = '#16202b';
+  ctx.fillRect(0, WORLD.waterY - 28, WORLD.width, 28);
+  ctx.fillStyle = '#243140';
+  ctx.fillRect(0, WORLD.waterY - 18, WORLD.width, 8);
+}
+
+function drawCrowd(ctx, state) {
+  const time = state?.age ?? 0;
+  const hush = state && (state.phase === 'flight' || state.phase === 'kickout' || state.phase === 'entry');
+  const cheer = state?.result && state.splashT > 0.25;
+  ctx.fillStyle = '#121a24';
+  ctx.fillRect(470, WORLD.waterY - 118, 760, 96);
+  ctx.fillStyle = '#1c2836';
+  ctx.fillRect(470, WORLD.waterY - 122, 760, 8);
+  ctx.save();
+  for (const person of CROWD) {
+    const y = WORLD.waterY - 78 - person.row * 18;
+    const sway = Math.sin(time * (hush ? 0.6 : 1.8) + person.x * 0.02) * (hush ? 0.6 : 2.4);
+    ctx.fillStyle = person.row === 0 ? 'rgba(8, 14, 20, 0.82)' : 'rgba(18, 28, 38, 0.72)';
+    ctx.fillRect(person.x + sway, y - person.h, 14, person.h);
+    ctx.beginPath();
+    ctx.arc(person.x + 7 + sway, y - person.h - 5, 6, 0, Math.PI * 2);
+    ctx.fill();
+    if (cheer && person.lean > 0) {
+      ctx.strokeStyle = 'rgba(8, 14, 20, 0.8)';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(person.x + 7 + sway, y - person.h + 4);
+      ctx.lineTo(person.x + sway + (state.result.rip ? -2 : 6), y - person.h - 16);
+      ctx.stroke();
+    }
+  }
+  ctx.restore();
+}
+
+function drawReflection(ctx, state) {
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(0, WORLD.waterY, WORLD.width, 130);
+  ctx.clip();
+  ctx.translate(0, WORLD.waterY);
+  ctx.scale(1, -0.5);
+  ctx.translate(0, -WORLD.waterY);
+  ctx.globalAlpha = 0.22;
+  drawTower(ctx, state?.bend ?? 0);
+  if (state && state.y < WORLD.waterY) drawAthlete(ctx, state, 0.9);
+  ctx.restore();
 }
 
 function drawWater(ctx, state) {
-  const water = ctx.createLinearGradient(0, WORLD.waterY, 0, WORLD.height);
-  water.addColorStop(0, '#1fa6e0');
-  water.addColorStop(0.35, '#0d74b0');
-  water.addColorStop(1, '#063553');
-  ctx.fillStyle = water;
+  const time = state?.age ?? 0;
+  ctx.fillStyle = verticalGradient(ctx, WORLD.waterY, WORLD.height, ['#1aa0d8', '#0c679f', '#04283d']);
   ctx.fillRect(0, WORLD.waterY, WORLD.width, WORLD.height - WORLD.waterY);
 
-  ctx.strokeStyle = 'rgba(255,255,255,0.18)';
-  ctx.lineWidth = 2;
-  const shift = (state?.age ?? 0) * 18;
-  for (let i = 0; i < 6; i += 1) {
-    const y = WORLD.waterY + 28 + i * 28;
+  ctx.save();
+  ctx.globalAlpha = 0.22;
+  ctx.fillStyle = '#b7f0ff';
+  for (let i = 0; i < 5; i += 1) {
+    const x = 180 + i * 200 + Math.sin(time * 0.9 + i) * 18;
     ctx.beginPath();
-    for (let x = 0; x <= WORLD.width; x += 24) {
-      const wave = Math.sin((x + shift) / 70 + i) * 3;
+    ctx.ellipse(x, WORLD.waterY + 22, 34, 5, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+
+  ctx.strokeStyle = 'rgba(190, 230, 255, 0.28)';
+  ctx.lineWidth = 1.5;
+  for (let row = 0; row < 3; row += 1) {
+    const y = WORLD.waterY + 8 + row * 7;
+    ctx.beginPath();
+    for (let x = 0; x <= WORLD.width; x += 28) {
+      const wave = Math.sin(x * 0.02 + time * 1.6 + row) * (3.2 - row);
       if (x === 0) ctx.moveTo(x, y + wave);
       else ctx.lineTo(x, y + wave);
     }
     ctx.stroke();
   }
+  ctx.fillStyle = 'rgba(255,255,255,0.42)';
+  ctx.fillRect(0, WORLD.waterY - 2, WORLD.width, 3);
 
-  ctx.fillStyle = 'rgba(255,255,255,0.35)';
-  ctx.fillRect(0, WORLD.waterY - 2, WORLD.width, 4);
+  for (let lane = 1; lane <= 4; lane += 1) {
+    ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+    ctx.setLineDash([10, 16]);
+    ctx.beginPath();
+    ctx.moveTo(80, WORLD.waterY + lane * 42);
+    ctx.lineTo(WORLD.width - 40, WORLD.waterY + lane * 42);
+    ctx.stroke();
+  }
+  ctx.setLineDash([]);
 }
 
 function drawTower(ctx, bend) {
-  ctx.fillStyle = '#1c2a3b';
-  ctx.fillRect(48, 70, 54, WORLD.platformY - 70);
-  ctx.fillStyle = '#31445c';
-  ctx.fillRect(40, WORLD.platformY - 8, 70, 16);
+  ctx.fillStyle = '#1a2633';
+  ctx.fillRect(36, 78, 62, WORLD.platformY - 70);
+  ctx.fillStyle = '#2c3c4e';
+  ctx.fillRect(28, WORLD.platformY - 16, 86, 18);
+  ctx.fillStyle = '#8ea0b3';
+  ctx.fillRect(150, WORLD.platformY - 4, 26, 18);
+  ctx.beginPath();
+  ctx.arc(163, WORLD.platformY + 6, 8, 0, Math.PI * 2);
+  ctx.fill();
 
-  const tipY = WORLD.platformY + bend;
-  ctx.strokeStyle = '#e7edf4';
-  ctx.lineWidth = 8;
+  const tip = WORLD.platformY + bend;
+  ctx.strokeStyle = '#c5d0dc';
+  ctx.lineWidth = 10;
   ctx.lineCap = 'round';
   ctx.beginPath();
-  ctx.moveTo(78, WORLD.platformY);
-  ctx.quadraticCurveTo(230, tipY, 400, tipY);
+  ctx.moveTo(86, WORLD.platformY);
+  ctx.quadraticCurveTo(230, tip + bend * 0.15, 408, tip);
+  ctx.stroke();
+  ctx.strokeStyle = 'rgba(255,255,255,0.45)';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(90, WORLD.platformY - 4);
+  ctx.quadraticCurveTo(230, tip - 4, 404, tip - 4);
   ctx.stroke();
 
-  ctx.fillStyle = '#8d98a8';
-  ctx.fillRect(168, WORLD.platformY - 2, 22, 16);
+  if (bend > 8) {
+    ctx.strokeStyle = `rgba(241, 196, 15, ${Math.min(0.45, bend / 80)})`;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(250, tip + 14);
+    ctx.lineTo(250, tip + 14 + bend * 0.35);
+    ctx.stroke();
+  }
 
-  ctx.fillStyle = 'rgba(255,255,255,0.72)';
-  ctx.font = '600 18px sans-serif';
+  ctx.fillStyle = 'rgba(255,255,255,0.78)';
+  ctx.font = '600 16px sans-serif';
   ctx.textAlign = 'left';
-  ctx.fillText('10 m', 112, 96);
+  ctx.fillText('10 m', 108, 104);
 }
 
 function drawShadow(ctx, state) {
   const height = Math.max(0, WORLD.waterY - state.y);
-  const alpha = Math.max(0.08, 0.35 - height / 1400);
-  ctx.fillStyle = `rgba(0, 20, 40, ${alpha})`;
+  ctx.fillStyle = `rgba(0, 16, 28, ${clamp(0.34 - height / 1600, 0.08, 0.34)})`;
   ctx.beginPath();
-  ctx.ellipse(state.x, WORLD.waterY + 4, 18 + height * 0.02, 6, 0, 0, Math.PI * 2);
+  ctx.ellipse(state.x, WORLD.waterY + 3, 16 + height * 0.015, 5, 0, 0, Math.PI * 2);
   ctx.fill();
 }
 
-function drawDiver(ctx, state) {
-  const tuck = state.pose;
+function drawAthlete(ctx, state, alpha) {
+  const t = state.pose ?? 0;
   const lining = state.opened || state.phase === 'entry' || state.phase === 'result';
   ctx.save();
+  ctx.globalAlpha *= alpha;
   ctx.translate(state.x, state.y);
-  ctx.rotate(state.rotation);
-
+  ctx.rotate(state.rotation || 0);
+  ctx.scale(1.55, 1.55);
+  ctx.translate(0, -8);
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
 
-  const knee = tuck * 1.2;
-  ctx.strokeStyle = '#f0c2a2';
+  const chestX = t * 8;
+  const chestY = -16 + t * 8;
+  const headY = chestY - 16 + t * 3;
+  const knee = t * 1.25;
+
+  ctx.strokeStyle = '#efc3a4';
   ctx.lineWidth = 6;
   ctx.beginPath();
-  ctx.moveTo(-4, 2);
-  ctx.lineTo(-4 - Math.sin(knee) * 8, 16 + (1 - tuck) * 18);
-  ctx.moveTo(4, 2);
-  ctx.lineTo(8 + Math.sin(knee) * 20, 8 + (1 - tuck) * 14);
-  ctx.lineTo(10 + Math.sin(knee) * 22, 24 + (1 - tuck) * 16 - tuck * 8);
+  ctx.moveTo(-3, 6);
+  ctx.lineTo(-3 - Math.sin(knee) * 7, 8 + (1 - t) * 16);
+  ctx.moveTo(3, 6);
+  ctx.lineTo(6 + Math.sin(knee) * 16, 6 + Math.cos(knee) * 8);
+  ctx.lineTo(8 + Math.sin(knee) * 14, 22 + (1 - t) * 12 - t * 8);
   ctx.stroke();
 
-  ctx.strokeStyle = '#1496d0';
-  ctx.lineWidth = 9;
+  ctx.strokeStyle = '#128fc8';
+  ctx.lineWidth = 12;
   ctx.beginPath();
-  ctx.moveTo(0, 6);
-  ctx.lineTo(tuck * 4, -22 + tuck * 8);
+  ctx.moveTo(0, 8);
+  ctx.lineTo(chestX, chestY);
+  ctx.stroke();
+  ctx.strokeStyle = 'rgba(255,255,255,0.28)';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(-2, 4);
+  ctx.lineTo(chestX - 2, chestY + 3);
   ctx.stroke();
 
-  ctx.strokeStyle = '#f0c2a2';
+  ctx.strokeStyle = '#efc3a4';
   ctx.lineWidth = 5;
   ctx.beginPath();
   if (lining) {
-    ctx.moveTo(0, -16 + tuck * 4);
-    ctx.lineTo(-2, -42);
-    ctx.moveTo(0, -16 + tuck * 4);
-    ctx.lineTo(2, -42);
+    ctx.moveTo(chestX, chestY + 2);
+    ctx.lineTo(chestX - 2, headY - 16);
+    ctx.moveTo(chestX, chestY + 2);
+    ctx.lineTo(chestX + 2, headY - 16);
     if ((state.grabValue ?? 0) >= 0.65) {
-      ctx.moveTo(-7, -42);
-      ctx.lineTo(7, -42);
+      ctx.moveTo(chestX - 8, headY - 16);
+      ctx.lineTo(chestX + 8, headY - 16);
     }
-  } else if (tuck > 0.25) {
-    ctx.moveTo(2, -8);
-    ctx.lineTo(18, 6);
-    ctx.moveTo(0, -8);
-    ctx.lineTo(-14, 8);
   } else {
-    ctx.moveTo(0, -12);
-    ctx.lineTo(16, 2);
-    ctx.moveTo(0, -12);
-    ctx.lineTo(-16, 2);
+    const reach = 14 - t * 4;
+    ctx.moveTo(chestX, chestY + 4);
+    ctx.lineTo(chestX + reach, chestY + 6 + t * 8);
+    ctx.moveTo(chestX, chestY + 4);
+    ctx.lineTo(chestX - reach * 0.8, chestY + 8 + t * 6);
   }
   ctx.stroke();
 
-  const headY = -30 + tuck * 12;
   ctx.fillStyle = '#f1c40f';
   ctx.beginPath();
-  ctx.arc(tuck * 3, headY, 9, 0, Math.PI * 2);
+  ctx.arc(chestX + t * 2, headY, 8.2, 0, Math.PI * 2);
   ctx.fill();
-  ctx.fillStyle = '#f0c2a2';
+  ctx.fillStyle = '#efc3a4';
   ctx.beginPath();
-  ctx.arc(tuck * 3 + 1.5, headY + 1, 6.5, 0, Math.PI * 2);
+  ctx.arc(chestX + t * 2 + 1.6, headY + 1, 6, 0, Math.PI * 2);
   ctx.fill();
+  ctx.restore();
+}
+
+function drawRefractedAthlete(ctx, state) {
+  if (state.phase === 'result' || state.y < WORLD.waterY - 150) return;
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(0, WORLD.waterY, WORLD.width, WORLD.height - WORLD.waterY);
+  ctx.clip();
+  ctx.translate(Math.sin((state.age || 0) * 3) * 5, 18);
+  ctx.globalAlpha = 0.28;
+  drawAthlete(ctx, state, 1);
   ctx.restore();
 }
 
 function drawSplash(ctx, state) {
   for (const particle of state.splash) {
     if (particle.life <= 0) continue;
-    const alpha = Math.max(0, particle.life / particle.max);
-    ctx.fillStyle = `rgba(255,255,255,${alpha})`;
-    ctx.beginPath();
-    ctx.arc(particle.x, particle.y, particle.r, 0, Math.PI * 2);
-    ctx.fill();
+    const alpha = clamp(particle.life / particle.max, 0, 1);
+    if (particle.kind === 'ring') {
+      ctx.strokeStyle = particle.rip
+        ? `rgba(241, 196, 15, ${alpha})`
+        : `rgba(255,255,255,${alpha * 0.85})`;
+      ctx.lineWidth = particle.rip ? 2.5 : 2;
+      ctx.beginPath();
+      ctx.ellipse(particle.x, particle.y, particle.r, particle.r * 0.28, 0, 0, Math.PI * 2);
+      ctx.stroke();
+    } else if (particle.kind === 'sheet') {
+      ctx.fillStyle = `rgba(210, 236, 255, ${alpha * 0.45})`;
+      ctx.beginPath();
+      ctx.ellipse(particle.x, particle.y, particle.r * 1.6, particle.r * 0.35, 0, 0, Math.PI * 2);
+      ctx.fill();
+    } else if (particle.kind === 'bubble') {
+      ctx.strokeStyle = `rgba(220, 245, 255, ${alpha * 0.8})`;
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.arc(particle.x, particle.y, particle.r, 0, Math.PI * 2);
+      ctx.stroke();
+    } else {
+      ctx.fillStyle = `rgba(255,255,255,${alpha})`;
+      ctx.beginPath();
+      ctx.arc(particle.x, particle.y, particle.r, 0, Math.PI * 2);
+      ctx.fill();
+    }
   }
 }
 
-function drawRip(ctx, state) {
-  const radius = 10 + state.splashT * 70;
-  ctx.strokeStyle = `rgba(241, 196, 15, ${Math.max(0, 1 - state.splashT)})`;
-  ctx.lineWidth = 3;
-  ctx.beginPath();
-  ctx.ellipse(state.x, WORLD.waterY, radius, radius * 0.28, 0, 0, Math.PI * 2);
-  ctx.stroke();
+function drawRipMark(ctx, state) {
+  ctx.save();
+  ctx.globalAlpha = clamp(1 - state.splashT, 0, 1);
   ctx.fillStyle = '#f1c40f';
   ctx.font = '700 22px sans-serif';
   ctx.textAlign = 'center';
-  ctx.fillText('RIP', state.x, WORLD.waterY - 28);
+  ctx.fillText('RIP', state.x, WORLD.waterY - 36);
+  ctx.restore();
 }
 
 function drawFlash(ctx, state) {
   ctx.save();
-  ctx.globalAlpha = Math.max(0, Math.min(1, state.flash.life * 2.4));
+  ctx.globalAlpha = clamp(state.flash.life * 2.2, 0, 1);
   ctx.fillStyle = state.flash.score >= 0.92 ? '#f1c40f' : '#ffffff';
   ctx.font = '700 26px sans-serif';
   ctx.textAlign = 'center';
-  ctx.fillText(state.flash.text, state.x, state.y - 64);
+  ctx.fillText(state.flash.text, state.x, state.y - 68);
   ctx.restore();
+}
+
+function drawCameraTag(ctx, x, y) {
+  ctx.save();
+  ctx.font = '600 12px sans-serif';
+  ctx.fillStyle = 'rgba(255,255,255,0.72)';
+  ctx.textAlign = 'left';
+  ctx.fillText(`KAMERA  ${cam.label.toUpperCase()}`, x + 16, y - 18);
+  ctx.restore();
+}
+
+function drawUnderwaterGrade(ctx, viewW, viewH, amount) {
+  ctx.save();
+  ctx.globalAlpha = 0.45 * amount;
+  ctx.fillStyle = '#06344d';
+  ctx.fillRect(0, 0, viewW, viewH);
+  ctx.globalAlpha = 0.25 * amount;
+  const shaft = ctx.createLinearGradient(viewW * 0.3, 0, viewW * 0.5, viewH);
+  shaft.addColorStop(0, 'rgba(180, 230, 255, 0.0)');
+  shaft.addColorStop(0.5, 'rgba(180, 230, 255, 0.35)');
+  shaft.addColorStop(1, 'rgba(180, 230, 255, 0)');
+  ctx.fillStyle = shaft;
+  ctx.fillRect(0, 0, viewW, viewH);
+  ctx.restore();
+}
+
+function clamp(value, min, max) {
+  return Math.min(max, Math.max(min, value));
 }

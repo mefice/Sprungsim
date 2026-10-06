@@ -1,4 +1,4 @@
-import { playEntry, playJudge, unlockAudio } from './audio.js';
+import { playCreak, playJudge, playSplash, playWhoosh, setAmbience, unlockAudio } from './audio.js';
 import { DIVES } from './dives.js';
 import { createLatch, policyInput } from './policy.js';
 import { draw } from './render.js';
@@ -16,20 +16,16 @@ const ui = {
   diveName: document.getElementById('dive-name'),
   diveDd: document.getElementById('dive-dd'),
   meters: document.getElementById('meters'),
-  timing: document.getElementById('timing-bar-container'),
-  marker: document.getElementById('timing-marker'),
-  target: document.getElementById('timing-target'),
+  ring: document.getElementById('cue-ring'),
+  ringLabel: document.getElementById('cue-label'),
+  ringZone: document.getElementById('cue-zone'),
+  ringDot: document.getElementById('cue-dot'),
   power: document.getElementById('power-meter'),
   powerFill: document.getElementById('power-fill'),
   powerZone: document.getElementById('power-zone'),
   powerTarget: document.getElementById('power-target'),
   lineup: document.getElementById('lineup-meter'),
   lineupNeedle: document.getElementById('lineup-needle'),
-  grab: document.getElementById('grab-meter'),
-  grabNeedle: document.getElementById('grab-needle'),
-  twist: document.getElementById('twist-meter'),
-  twistNeedle: document.getElementById('twist-needle'),
-  twistCount: document.getElementById('twist-count'),
   score: document.getElementById('score-display'),
   judge: document.getElementById('judge-feedback'),
   instructions: document.getElementById('instructions'),
@@ -52,7 +48,23 @@ let shown = false;
 let reference = false;
 let latch = null;
 let lastFlash = 0;
+let heardPhase = '';
+let heardSplash = false;
+let bendHot = false;
 let lastTime = performance.now();
+
+const RING_START = 132;
+function ringPoint(value) {
+  const deg = RING_START * (1 - value);
+  const rad = deg * Math.PI / 180;
+  return [50 + Math.sin(rad) * 40, 50 - Math.cos(rad) * 40];
+}
+
+function ringZonePath() {
+  const [x1, y1] = ringPoint(0.72);
+  const [x2, y2] = ringPoint(1);
+  return `M ${x1.toFixed(2)} ${y1.toFixed(2)} A 40 40 0 0 0 ${x2.toFixed(2)} ${y2.toFixed(2)}`;
+}
 
 window.addEventListener('keydown', (event) => {
   if (['Space', 'ArrowDown', 'ArrowUp', 'KeyS', 'KeyT'].includes(event.code)) event.preventDefault();
@@ -153,6 +165,10 @@ function begin(diveId, asReference = false) {
   logged = false;
   shown = false;
   lastFlash = 0;
+  heardPhase = '';
+  heardSplash = false;
+  bendHot = false;
+  setAmbience('idle');
   ui.menu.classList.add('hidden');
   ui.overlay.classList.add('active');
   ui.score.classList.remove('visible');
@@ -168,7 +184,9 @@ function sync(view) {
   ui.phase.textContent = view.phaseLabel;
   ui.instructions.textContent = view.instruction;
   ui.instructions.classList.toggle('hidden', !view.instruction);
-  ui.meters.classList.toggle('hidden', !(view.showTiming || view.showPower || view.showLineup || view.showGrab || view.showTwist));
+  const showRing = view.showTiming || view.showGrab || view.showTwist;
+  ui.meters.classList.toggle('hidden', !(view.showPower || view.showLineup));
+  ui.ring.classList.toggle('hidden', !showRing);
   ui.readout.textContent = view.inAir
     ? `Rotation ${view.somersaults.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} / ${view.somersaultTarget.toLocaleString('de-DE', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}`
     : '';
@@ -180,11 +198,14 @@ function sync(view) {
     item.classList.toggle('current', item.dataset.phase === view.phase);
   }
 
-  ui.timing.classList.toggle('hidden', !view.showTiming);
-  ui.timing.classList.toggle('hot', view.timingHot);
-  ui.marker.style.left = `${view.timing * 100}%`;
-  ui.target.style.left = '72%';
-  ui.target.style.width = '28%';
+  const cue = view.showTwist ? view.twist : view.showGrab ? view.grab : view.timing;
+  const [cx, cy] = ringPoint(cue);
+  ui.ringDot.setAttribute('cx', cx.toFixed(2));
+  ui.ringDot.setAttribute('cy', cy.toFixed(2));
+  ui.ring.classList.toggle('hot', cue >= 0.92);
+  if (view.showTwist) ui.ringLabel.textContent = `Schraube ${view.twistTaps}/${view.twistNeed}`;
+  else if (view.showGrab) ui.ringLabel.textContent = 'Hand-Grab';
+  else ui.ringLabel.textContent = 'Ziel';
 
   ui.power.classList.toggle('hidden', !view.showPower);
   ui.powerFill.style.width = `${view.power * 100}%`;
@@ -194,11 +215,7 @@ function sync(view) {
 
   ui.lineup.classList.toggle('hidden', !view.showLineup);
   ui.lineupNeedle.style.left = `${(view.lineup + 1) * 50}%`;
-  ui.grab.classList.toggle('hidden', !view.showGrab);
-  ui.grabNeedle.style.left = `${view.grab * 100}%`;
-  ui.twist.classList.toggle('hidden', !view.showTwist);
-  ui.twistNeedle.style.left = `${view.twist * 100}%`;
-  ui.twistCount.textContent = `${view.twistTaps}/${view.twistNeed}`;
+  syncSound();
 
   if (view.flash && view.flash.id !== lastFlash) {
     lastFlash = view.flash.id;
@@ -211,12 +228,36 @@ function sync(view) {
     session.total += state.result.total;
     session.best = Math.max(session.best, state.result.total);
     if (state.result.rip) session.rips += 1;
-    playEntry(state.result.rip);
   }
 
-  if (state?.result && state.splashT > 0.45 && !shown) {
+  if (state?.result && state.splashT > 1.15 && !shown) {
     shown = true;
     showResult(state.result);
+  }
+}
+
+function syncSound() {
+  if (!state) return;
+  if (state.phase !== heardPhase) {
+    if (state.phase === 'flight') {
+      setAmbience('hush');
+      playWhoosh();
+    } else if (state.phase === 'kickout' || state.phase === 'entry') {
+      setAmbience('hush');
+    } else if (state.phase === 'approach' || state.phase === 'takeoff') {
+      setAmbience('idle');
+    }
+    heardPhase = state.phase;
+  }
+  if (state.phase === 'takeoff') {
+    const hot = state.bend > 22;
+    if (hot && !bendHot) playCreak();
+    bendHot = hot;
+  }
+  if (state.result && !heardSplash) {
+    heardSplash = true;
+    setAmbience('after');
+    playSplash(state.result.rip);
   }
 }
 
@@ -308,6 +349,7 @@ ui.reference.addEventListener('click', () => {
 });
 
 window.addEventListener('resize', resize);
+ui.ringZone.setAttribute('d', ringZonePath());
 renderMenu();
 resize();
 requestAnimationFrame(frame);

@@ -363,21 +363,58 @@ function decayFlash(state, dt) {
 }
 
 function createSplash(x, y, result) {
+  const entry = result.phases?.entry ?? 0;
   const rip = result.rip;
-  const count = rip ? 7 : 16;
+  const messy = !rip && entry < 0.45;
   const particles = [];
-  for (let i = 0; i < count; i += 1) {
-    const spread = rip ? 0.45 : 1.7;
-    const angle = -Math.PI / 2 + (i / (count - 1) - 0.5) * spread;
-    const speed = rip ? 50 + (i % 3) * 18 : 90 + (i % 5) * 38;
+  const drops = rip ? 9 : messy ? 26 : 14;
+  const spread = rip ? 0.38 : messy ? 2.05 : 1.05;
+  for (let i = 0; i < drops; i += 1) {
+    const angle = -Math.PI / 2 + ((i / (drops - 1)) - 0.5) * spread;
+    const speed = (rip ? 60 : messy ? 150 : 100) + (i % 5) * (rip ? 14 : 28);
     particles.push({
+      kind: 'drop',
       x,
       y,
       vx: Math.cos(angle) * speed,
       vy: Math.sin(angle) * speed,
-      r: rip ? 2.2 : 3 + (i % 3),
-      life: rip ? 0.5 : 0.85,
-      max: rip ? 0.5 : 0.85,
+      r: rip ? 2.2 : 3.1 + (i % 3),
+      life: rip ? 1.15 : messy ? 1.45 : 1.25,
+      max: rip ? 1.15 : messy ? 1.45 : 1.25,
+    });
+  }
+  particles.push({
+    kind: 'ring',
+    x,
+    y,
+    r: 8,
+    vr: rip ? 70 : messy ? 240 : 140,
+    life: rip ? 1.6 : 1.15,
+    max: rip ? 1.6 : 1.15,
+    rip,
+  });
+  if (messy) {
+    particles.push({
+      kind: 'sheet',
+      x,
+      y,
+      r: 22,
+      vr: 150,
+      life: 1.35,
+      max: 1.35,
+    });
+  }
+  const bubbles = rip ? 10 : entry > 0.5 ? 4 : 0;
+  for (let i = 0; i < bubbles; i += 1) {
+    particles.push({
+      kind: 'bubble',
+      x: x + ((i % 5) - 2) * (rip ? 3 : 7),
+      y: y + 8 + (i % 3) * 6,
+      vy: rip ? -70 - (i % 4) * 16 : -40,
+      phase: i * 0.7,
+      r: rip ? 2.4 + (i % 3) : 3.2,
+      life: 1.7,
+      max: 1.7,
     });
   }
   return particles;
@@ -385,9 +422,16 @@ function createSplash(x, y, result) {
 
 function advanceSplash(state, dt) {
   for (const particle of state.splash) {
-    particle.vy += 820 * dt;
-    particle.x += particle.vx * dt;
-    particle.y += particle.vy * dt;
+    if (particle.kind === 'bubble') {
+      particle.y += particle.vy * dt;
+      particle.x += Math.sin(state.splashT * 7 + particle.phase) * 18 * dt;
+    } else if (particle.kind === 'ring' || particle.kind === 'sheet') {
+      particle.r += particle.vr * dt;
+    } else {
+      particle.vy += 820 * dt;
+      particle.x += particle.vx * dt;
+      particle.y += particle.vy * dt;
+    }
     particle.life -= dt;
   }
 }
