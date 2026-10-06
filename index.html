@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ZEHN METER — Vertical Slice</title>
+  <link rel="icon" href="/favicon.ico">
+  <link rel="stylesheet" href="/src/style.css">
+</head>
+<body>
+  <div id="app">
+    <canvas id="gameCanvas"></canvas>
+    <div id="ui-overlay">
+      <div id="phase-indicator"></div>
+      <ol id="phase-track">
+        <li data-phase="approach">Anlauf</li>
+        <li data-phase="takeoff">Absprung</li>
+        <li data-phase="flight">Flug</li>
+        <li data-phase="kickout">Öffnen</li>
+        <li data-phase="entry">Eintritt</li>
+      </ol>
+      <div id="readout"></div>
+      <div id="dive-info">
+        <div id="dive-name" class="dive-name"></div>
+        <div id="dive-dd" class="dive-dd"></div>
+      </div>
+      <div id="hud-cues">
+      <div id="cue-ring" class="hidden">
+        <div class="ring-label" id="cue-label">Ziel</div>
+        <div class="ring">
+          <svg viewBox="0 0 100 100" aria-hidden="true">
+            <circle cx="50" cy="50" r="40" class="ring-track"></circle>
+            <path id="cue-zone" class="ring-zone"></path>
+            <circle id="cue-dot" class="ring-dot" cx="50" cy="10" r="4.5"></circle>
+          </svg>
+        </div>
+      </div>
+      <div id="meters">
+        <div id="power-meter" class="meter hidden">
+          <div class="meter-label">Kraft <span id="power-target"></span></div>
+          <div class="bar">
+            <div class="zone" id="power-zone"></div>
+            <div class="fill" id="power-fill"></div>
+          </div>
+        </div>
+        <div id="lineup-meter" class="meter hidden">
+          <div class="meter-label">Eintrittslinie — S loslassen</div>
+          <div class="bar">
+            <div class="zone center-zone"></div>
+            <div class="needle" id="lineup-needle"></div>
+          </div>
+          <div class="meter-scale"><span>kurz</span><span>vertikal</span><span>überdreht</span></div>
+        </div>
+      </div>
+      </div>
+      <div id="score-display"></div>
+      <div id="judge-feedback"></div>
+      <div id="key-hint">Esc Pause · R Neu</div>
+      <div id="now-banner">JETZT</div>
+      <div id="hint-stack">
+        <div id="instructions"></div>
+        <div id="tip"></div>
+      </div>
+    </div>
+    <div id="pause-overlay" class="hidden">
+      <div class="pause-card">
+        <p class="eyebrow">Pause</p>
+        <h2>Sprung angehalten</h2>
+        <p id="pause-copy">Esc macht weiter. R startet den laufenden Versuch neu, solange die Note noch nicht steht.</p>
+        <div class="pause-actions">
+          <button id="resume-btn" class="menu-btn" type="button">Weiter</button>
+          <button id="restart-btn" class="menu-btn ghost" type="button">Sprung neu</button>
+          <button id="pause-menu-btn" class="menu-btn ghost" type="button">Sprung wechseln</button>
+        </div>
+      </div>
+    </div>
+    <div id="menu-overlay">
+      <div id="menu">
+        <p class="eyebrow">Sprungsim · Vertical Slice</p>
+        <h1>ZEHN METER</h1>
+        <p class="subtitle">Fünf Phasen, eine Note. Ausführung mal Schwierigkeit.</p>
+        <div class="mode-switch" id="mode-switch">
+          <button id="mode-training" class="mode-btn selected" type="button">Training</button>
+          <button id="mode-meet" class="mode-btn" type="button">Wettkampf</button>
+        </div>
+        <p class="mode-copy" id="mode-copy">Weitere Fenster. Ein brauchbarer Sprung gelingt schnell, Gold bleibt knapp.</p>
+        <div id="dive-selection">
+          <h2>Sprung wählen</h2>
+          <div id="dive-buttons"></div>
+        </div>
+        <button id="start-btn" class="menu-btn" type="button">Sprung starten</button>
+        <button id="meet-btn" class="menu-btn ghost hidden" type="button">Dreikampf</button>
+        <button id="reference-btn" class="menu-btn ghost" type="button">Referenz ansehen</button>
+        <div id="meet-setup" class="hidden">
+          <h2>Dreikampf</h2>
+          <p id="meet-rival-label" class="mode-copy"></p>
+          <p id="meet-duty" class="mode-copy"></p>
+          <div id="meet-slots"></div>
+          <button id="meet-suggest" class="menu-btn ghost" type="button">Vorschlag</button>
+          <button id="meet-go" class="menu-btn" type="button">Start</button>
+          <button id="meet-back" class="text-btn" type="button">Zurück</button>
+        </div>
+        <div class="controls">
+          <h2>Steuerung</h2>
+          <p><kbd>Leertaste</kbd> Anlauf, Kraft, Absprung, Hand-Grab</p>
+          <p><kbd>S</kbd> oder <kbd>↓</kbd> Hocke halten, loslassen zum Öffnen</p>
+          <p><kbd>T</kbd> Schraube, wenn der Ring gold ist</p>
+          <p><kbd>Esc</kbd> Pause · <kbd>R</kbd> Neu starten</p>
+        </div>
+        <div id="session-stats"></div>
+      </div>
+    </div>
+  </div>
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>

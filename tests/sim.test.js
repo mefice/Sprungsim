@@ -1,0 +1,226 @@
+import assert from 'node:assert/strict';
+import test from 'node:test';
+import { DIVES } from '../src/dives.js';
+import { createLatch, policyInput } from '../src/policy.js';
+import { WORLD, commitGrab, commitLine, grabOpen, lineupMeter, oscAt, predictError, startDive, step } from '../src/sim.js';
+
+function run(dive, mode, training = false) {
+  const state = startDive(dive, { training });
+  const seen = new Set([state.phase]);
+  const latch = createLatch();
+  for (let i = 0; i < 60 * 26; i += 1) {
+    if (state.phase === 'result') break;
+    step(state, policyInput(state, mode, latch), 1 / 60);
+    seen.add(state.phase);
+  }
+  return { state, seen };
+}
+
+function dump(state) {
+  return JSON.stringify({
+    phase: state.phase,
+    execution: state.result?.execution,
+    total: state.result?.total,
+    notes: state.result?.notes,
+    phases: state.result?.phases,
+    metrics: state.metrics,
+    rotation: Number(state.rotation.toFixed(3)),
+    target: Number(state.targetRad.toFixed(3)),
+  }, null, 2);
+}
+
+test('ein sauberer 101C durchläuft alle fünf Phasen und liegt über 8', () => {
+  const { state, seen } = run(DIVES[0], 'perfect');
+  for (const phase of ['approach', 'takeoff', 'flight', 'kickout', 'entry', 'result']) {
+    assert.ok(seen.has(phase), `${phase} fehlt\n${dump(state)}`);
+  }
+  assert.ok(state.result.execution >= 8, dump(state));
+  assert.ok(state.result.total > 11, dump(state));
+  assert.ok(state.halfCount >= 1, dump(state));
+});
+
+test('der Ring an der Wasserlinie ist offen, wenn der Hand-Grab ideal ist', () => {
+  const state = startDive(DIVES[0]);
+  const latch = createLatch();
+  let best = { open: -1, dist: 999 };
+  for (let i = 0; i < 60 * 18; i += 1) {
+    if (state.phase === 'entry') {
+      const dist = Math.abs(WORLD.waterY - state.y - 72);
+      const open = grabOpen(state);
+      if (open > best.open) best = { open, dist };
+    }
+    if (state.phase === 'result') break;
+    step(state, policyInput(state, 'perfect', latch), 1 / 60);
+  }
+  assert.ok(best.open >= 0.85, JSON.stringify(best));
+  assert.ok(best.dist < 40, JSON.stringify(best));
+});
+
+test('die Geisterlinie im Wasser zeigt dieselbe Lage wie die Öffnen-Nadel', () => {
+  const vertical = {
+    opened: false,
+    phase: 'kickout',
+    airTime: 1,
+    training: false,
+    y: WORLD.waterY - 180,
+    vy: 420,
+    rotation: 1,
+    targetRad: 1,
+    pose: 0,
+    omegaStraight: 0,
+    omegaTuck: 0,
+  };
+  assert.equal(lineupMeter(vertical), 0);
+  assert.equal((lineupMeter(vertical) + 1) * 50, 50);
+
+  const over = { ...vertical, rotation: 1 + Math.PI / 2, targetRad: 1 };
+  const value = lineupMeter(over);
+  assert.ok(value > 0.9, String(value));
+  assert.equal(lineupMeter({ ...vertical, phase: 'flight', airTime: 0.1, y: WORLD.waterY - 600, vy: 20 }), null);
+});
+
+test('nach dem Loslassen bleibt die Linie stehen und folgt der Öffnen-Note', () => {
+  const state = {
+    opened: false,
+    phase: 'kickout',
+    airTime: 1,
+    training: false,
+    y: WORLD.waterY - 180,
+    vy: 420,
+    rotation: 1,
+    targetRad: 1,
+    pose: 0,
+    omegaStraight: 0,
+    omegaTuck: 0,
+    lineLock: null,
+    lineGrade: null,
+  };
+  commitLine(state);
+  assert.equal(state.lineLock, 0);
+  assert.equal(state.lineGrade, 1);
+  state.rotation = 4;
+  commitLine(state);
+  assert.equal(state.lineLock, 0);
+
+  const dive = run(DIVES[0], 'perfect').state;
+  assert.notEqual(dive.lineLock, null);
+  assert.equal(dive.lineGrade, dive.result.phases.kickout);
+});
+
+test('nach dem Greifen bleibt der Ring stehen und folgt der Hand-Grab-Note', () => {
+  const state = {
+    entryCue: { start: 0, peak: 0.3, end: 0.7 },
+    airTime: 0.62,
+    grabValue: 0.4,
+    grabLock: null,
+    grabGrade: null,
+  };
+  commitGrab(state);
+  assert.ok(state.grabLock < 0.5, String(state.grabLock));
+  state.airTime = 0.3;
+  state.grabValue = 1;
+  commitGrab(state);
+  assert.ok(state.grabLock > 0.9, String(state.grabLock));
+  assert.equal(state.grabGrade, 1);
+  const locked = state.grabLock;
+  state.airTime = 0.68;
+  state.grabValue = 0.2;
+  commitGrab(state);
+  assert.equal(state.grabLock, locked);
+  assert.equal(state.grabGrade, 1);
+
+  const good = run(DIVES[0], 'perfect').state;
+  assert.notEqual(good.grabLock, null);
+  assert.equal(good.grabGrade, good.result.phases.entry);
+  assert.ok(good.grabGrade >= 0.85, String(good.grabGrade));
+
+  const miss = run(DIVES[0], 'no-grab').state;
+  assert.notEqual(miss.grabLock, null);
+  assert.equal(miss.grabGrade, miss.result.phases.entry);
+  assert.ok(miss.grabGrade < 0.2, String(miss.grabGrade));
+});
+
+test('derselbe Sprung wird bei schlechtem Timing klar schlechter', () => {
+  const good = run(DIVES[0], 'perfect').state.result;
+  const bad = run(DIVES[0], 'sloppy').state.result;
+  const idle = run(DIVES[0], 'none').state.result;
+  assert.ok(good.execution - bad.execution >= 2.5, JSON.stringify({ good, bad }, null, 2));
+  assert.ok(idle.execution < 5, JSON.stringify(idle, null, 2));
+  assert.ok(bad.total < good.total);
+});
+
+test('früher öffnen und verpasster Hand-Grab kosten Punkte', () => {
+  const good = run(DIVES[1], 'perfect').state;
+  const early = run(DIVES[1], 'early').state;
+  const noGrab = run(DIVES[0], 'no-grab').state;
+  assert.ok(good.result.execution >= 8, dump(good));
+  assert.ok(early.result.phases.kickout < good.result.phases.kickout, `${dump(early)}\n${dump(good)}`);
+  assert.ok(early.result.total < good.result.total - 0.6);
+  assert.ok(noGrab.result.phases.entry < 0.2, dump(noGrab));
+  assert.ok(noGrab.result.total < run(DIVES[0], 'perfect').state.result.total - 1.5);
+});
+
+test('im Training schafft ein früher 101C mehr als 10 Punkte', () => {
+  const state = startDive(DIVES[0], { training: true });
+  const latch = createLatch();
+  for (let i = 0; i < 60 * 26; i += 1) {
+    if (state.phase === 'result') break;
+    step(state, learnerInput(state, latch), 1 / 60);
+  }
+  assert.equal(state.phase, 'result');
+  assert.ok(state.result.total > 10, dump(state));
+});
+
+function learnerInput(state, latch) {
+  const input = { spaceDown: false, spacePressed: false, tuckDown: false, twistPressed: false };
+  if (state.phase === 'approach' && state.approachLead <= 0) {
+    const beat = Math.floor(state.time / state.approachPeriod);
+    if (latch.approachBeat !== beat) {
+      latch.approachBeat = beat;
+      latch.approach = false;
+    }
+    const osc = oscAt(state.time, state.approachPeriod);
+    if (osc >= 0.42 && osc <= 0.7 && !latch.approach) {
+      input.spacePressed = true;
+      latch.approach = true;
+    }
+  }
+  if (state.phase === 'takeoff' && state.stage === 'charge' && !state.needFreshPress) {
+    input.spaceDown = state.power < 0.48;
+  }
+  if (state.phase === 'takeoff' && state.stage === 'snap' && !state.needFreshPress) {
+    const osc = oscAt(state.boardT, state.takeoffPeriod);
+    if (osc >= 0.4 && osc <= 0.62 && !latch.snap) {
+      input.spacePressed = true;
+      latch.snap = true;
+    }
+  }
+  if ((state.phase === 'flight' || state.phase === 'kickout') && !state.opened) {
+    input.tuckDown = state.phase === 'flight' || predictError(state) < -0.35;
+  }
+  if (state.phase === 'entry' && !state.grabbed) {
+    const dist = WORLD.waterY - state.y;
+    if (dist <= 170 && dist >= 90) input.spacePressed = true;
+  }
+  return input;
+}
+
+test('Training und Wettkampf behalten einen sauberen Sprung oben', () => {
+  const trained = run(DIVES[0], 'perfect', true).state.result;
+  const meet = run(DIVES[0], 'perfect', false).state.result;
+  assert.ok(trained.execution >= 8);
+  assert.ok(meet.execution >= 8);
+  assert.ok(meet.total >= 11);
+});
+
+test('Salto und Schraube bleiben bei gutem Input wertbar und der DD hebt die Punktzahl', () => {
+  const salto = run(DIVES[1], 'perfect').state;
+  const twist = run(DIVES[2], 'perfect').state;
+  assert.ok(salto.result.execution >= 8, dump(salto));
+  assert.ok(salto.halfCount >= 2, dump(salto));
+  assert.ok(twist.result.execution >= 8, dump(twist));
+  assert.ok(twist.halfCount >= 2, dump(twist));
+  assert.equal(twist.metrics.twistHits, 2);
+  assert.ok(twist.result.total > salto.result.total);
+  assert.match(twist.result.notes.rotation, /Schraube/);
+});
