@@ -105,7 +105,6 @@ function drawWorld(ctx, state) {
   drawCrowd(ctx, state);
   drawReflection(ctx, state);
   drawWater(ctx, state);
-  if (state) drawGrabGate(ctx, state);
   if (state) drawLineupGhost(ctx, state);
   drawTower(ctx, state?.bend ?? 0);
   if (state && state.phase !== 'approach' && state.phase !== 'takeoff') drawShadow(ctx, state);
@@ -118,6 +117,7 @@ function drawWorld(ctx, state) {
     if (state.y < WORLD.waterY - 8) drawRefractedAthlete(ctx, state);
   }
   if (state?.splash) drawSplash(ctx, state);
+  if (state) drawGrabGate(ctx, state);
   if (state?.flash && cam.water < 0.65) drawFlash(ctx, state);
   if (state?.result?.rip && state.splashT < 1.25) drawRipMark(ctx, state);
 }
@@ -308,26 +308,36 @@ function drawSpinMeter(ctx, state) {
   ctx.restore();
 }
 
+function gradeColor(grade) {
+  if (grade >= 0.85) return 'rgba(46, 204, 113, 0.95)';
+  if (grade >= 0.55) return 'rgba(241, 196, 15, 0.95)';
+  return 'rgba(255, 141, 122, 0.95)';
+}
+
 function drawGrabGate(ctx, state) {
-  if (state.phase !== 'entry' || state.y >= WORLD.waterY) return;
-  const open = grabOpen(state);
+  const graded = state.grabGrade !== null && state.grabGrade !== undefined;
+  const live = !graded && state.phase === 'entry' && state.y < WORLD.waterY;
+  if (!graded && !live) return;
+  const open = graded ? Math.max(state.grabLock ?? 0, 0.55) : grabOpen(state);
   const x = state.x;
   const y = WORLD.waterY;
   const rx = 16 + open * 46;
   const ry = 5 + open * 13;
   const gold = open >= 0.78;
   ctx.save();
-  ctx.strokeStyle = gold
-    ? `rgba(241, 196, 15, ${0.55 + open * 0.45})`
-    : `rgba(255, 255, 255, ${0.28 + open * 0.35})`;
-  ctx.lineWidth = 2 + open * 2.5;
+  ctx.strokeStyle = graded
+    ? gradeColor(state.grabGrade)
+    : gold
+      ? `rgba(241, 196, 15, ${0.55 + open * 0.45})`
+      : `rgba(255, 255, 255, ${0.28 + open * 0.35})`;
+  ctx.lineWidth = graded ? (state.grabGrade >= 0.85 ? 4 : 2.5) : 2 + open * 2.5;
   ctx.beginPath();
   ctx.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2);
   ctx.stroke();
   ctx.beginPath();
   ctx.ellipse(x, y, Math.max(3, rx * open), Math.max(2, ry * open * 0.72), 0, 0, Math.PI * 2);
   ctx.stroke();
-  if (open > 0.2) {
+  if (!graded && open > 0.2) {
     ctx.globalAlpha = 0.35 * open;
     ctx.beginPath();
     ctx.moveTo(x, state.y + 20);
@@ -341,9 +351,7 @@ function lineupColor(state, value) {
   if (state.lineGrade === null || state.lineGrade === undefined) {
     return Math.abs(value) <= LINEUP_CENTER ? 'rgba(241, 196, 15, 0.95)' : 'rgba(255,255,255,0.62)';
   }
-  if (state.lineGrade >= 0.85) return 'rgba(46, 204, 113, 0.95)';
-  if (state.lineGrade >= 0.55) return 'rgba(241, 196, 15, 0.95)';
-  return 'rgba(255, 141, 122, 0.95)';
+  return gradeColor(state.lineGrade);
 }
 
 function drawLineupGhost(ctx, state) {

@@ -130,6 +130,8 @@ export function startDive(dive, options = {}) {
     tuckWasDown: false,
     grabbed: false,
     grabValue: null,
+    grabLock: null,
+    grabGrade: null,
     entryCue: null,
     flash: null,
     flashSeq: 0,
@@ -341,6 +343,7 @@ function updateAir(state, input, dt) {
       if (!state.grabbed || score >= state.grabValue) {
         state.grabbed = true;
         state.grabValue = score;
+        commitGrab(state);
         setFlash(state, score);
       }
     }
@@ -422,8 +425,10 @@ function finish(state) {
     state.lineLock = clampMeter(state.metrics.angleError / (Math.PI / 2));
     state.lineGrade = angleScore(state.metrics.angleError);
   }
+  if (state.grabLock === null) state.grabLock = 0.62;
   state.result = evaluate(state.metrics, state.dive);
   state.lineGrade = state.result.phases.kickout;
+  state.grabGrade = state.result.phases.entry;
   state.phase = 'result';
   state.splash = createSplash(state.x, WORLD.waterY, state.result);
   state.splashT = 0;
@@ -638,7 +643,7 @@ function cues(state, inBand) {
   }
   if (state.phase === 'entry') {
     return state.grabbed
-      ? { instruction: 'Eintritt — Hände sind gesetzt', tip: 'Ein späterer, besserer Druck ersetzt den ersten.' }
+      ? { instruction: 'Eintritt — Hände sind gesetzt', tip: 'Der Ring bleibt stehen und färbt sich wie die Note.' }
       : { instruction: 'Eintritt — Leertaste, wenn der Ring auf der Wasserlinie aufgeht', tip: 'Gold heißt greifen. Die Note nutzt denselben Moment.' };
   }
   return { instruction: '', tip: '' };
@@ -664,6 +669,14 @@ function clamp01(value) {
 /** Dieselbe Öffnung wie die Note: 1, wenn die Hände über der Wasserlinie greifen sollen. */
 export function grabOpen(state) {
   return grabMarker(state);
+}
+
+/** Friert den Ring auf der Öffnung beim Greifen ein. Ein schlechterer Druck ändert ihn nicht. */
+export function commitGrab(state) {
+  const grade = state.grabValue ?? 0;
+  if (state.grabLock !== null && state.grabLock !== undefined && grade < state.grabGrade) return;
+  state.grabLock = grabMarker(state);
+  state.grabGrade = grade;
 }
 
 function grabMarker(state) {

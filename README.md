@@ -23,7 +23,7 @@ Die Tests spielen denselben Sprung mit sauberem Timing, mit frühem Öffnen, ohn
 
 Standard ist **Training**: die Fenster sind weiter, im grünen Kraftband läuft die Anzeige langsamer, und ein zu früher Hand-Grab wird vom besseren Moment ersetzt. **Wettkampf** ist enger. Ein sauberer Sprung bleibt in beiden Modi bei Ausführung 10, also 14 bis 20 Punkten je nach DD. Knapp daneben ist brauchbar, weit daneben nicht.
 
-Unten im Bild steht immer die eine Aktion der aktuellen Phase, darunter ein kurzer Tipp. Der Anlauf beginnt mit „Bereit“, damit der erste Schritt nicht überrascht. Wird der Ring gold, pulsiert er und davor steht „Jetzt“. Im Flug füllt ein Ring an der Figur jede halbe Drehung und blitzt, wenn sie voll ist. Oben steht „Halbe 2 von 3“. Die Nadel zum Öffnen kommt erst danach. Beim Eintritt liegt ein Ring auf der Wasserlinie und geht auf, wenn die Hände greifen sollen. Die Note bleibt an diesem Moment. Zum Öffnen steht eine gestrichelte Linie im Wasser: senkrecht und gold, wenn die Nadel in der Mitte ist, geneigt, wenn sie nach links oder rechts wandert. Nach dem Loslassen bleibt sie auf diesem Winkel stehen und färbt sich wie die Öffnen-Note: grün, gold oder rot.
+Unten im Bild steht immer die eine Aktion der aktuellen Phase, darunter ein kurzer Tipp. Der Anlauf beginnt mit „Bereit“, damit der erste Schritt nicht überrascht. Wird der Ring gold, pulsiert er und davor steht „Jetzt“. Im Flug füllt ein Ring an der Figur jede halbe Drehung und blitzt, wenn sie voll ist. Oben steht „Halbe 2 von 3“. Die Nadel zum Öffnen kommt erst danach. Beim Eintritt liegt ein Ring auf der Wasserlinie und geht auf, wenn die Hände greifen sollen. Nach dem Greifen bleibt er auf dieser Öffnung stehen und färbt sich wie die Hand-Grab-Note: grün, gold oder rot. Ein verpasster Griff bleibt als roter Ring. Zum Öffnen steht eine gestrichelte Linie im Wasser: senkrecht und gold, wenn die Nadel in der Mitte ist, geneigt, wenn sie nach links oder rechts wandert. Nach dem Loslassen bleibt sie auf diesem Winkel stehen und färbt sich wie die Öffnen-Note: grün, gold oder rot.
 
 `Esc` pausiert, `R` startet denselben Sprung neu. In der Pause kannst du weitermachen, neu starten oder den Sprung wechseln.
 
@@ -107,6 +107,6 @@ Bewusst nicht in diesem Prototyp: Kalender, Sponsoren, Kader, Unreal, filmische 
 
 ## Danach
 
-Der nächste sinnvolle Slice ist derselbe Farbcode an der Eintrittsnote: der Ring auf der Wasserlinie bleibt nach dem Greifen stehen und wird grün, gold oder rot wie der Hand-Grab. Beide Momente lesen sich dann gleich.
+Der nächste sinnvolle Slice: der Zielring in der Leiste friert nach dem Greifen auf demselben Moment ein und nimmt dieselbe Farbe an wie der Ring im Wasser. Leiste und Wasserlinie lesen sich dann gleich.
 
 Der Code liegt in `src/sim.js` (Phasen und Physik), `src/scoring.js` (Note), `src/career.js` (Punkte und Gegner), `src/render.js` (Bild und Kamera) und `src/audio.js` (Klänge). Die Sprünge stehen in `src/dives.js`.

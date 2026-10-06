@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { DIVES } from '../src/dives.js';
 import { createLatch, policyInput } from '../src/policy.js';
-import { WORLD, commitLine, grabOpen, lineupMeter, startDive, step } from '../src/sim.js';
+import { WORLD, commitGrab, commitLine, grabOpen, lineupMeter, startDive, step } from '../src/sim.js';
 
 function run(dive, mode, training = false) {
   const state = startDive(dive, { training });
@@ -105,6 +105,39 @@ test('nach dem Loslassen bleibt die Linie stehen und folgt der Öffnen-Note', ()
   const dive = run(DIVES[0], 'perfect').state;
   assert.notEqual(dive.lineLock, null);
   assert.equal(dive.lineGrade, dive.result.phases.kickout);
+});
+
+test('nach dem Greifen bleibt der Ring stehen und folgt der Hand-Grab-Note', () => {
+  const state = {
+    entryCue: { start: 0, peak: 0.3, end: 0.7 },
+    airTime: 0.62,
+    grabValue: 0.4,
+    grabLock: null,
+    grabGrade: null,
+  };
+  commitGrab(state);
+  assert.ok(state.grabLock < 0.5, String(state.grabLock));
+  state.airTime = 0.3;
+  state.grabValue = 1;
+  commitGrab(state);
+  assert.ok(state.grabLock > 0.9, String(state.grabLock));
+  assert.equal(state.grabGrade, 1);
+  const locked = state.grabLock;
+  state.airTime = 0.68;
+  state.grabValue = 0.2;
+  commitGrab(state);
+  assert.equal(state.grabLock, locked);
+  assert.equal(state.grabGrade, 1);
+
+  const good = run(DIVES[0], 'perfect').state;
+  assert.notEqual(good.grabLock, null);
+  assert.equal(good.grabGrade, good.result.phases.entry);
+  assert.ok(good.grabGrade >= 0.85, String(good.grabGrade));
+
+  const miss = run(DIVES[0], 'no-grab').state;
+  assert.notEqual(miss.grabLock, null);
+  assert.equal(miss.grabGrade, miss.result.phases.entry);
+  assert.ok(miss.grabGrade < 0.2, String(miss.grabGrade));
 });
 
 test('derselbe Sprung wird bei schlechtem Timing klar schlechter', () => {
