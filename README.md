@@ -4,8 +4,8 @@ Eine einzelne HTML-Datei, kein Build. Start: `index.html` im Browser öffnen.
 
 Öffentliche Vorschau:
 
-- https://raw.githack.com/mefice/Sprungsim/cursor/adult-professional-ui-8ddb/index.html
-- https://htmlpreview.github.io/?https://raw.githubusercontent.com/mefice/Sprungsim/cursor/adult-professional-ui-8ddb/index.html
+- https://raw.githack.com/mefice/Sprungsim/cursor/2d-gelaendeplan-ca34/index.html
+- https://htmlpreview.github.io/?https://raw.githubusercontent.com/mefice/Sprungsim/cursor/2d-gelaendeplan-ca34/index.html
 
 ## So startest du
 
@@ -13,7 +13,7 @@ Die Seite führt in Schritten: Hallo, Auftrag, Briefing, Gelände, Crew, Start, 
 
 ## Oberfläche
 
-Gedeckte Farben (Charcoal, Sage, Sand, Off-White), Systemschrift, wenig Dekor. Gelände, Bauten, Crew, Büro und Guide sind fotografisch und in der Datei eingebettet. Ablauf, Texte der Schritte und Spielregeln sind unverändert.
+Gedeckte Farben (Charcoal, Sage, Sand, Off-White), Systemschrift, wenig Dekor. Das Gelände ist eine 2D-Draufsicht: Wiese mit Raster, Wege, Bauten als Grundriss. Crew, Büro und Guide bleiben fotografisch. Ablauf, Texte der Schritte und Spielregeln sind unverändert.
 
 ## Bedienung
 
