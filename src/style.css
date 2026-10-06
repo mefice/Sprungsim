@@ -58,7 +58,14 @@ body {
   left: 50%;
   transform: translateX(-50%);
   color: rgba(255,255,255,0.8);
+  font-size: 18px;
+  font-weight: 700;
   font-variant-numeric: tabular-nums;
+  transition: transform 0.12s ease, color 0.12s ease;
+}
+#readout.pulse {
+  color: #f1c40f;
+  transform: translateX(-50%) scale(1.12);
 }
 
 #dive-info, #judge-feedback, #instructions {

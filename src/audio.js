@@ -94,6 +94,10 @@ export function playCreak() {
   tone(180, 0.05, 0.012, 'sine');
 }
 
+export function playSpin() {
+  tone(760, 0.045, 0.03);
+}
+
 export function playWhoosh() {
   burst(0.28, 900, 0.7, 0.03);
 }

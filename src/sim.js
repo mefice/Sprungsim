@@ -91,6 +91,9 @@ export function startDive(dive, options = {}) {
     approachScores: [],
     approachLead: training ? 1.15 : 0.55,
     beatHit: false,
+    halfCount: 0,
+    halfPulse: 0,
+    halfSeq: 0,
     kickoutAge: 0,
     releaseQueued: false,
     chargeTime: 0,
@@ -129,6 +132,7 @@ export function step(state, input, dt) {
   decayFlash(state, frame);
 
   if (state.phase === 'result') {
+    noteSpin(state, frame);
     state.splashT += frame;
     state.y = Math.min(WORLD.waterY + 48, WORLD.waterY + 10 + state.splashT * 42);
     advanceSplash(state, frame);
@@ -139,7 +143,19 @@ export function step(state, input, dt) {
   else if (state.phase === 'takeoff') updateTakeoff(state, input, frame);
   else updateAir(state, input, frame);
 
+  noteSpin(state, frame);
   return state;
+}
+
+function noteSpin(state, dt) {
+  if (state.halfPulse > 0) state.halfPulse = Math.max(0, state.halfPulse - dt);
+  if (state.phase === 'approach' || state.phase === 'takeoff' || state.phase === 'result') return;
+  const half = Math.floor((state.rotation + 0.12) / Math.PI);
+  if (half > state.halfCount) {
+    state.halfCount = half;
+    state.halfPulse = 0.34;
+    state.halfSeq += 1;
+  }
 }
 
 function feltOsc(state, key, osc, dt) {
@@ -533,6 +549,10 @@ export function present(state) {
     twistNeed: state.dive.twistHalves,
     somersaults: state.rotation / (Math.PI * 2),
     somersaultTarget: state.dive.somersaults,
+    halfCount: state.halfCount,
+    halfTarget: Math.round(state.dive.somersaults * 2),
+    halfPulse: state.halfPulse,
+    halfSeq: state.halfSeq,
     inAir: state.phase === 'flight' || state.phase === 'kickout' || state.phase === 'entry',
     flash: state.flash,
     result: state.result,
@@ -573,7 +593,7 @@ function cues(state, inBand) {
       : '';
     return quiet
       ? { instruction: 'Flug — S oder ↓ gedrückt halten', tip: 'Ohne Hocke kommt die Drehung nicht herum.' }
-      : { instruction: `Flug — S halten, bis die Drehung sitzt.${twist}`, tip: 'Noch nicht loslassen. Das Öffnen kommt gleich.' };
+      : { instruction: `Flug — S halten, bis die Drehung sitzt.${twist}`, tip: 'Der Ring an der Figur füllt jede halbe Drehung.' };
   }
   if (state.phase === 'kickout' && state.kickoutAge < (state.training ? 0.2 : 0.12)) {
     return {

@@ -36,6 +36,7 @@ test('ein sauberer 101C durchläuft alle fünf Phasen und liegt über 8', () => 
   }
   assert.ok(state.result.execution >= 8, dump(state));
   assert.ok(state.result.total > 11, dump(state));
+  assert.ok(state.halfCount >= 1, dump(state));
 });
 
 test('derselbe Sprung wird bei schlechtem Timing klar schlechter', () => {
@@ -70,7 +71,9 @@ test('Salto und Schraube bleiben bei gutem Input wertbar und der DD hebt die Pun
   const salto = run(DIVES[1], 'perfect').state;
   const twist = run(DIVES[2], 'perfect').state;
   assert.ok(salto.result.execution >= 8, dump(salto));
+  assert.ok(salto.halfCount >= 2, dump(salto));
   assert.ok(twist.result.execution >= 8, dump(twist));
+  assert.ok(twist.halfCount >= 2, dump(twist));
   assert.equal(twist.metrics.twistHits, 2);
   assert.ok(twist.result.total > salto.result.total);
   assert.match(twist.result.notes.rotation, /Schraube/);

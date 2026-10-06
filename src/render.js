@@ -111,6 +111,7 @@ function drawWorld(ctx, state) {
     drawAthlete(ctx, trail[i], 0.05 + (i / trail.length) * 0.12);
   }
   if (state) {
+    drawSpinMeter(ctx, state);
     drawAthlete(ctx, state, 1);
     if (state.y < WORLD.waterY - 8) drawRefractedAthlete(ctx, state);
   }
@@ -281,6 +282,28 @@ function drawTower(ctx, bend) {
   ctx.font = '600 16px sans-serif';
   ctx.textAlign = 'left';
   ctx.fillText('10 m', 108, 104);
+}
+
+function drawSpinMeter(ctx, state) {
+  if (state.phase === 'approach' || state.phase === 'takeoff') return;
+  const halves = Math.max(0, state.rotation) / Math.PI;
+  const into = halves - Math.floor(halves);
+  const pulse = state.halfPulse || 0;
+  ctx.save();
+  ctx.translate(state.x, state.y);
+  ctx.strokeStyle = `rgba(241, 196, 15, ${0.28 + pulse * 1.4})`;
+  ctx.lineWidth = 3 + pulse * 5;
+  ctx.beginPath();
+  ctx.arc(0, 0, 40 + pulse * 16, -Math.PI / 2, -Math.PI / 2 + Math.max(0.08, into) * Math.PI * 2);
+  ctx.stroke();
+  if (pulse > 0.04 && state.halfCount > 0) {
+    ctx.globalAlpha = Math.min(1, pulse * 2.4);
+    ctx.fillStyle = '#f4fbff';
+    ctx.font = '700 20px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(String(state.halfCount), 0, -52 - pulse * 12);
+  }
+  ctx.restore();
 }
 
 function drawShadow(ctx, state) {

@@ -1,4 +1,4 @@
-import { playCreak, playJudge, playSplash, playWhoosh, setAmbience, unlockAudio } from './audio.js';
+import { playCreak, playJudge, playSpin, playSplash, playWhoosh, setAmbience, unlockAudio } from './audio.js';
 import {
   careerTier,
   clearCareer,
@@ -91,6 +91,7 @@ let lastFlash = 0;
 let heardPhase = '';
 let heardSplash = false;
 let bendHot = false;
+let heardHalf = 0;
 let lastTime = performance.now();
 
 const RING_START = 132;
@@ -264,6 +265,7 @@ function begin(diveId, asReference = false) {
   heardPhase = '';
   heardSplash = false;
   bendHot = false;
+  heardHalf = 0;
   setAmbience('idle');
   ui.menu.classList.add('hidden');
   ui.overlay.classList.add('active');
@@ -316,8 +318,13 @@ function sync(view) {
   const showRing = view.showTiming || view.showGrab || view.showTwist;
   ui.meters.classList.toggle('hidden', !(view.showPower || view.showLineup));
   ui.ring.classList.toggle('hidden', !showRing);
-  const rotation = `Rotation ${view.somersaults.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} / ${view.somersaultTarget.toLocaleString('de-DE', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}`;
+  const rotation = `Halbe ${view.halfCount} von ${view.halfTarget}`;
   ui.readout.textContent = view.inAir ? rotation : meetStandText();
+  ui.readout.classList.toggle('pulse', view.inAir && view.halfPulse > 0.05);
+  if ((view.halfSeq || 0) !== heardHalf) {
+    if (view.halfSeq > heardHalf) playSpin();
+    heardHalf = view.halfSeq || 0;
+  }
 
   const current = ORDER.indexOf(view.phase);
   for (const item of ui.track.children) {
