@@ -165,10 +165,6 @@ export class DivingGame {
   }
   
   update(dt) {
-    for (const key in this.keyJustPressed) {
-      this.keyJustPressed[key] = false;
-    }
-    
     switch (this.phase) {
       case PHASES.APPROACH:
         this.updateApproach(dt);
@@ -185,6 +181,10 @@ export class DivingGame {
       case PHASES.ENTRY:
         this.updateEntry(dt);
         break;
+    }
+    
+    for (const key in this.keyJustPressed) {
+      this.keyJustPressed[key] = false;
     }
   }
   
