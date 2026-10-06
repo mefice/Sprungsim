@@ -1,6 +1,6 @@
 # Assets
 
-Die Spielmechanik bleibt eigener Code. Diese Dateien liegen unter `public/assets/` und dürfen mit dem Prototyp weitergegeben werden.
+Die Spielmechanik bleibt eigener Code. Diese Dateien liegen unter `public/assets/` und dürfen mit dem Prototyp weitergegeben werden. Geladen wird `import.meta.env.BASE_URL` plus `assets/…` (`./assets/…` bei `base: './'`), damit Dev und Preview denselben Pfad nutzen.
 
 | Datei | Quelle | Lizenz |
 |---|---|---|
