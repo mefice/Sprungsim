@@ -1,0 +1,483 @@
+import { bandScore, evaluate, grabScore, peakScore } from './scoring.js';
+
+export const WORLD = {
+  width: 1280,
+  height: 720,
+  waterY: 676,
+  platformY: 214,
+  g: 760,
+  approachPeriod: 1.2,
+  takeoffPeriod: 1.15,
+  twistPeriod: 0.68,
+  chargeRate: 0.48,
+  poseK: 9,
+};
+
+const STEP_X = [120, 190, 260, 325];
+
+export function emptyInput() {
+  return {
+    spaceDown: false,
+    spacePressed: false,
+    tuckDown: false,
+    twistPressed: false,
+  };
+}
+
+/** Scheitel bei 1, ruht dort kurz — das ist das Zielfenster. */
+export function oscAt(time, period) {
+  const local = ((time % period) + period) % period / period;
+  return Math.sin(Math.PI * local) ** 2;
+}
+
+export function timeToY(y, vy, targetY) {
+  if (y >= targetY) return 0;
+  const a = 0.5 * WORLD.g;
+  const b = vy;
+  const c = y - targetY;
+  const disc = b * b - 4 * a * c;
+  if (disc < 0) return 2.5;
+  const root = Math.sqrt(disc);
+  const candidates = [(-b + root) / (2 * a), (-b - root) / (2 * a)].filter((t) => t > 0.001);
+  return candidates.length ? Math.min(...candidates) : 0.001;
+}
+
+export function timeToWater(y, vy) {
+  return timeToY(y, vy, WORLD.waterY);
+}
+
+/** Rotation beim Eintauchen, wenn die Hocke jetzt gelöst wird. */
+export function predictRotation(state, seconds) {
+  const k = WORLD.poseK;
+  const poseIntegral = seconds <= 0 ? 0 : state.pose * (1 - Math.exp(-k * seconds)) / k;
+  return state.rotation
+    + state.omegaStraight * seconds
+    + (state.omegaTuck - state.omegaStraight) * poseIntegral;
+}
+
+export function predictError(state) {
+  const t = timeToWater(state.y, state.vy);
+  return predictRotation(state, t) - state.targetRad;
+}
+
+export function startDive(dive) {
+  return {
+    dive,
+    phase: 'approach',
+    stage: null,
+    time: 0,
+    age: 0,
+    airTime: 0,
+    boardT: 0,
+    x: STEP_X[0],
+    y: WORLD.platformY - 42,
+    vx: 0,
+    vy: 0,
+    rotation: 0,
+    pose: 0,
+    opened: false,
+    targetRad: dive.somersaults * Math.PI * 2,
+    omegaStraight: 0,
+    omegaTuck: 0,
+    power: 0,
+    charging: false,
+    needFreshPress: false,
+    takeoffDone: false,
+    approachScores: [],
+    beatHit: false,
+    chargeTime: 0,
+    snapTime: 0,
+    bend: 0,
+    poseSum: 0,
+    poseN: 0,
+    twistHits: 0,
+    twistTaps: 0,
+    tuckWasDown: false,
+    grabbed: false,
+    grabValue: null,
+    entryCue: null,
+    flash: null,
+    flashSeq: 0,
+    splash: [],
+    splashT: 0,
+    result: null,
+    metrics: {
+      approach: 0,
+      takeoffTiming: 0,
+      takeoffPower: 0,
+      powerRaw: 0,
+      powerBand: dive.powerBand,
+      avgPose: 0,
+      twistHits: 0,
+      angleError: Math.PI,
+      grab: 0,
+    },
+  };
+}
+
+export function step(state, input, dt) {
+  const frame = Math.min(Math.max(dt, 0), 0.05);
+  state.age += frame;
+  decayFlash(state, frame);
+
+  if (state.phase === 'result') {
+    state.splashT += frame;
+    state.y = Math.min(WORLD.waterY + 48, WORLD.waterY + 10 + state.splashT * 42);
+    advanceSplash(state, frame);
+    return state;
+  }
+
+  if (state.phase === 'approach') updateApproach(state, input, frame);
+  else if (state.phase === 'takeoff') updateTakeoff(state, input, frame);
+  else updateAir(state, input, frame);
+
+  return state;
+}
+
+function updateApproach(state, input, dt) {
+  const period = WORLD.approachPeriod;
+  const previousBeat = Math.floor(state.time / period);
+  state.time += dt;
+  const beat = Math.floor(state.time / period);
+  placeOnBoard(state);
+
+  if (input.spacePressed && !state.beatHit && state.phase === 'approach') {
+    state.beatHit = true;
+    recordApproach(state, peakScore(oscAt(state.time, period)));
+  }
+
+  if (beat > previousBeat && state.phase === 'approach') {
+    if (!state.beatHit) recordApproach(state, 0);
+    state.beatHit = false;
+  }
+}
+
+function recordApproach(state, score) {
+  state.approachScores.push(score);
+  state.x = STEP_X[Math.min(STEP_X.length - 1, state.approachScores.length)];
+  setFlash(state, score);
+  if (state.approachScores.length >= 3) beginTakeoff(state);
+}
+
+function beginTakeoff(state) {
+  state.phase = 'takeoff';
+  state.stage = 'charge';
+  state.time = 0;
+  state.boardT = 0;
+  state.chargeTime = 0;
+  state.snapTime = 0;
+  state.needFreshPress = true;
+  state.charging = false;
+  state.power = 0;
+  state.metrics.approach = average(state.approachScores);
+}
+
+function updateTakeoff(state, input, dt) {
+  state.boardT += dt;
+  placeOnBoard(state);
+
+  if (state.needFreshPress) {
+    if (!input.spaceDown && !input.spacePressed) state.needFreshPress = false;
+    return;
+  }
+
+  if (state.stage === 'charge') {
+    state.chargeTime += dt;
+    if (input.spaceDown) {
+      state.charging = true;
+      state.power = Math.min(1, state.power + WORLD.chargeRate * dt);
+    }
+    const released = state.charging && !input.spaceDown;
+    const toppedOut = state.power >= 0.995 && state.charging;
+    if (released || toppedOut) {
+      state.stage = 'snap';
+      state.charging = false;
+      state.needFreshPress = true;
+      state.snapTime = 0;
+      state.metrics.powerRaw = state.power;
+      state.metrics.takeoffPower = bandScore(state.power, state.dive.powerBand);
+      return;
+    }
+    if (state.chargeTime > 4.2 && !state.charging) {
+      state.metrics.powerRaw = state.power;
+      state.metrics.takeoffPower = 0;
+      state.metrics.takeoffTiming = 0;
+      launch(state);
+    }
+    return;
+  }
+
+  state.snapTime += dt;
+  if (input.spacePressed) {
+    state.metrics.powerRaw = state.power;
+    state.metrics.takeoffPower = bandScore(state.power, state.dive.powerBand);
+    state.metrics.takeoffTiming = peakScore(oscAt(state.boardT, WORLD.takeoffPeriod));
+    setFlash(state, state.metrics.takeoffTiming);
+    launch(state);
+    return;
+  }
+
+  if (state.snapTime > 3.6) {
+    state.metrics.takeoffTiming = 0;
+    launch(state);
+  }
+}
+
+function launch(state) {
+  const timing = state.metrics.takeoffTiming;
+  const power = state.metrics.takeoffPower;
+  const height = 70 + 80 * (0.4 + 0.6 * power) * (0.8 + 0.2 * timing);
+  state.vy = -Math.sqrt(2 * WORLD.g * height);
+  state.vx = 128;
+  state.phase = 'flight';
+  state.stage = null;
+  state.bend = 0;
+  state.airTime = 0;
+  state.opened = false;
+  state.pose = 0;
+  state.poseSum = 0;
+  state.poseN = 0;
+  state.takeoffDone = true;
+
+  const air = Math.max(0.9, timeToWater(state.y, state.vy));
+  const quality = 0.88 + 0.12 * (timing * 0.5 + power * 0.5);
+  state.omegaTuck = (state.targetRad / (air * 0.8)) * quality;
+  state.omegaStraight = state.omegaTuck / 2.55;
+}
+
+function updateAir(state, input, dt) {
+  const phaseAtStart = state.phase;
+
+  if (phaseAtStart === 'kickout' && !state.opened && state.tuckWasDown && !input.tuckDown) {
+    state.opened = true;
+  }
+  if (phaseAtStart === 'entry' && input.spacePressed && !state.grabbed) {
+    const dist = WORLD.waterY - state.y;
+    state.grabbed = true;
+    state.grabValue = dist < 190 ? grabScore(dist) : 0.05;
+    setFlash(state, state.grabValue);
+  }
+
+  if (!state.opened && (phaseAtStart === 'flight' || phaseAtStart === 'kickout')) {
+    state.poseSum += state.pose;
+    state.poseN += 1;
+    if (input.twistPressed && state.dive.twistHalves > 0 && state.twistTaps < state.dive.twistHalves) {
+      state.twistTaps += 1;
+      state.twistHits += peakScore(oscAt(state.airTime, WORLD.twistPeriod));
+      setFlash(state, peakScore(oscAt(state.airTime, WORLD.twistPeriod)));
+    }
+  }
+
+  const sub = 4;
+  const h = dt / sub;
+  for (let i = 0; i < sub; i += 1) {
+    integrateAir(state, h, input.tuckDown && !state.opened);
+    state.airTime += h;
+    if (state.y >= WORLD.waterY) {
+      state.tuckWasDown = input.tuckDown;
+      finish(state);
+      return;
+    }
+  }
+
+  if (!state.opened && phaseAtStart === 'flight') {
+    const remaining = timeToWater(state.y, state.vy);
+    if (remaining < 1.12 && state.airTime > 0.28) state.phase = 'kickout';
+  }
+
+  if (!state.opened && (state.phase === 'kickout' || state.phase === 'flight')) {
+    const remaining = timeToWater(state.y, state.vy);
+    if (remaining < 0.09) state.opened = true;
+  }
+
+  if (state.opened && state.phase !== 'entry') {
+    if (!state.entryCue) {
+      state.entryCue = {
+        start: state.airTime,
+        peak: state.airTime + timeToY(state.y, state.vy, WORLD.waterY - 72),
+        end: state.airTime + timeToWater(state.y, state.vy),
+      };
+    }
+    state.phase = 'entry';
+  }
+  state.tuckWasDown = input.tuckDown;
+}
+
+function integrateAir(state, dt, tuckDown) {
+  const targetPose = state.opened || !tuckDown ? 0 : 1;
+  const pose0 = state.pose;
+  const pose1 = targetPose + (pose0 - targetPose) * Math.exp(-WORLD.poseK * dt);
+  const avgPose = (pose0 + pose1) * 0.5;
+  state.pose = pose1;
+  const omega = state.omegaStraight + (state.omegaTuck - state.omegaStraight) * avgPose;
+  state.rotation += omega * dt;
+  state.y += state.vy * dt + 0.5 * WORLD.g * dt * dt;
+  state.vy += WORLD.g * dt;
+  state.x += state.vx * dt;
+}
+
+function finish(state) {
+  if (state.result) return;
+  state.y = WORLD.waterY + 6;
+  state.vy = 0;
+  state.metrics.avgPose = state.poseN ? state.poseSum / state.poseN : 0;
+  state.metrics.twistHits = state.twistHits;
+  state.metrics.angleError = state.rotation - state.targetRad;
+  state.metrics.grab = state.grabValue ?? 0;
+  state.metrics.approach = average(state.approachScores);
+  state.result = evaluate(state.metrics, state.dive);
+  state.phase = 'result';
+  state.splash = createSplash(state.x, WORLD.waterY, state.result);
+  state.splashT = 0;
+}
+
+function placeOnBoard(state) {
+  state.bend = state.phase === 'takeoff'
+    ? oscAt(state.boardT, WORLD.takeoffPeriod) * 30
+    : 0;
+  state.y = WORLD.platformY + state.bend - 42;
+  if (state.phase === 'approach') {
+    state.x = STEP_X[Math.min(STEP_X.length - 1, state.approachScores.length)];
+  }
+}
+
+function average(values) {
+  if (!values.length) return 0;
+  return values.reduce((sum, value) => sum + value, 0) / values.length;
+}
+
+function setFlash(state, score) {
+  state.flashSeq += 1;
+  state.flash = {
+    id: state.flashSeq,
+    score,
+    text: score >= 0.92 ? 'Perfekt' : score >= 0.62 ? 'Gut' : score >= 0.28 ? 'Knapp' : 'Daneben',
+    life: 0.45,
+  };
+}
+
+function decayFlash(state, dt) {
+  if (!state.flash) return;
+  state.flash.life -= dt;
+  if (state.flash.life <= 0) state.flash = null;
+}
+
+function createSplash(x, y, result) {
+  const rip = result.rip;
+  const count = rip ? 7 : 16;
+  const particles = [];
+  for (let i = 0; i < count; i += 1) {
+    const spread = rip ? 0.45 : 1.7;
+    const angle = -Math.PI / 2 + (i / (count - 1) - 0.5) * spread;
+    const speed = rip ? 50 + (i % 3) * 18 : 90 + (i % 5) * 38;
+    particles.push({
+      x,
+      y,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed,
+      r: rip ? 2.2 : 3 + (i % 3),
+      life: rip ? 0.5 : 0.85,
+      max: rip ? 0.5 : 0.85,
+    });
+  }
+  return particles;
+}
+
+function advanceSplash(state, dt) {
+  for (const particle of state.splash) {
+    particle.vy += 820 * dt;
+    particle.x += particle.vx * dt;
+    particle.y += particle.vy * dt;
+    particle.life -= dt;
+  }
+}
+
+export function present(state) {
+  if (!state) return null;
+  const osc = state.phase === 'approach'
+    ? oscAt(state.time, WORLD.approachPeriod)
+    : state.phase === 'takeoff'
+      ? oscAt(state.boardT, WORLD.takeoffPeriod)
+      : 0;
+
+  let instruction = '';
+  if (state.phase === 'approach') {
+    const step = Math.min(3, Math.floor(state.time / WORLD.approachPeriod) + 1);
+    instruction = `Anlauf · Schritt ${step}/3 · Leertaste, wenn die Markierung im Ziel steht`;
+  } else   if (state.phase === 'takeoff' && state.stage === 'charge' && state.needFreshPress) {
+    instruction = 'Absprung · Leertaste kurz lösen, dann für die Kraft halten';
+  } else if (state.phase === 'takeoff' && state.stage === 'charge') {
+    instruction = 'Absprung · Leertaste halten und im grünen Kraftband loslassen';
+  } else if (state.phase === 'takeoff') {
+    instruction = 'Absprung · Leertaste, wenn das Brett unten im Ziel ist';
+  } else if (state.phase === 'flight') {
+    instruction = state.dive.twistHalves > 0
+      ? `Flug · S halten zum Hocken · T im Puls (${state.twistTaps}/${state.dive.twistHalves})`
+      : 'Flug · S oder Pfeil runter halten, damit die Rotation anzieht';
+  } else if (state.phase === 'kickout') {
+    instruction = 'Öffnen · S loslassen, wenn die Linie in der Mitte steht';
+  } else if (state.phase === 'entry') {
+    instruction = 'Eintritt · Leertaste für den flachen Hand-Grab';
+  }
+
+  const showTiming = state.phase === 'approach' || (state.phase === 'takeoff' && state.stage === 'snap');
+  const showPower = state.phase === 'takeoff' && state.stage === 'charge' && !state.needFreshPress;
+  const showLineup = state.phase === 'kickout' && !state.opened;
+  const showGrab = state.phase === 'entry';
+  const showTwist = state.dive.twistHalves > 0 && (state.phase === 'flight' || state.phase === 'kickout') && !state.opened;
+
+  return {
+    phase: state.phase,
+    phaseLabel: phaseLabel(state),
+    instruction,
+    showTiming,
+    timing: osc,
+    timingHot: osc >= 0.92,
+    showPower,
+    power: state.power,
+    powerBand: state.dive.powerBand,
+    showLineup,
+    lineup: showLineup ? clampMeter(predictError(state) / (Math.PI / 2)) : 0,
+    showGrab,
+    grab: showGrab ? grabMarker(state) : 0,
+    showTwist,
+    twist: showTwist ? oscAt(state.airTime, WORLD.twistPeriod) : 0,
+    twistTaps: state.twistTaps,
+    twistNeed: state.dive.twistHalves,
+    somersaults: state.rotation / (Math.PI * 2),
+    somersaultTarget: state.dive.somersaults,
+    inAir: state.phase === 'flight' || state.phase === 'kickout' || state.phase === 'entry',
+    flash: state.flash,
+    result: state.result,
+    splashT: state.splashT,
+    dive: state.dive,
+  };
+}
+
+function phaseLabel(state) {
+  if (state.phase === 'approach') return 'Anlauf';
+  if (state.phase === 'takeoff') return 'Absprung';
+  if (state.phase === 'flight') return 'Flug';
+  if (state.phase === 'kickout') return 'Öffnen';
+  if (state.phase === 'entry') return 'Eintritt';
+  return 'Ergebnis';
+}
+
+function clampMeter(value) {
+  return Math.min(1, Math.max(-1, value));
+}
+
+function clamp01(value) {
+  return Math.min(1, Math.max(0, value));
+}
+
+/** Gleicher Takt wie der Anlauf: die Markierung ruht im Ziel, wenn die Hände greifen sollen. */
+function grabMarker(state) {
+  if (!state.entryCue) return 0;
+  const span = Math.max(0.001, state.entryCue.end - state.entryCue.start);
+  const progress = (state.airTime - state.entryCue.start) / span;
+  const peak = clamp01((state.entryCue.peak - state.entryCue.start) / span);
+  const distance = Math.abs(progress - peak) / 0.62;
+  if (distance >= 1) return 0;
+  return Math.cos(distance * Math.PI / 2);
+}

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ZEHN METER - Vertical Slice</title>
+  <title>ZEHN METER — Vertical Slice</title>
   <link rel="stylesheet" href="/src/style.css">
 </head>
 <body>
@@ -11,26 +11,77 @@
     <canvas id="gameCanvas"></canvas>
     <div id="ui-overlay">
       <div id="phase-indicator"></div>
-      <div id="timing-bar-container">
-        <div id="timing-bar">
-          <div id="timing-marker"></div>
-          <div id="timing-target"></div>
+      <ol id="phase-track">
+        <li data-phase="approach">Anlauf</li>
+        <li data-phase="takeoff">Absprung</li>
+        <li data-phase="flight">Flug</li>
+        <li data-phase="kickout">Öffnen</li>
+        <li data-phase="entry">Eintritt</li>
+      </ol>
+      <div id="readout"></div>
+      <div id="dive-info">
+        <div id="dive-name" class="dive-name"></div>
+        <div id="dive-dd" class="dive-dd"></div>
+      </div>
+      <div id="meters">
+        <div id="timing-bar-container">
+          <div class="meter-label">Ziel</div>
+          <div id="timing-bar">
+            <div id="timing-target"></div>
+            <div id="timing-marker"></div>
+          </div>
+        </div>
+        <div id="power-meter" class="meter hidden">
+          <div class="meter-label">Kraft <span id="power-target"></span></div>
+          <div class="bar">
+            <div class="zone" id="power-zone"></div>
+            <div class="fill" id="power-fill"></div>
+          </div>
+        </div>
+        <div id="lineup-meter" class="meter hidden">
+          <div class="meter-label">Eintrittslinie — S loslassen</div>
+          <div class="bar">
+            <div class="zone center-zone"></div>
+            <div class="needle" id="lineup-needle"></div>
+          </div>
+          <div class="meter-scale"><span>kurz</span><span>vertikal</span><span>überdreht</span></div>
+        </div>
+        <div id="grab-meter" class="meter hidden">
+          <div class="meter-label">Hand-Grab — Leertaste im Ziel</div>
+          <div class="bar">
+            <div class="zone grab-zone"></div>
+            <div class="needle" id="grab-needle"></div>
+          </div>
+          <div class="meter-scale"><span>zu früh</span><span>Rip</span><span>Wasser</span></div>
+        </div>
+        <div id="twist-meter" class="meter hidden">
+          <div class="meter-label">Schraube <span id="twist-count"></span> — T im Ziel</div>
+          <div class="bar">
+            <div class="zone twist-zone"></div>
+            <div class="needle" id="twist-needle"></div>
+          </div>
         </div>
       </div>
-      <div id="dive-info"></div>
       <div id="score-display"></div>
       <div id="judge-feedback"></div>
       <div id="instructions"></div>
     </div>
     <div id="menu-overlay">
       <div id="menu">
+        <p class="eyebrow">Sprungsim · Vertical Slice</p>
         <h1>ZEHN METER</h1>
-        <p class="subtitle">Wasserspringen Skill-Prototype</p>
+        <p class="subtitle">Fünf Phasen, eine Note. Ausführung mal Schwierigkeit.</p>
         <div id="dive-selection">
           <h2>Sprung wählen</h2>
           <div id="dive-buttons"></div>
         </div>
-        <button id="start-btn" class="menu-btn">Sprung starten</button>
+        <button id="start-btn" class="menu-btn" type="button">Sprung starten</button>
+        <div class="controls">
+          <h2>Steuerung</h2>
+          <p><kbd>Leertaste</kbd> Anlauf, Kraft, Absprung, Hand-Grab</p>
+          <p><kbd>S</kbd> oder <kbd>↓</kbd> Hocke halten, loslassen zum Öffnen</p>
+          <p><kbd>T</kbd> Schraube, wenn der Puls im Ziel steht</p>
+        </div>
         <div id="session-stats"></div>
       </div>
     </div>

@@ -1,61 +1,40 @@
+/** Drei Sprünge für den Vertical Slice, DD nach GDD-Größenordnung (10 m). */
 export const DIVES = [
   {
     id: '101C',
     name: 'Kopfsprung vorwärts gehockt',
-    description: 'Einfacher Kopfsprung mit Hocke',
+    summary: 'Ein halber Salto. Zum Lernen von Absprung, Öffnen und Rip.',
     dd: 1.4,
-    difficulty: 'anfänger',
-    unlocked: true,
-    rotations: 0.5,
-    twists: 0,
-    phases: {
-      approach: { baseTime: 2000, steps: 3 },
-      takeoff: { windowMs: 150, powerTarget: [60, 80] },
-      flight: { holdTime: 800, tuckDepth: 0.5 },
-      kickout: { windowMs: 200 },
-      entry: { windowMs: 120 }
-    }
+    level: 'Anfänger',
+    somersaults: 0.5,
+    twistHalves: 0,
+    position: 'C',
+    powerBand: [0.56, 0.82],
   },
   {
     id: '103B',
     name: '1½ Salto vorwärts gehechtet',
-    description: 'Anderthalb Saltos vorwärts in Hechtposition',
-    dd: 1.7,
-    difficulty: 'fortgeschritten',
-    unlocked: true,
-    rotations: 1.5,
-    twists: 0,
-    phases: {
-      approach: { baseTime: 2000, steps: 3 },
-      takeoff: { windowMs: 120, powerTarget: [75, 90] },
-      flight: { holdTime: 1000, tuckDepth: 0.7 },
-      kickout: { windowMs: 150 },
-      entry: { windowMs: 100 }
-    }
+    summary: 'Mehr Rotation: die Hocke muss sitzen, das Öffnen auch.',
+    dd: 1.6,
+    level: 'Fortgeschritten',
+    somersaults: 1.5,
+    twistHalves: 0,
+    position: 'B',
+    powerBand: [0.7, 0.92],
   },
   {
     id: '5132D',
     name: '1½ Salto vorwärts mit 1 Schraube',
-    description: 'Anderthalb Saltos mit einer vollen Schraube - freie Position',
-    dd: 2.1,
-    difficulty: 'experte',
-    unlocked: true,
-    rotations: 1.5,
-    twists: 1,
-    phases: {
-      approach: { baseTime: 2000, steps: 3 },
-      takeoff: { windowMs: 100, powerTarget: [80, 95] },
-      flight: { holdTime: 1200, tuckDepth: 0.8, twistTaps: 2 },
-      kickout: { windowMs: 120 },
-      entry: { windowMs: 80 }
-    }
-  }
+    summary: 'Wie der Salto, plus zwei Schrauben-Taps im Takt.',
+    dd: 2.0,
+    level: 'Experte',
+    somersaults: 1.5,
+    twistHalves: 2,
+    position: 'D',
+    powerBand: [0.74, 0.96],
+  },
 ];
 
 export function getDiveById(id) {
-  return DIVES.find(d => d.id === id);
-}
-
-export function getUnlockedDives() {
-  return DIVES.filter(d => d.unlocked);
+  return DIVES.find((dive) => dive.id === id) ?? null;
 }

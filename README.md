@@ -1,106 +1,79 @@
-# ZEHN METER - Vertical Slice Prototype
+# ZEHN METER — Vertical Slice
 
-Ein spielbarer Web-Prototyp für das Wasserspringen-Karrierespiel **ZEHN METER** (Arbeitstitel: Sprungsim).
-
-## Was ist das?
-
-Dieser Prototyp demonstriert die Kern-Spielmechanik des Turmspringens: eine **5-Phasen Skill-Loop**, bei der Timing und Präzision über die Wertung entscheiden.
-
-**Die 5 Phasen eines Sprungs:**
-1. **Anlauf** - Rhythmisches Timing für den Anlauf zum Brett
-2. **Absprung** - Kraft dosieren und im optimalen Moment loslassen
-3. **Flug** - Position halten für Rotation, bei Schrauben zusätzliche Inputs
-4. **Öffnen (Kick-out)** - Rechtzeitig aus der Hocke strecken
-5. **Eintritt** - Hand-Grab für den perfekten "Rip" (spritzerfreien Eintritt)
+Spielbarer Browser-Prototyp für **ZEHN METER / Sprungsim**: ein Wassersprung als Skill-Event in fünf Phasen. Kein Karrieremodus, kein Unreal-Projekt. Die Note soll aus dem Input lesbar sein.
 
 ## Starten
 
 ```bash
-# Dependencies installieren
 npm install
-
-# Entwicklungsserver starten
 npm run dev
 ```
 
-Dann im Browser öffnen: `http://localhost:3000`
+Im Browser `http://localhost:3000` öffnen. Produktion bauen mit `npm run build`, lokal prüfen mit `npm run preview`.
+
+Die Wertung ist deterministisch getestet:
+
+```bash
+npm test
+```
+
+Die Tests spielen denselben Sprung mit sauberem Timing, mit frühem Öffnen, ohne Hand-Grab und ohne Eingabe. Sauber liegt bei Ausführung 10, daneben deutlich darunter.
 
 ## Steuerung
 
-| Taste | Funktion |
-|-------|----------|
-| **Leertaste** | Haupt-Input: Timing im Anlauf, Kraft beim Absprung, Hocke im Flug, Öffnen, Eintritt |
-| **T** | Schraube (Twist) - nur bei Schraubensprüngen, mehrfach drücken |
+| Taste | Phase | Was sie tut |
+|---|---|---|
+| **Leertaste** | Anlauf | Drücken, wenn die Markierung rechts im Ziel steht. Drei Schritte. Ein verpasster Takt zählt als Fehlschritt. |
+| **Leertaste halten** | Absprung, Kraft | Im grünen Band loslassen. Einfache Sprünge brauchen weniger Kraft als Saltos. |
+| **Leertaste** | Absprung, Timing | Danach erneut drücken, wenn das Brett unten im Ziel ist. |
+| **S** oder **↓** | Flug | Halten hockt den Körper. Die Rotation wird schneller. Loslassen in der Flugphase öffnet noch nicht. |
+| **T** | Flug / Öffnen | Nur 5132D: zweimal im Puls, wenn die Markierung im Ziel steht. |
+| **S** loslassen | Öffnen | Wenn die Eintrittslinie in der Mitte steht. Links ist kurz, rechts überdreht. |
+| **Leertaste** | Eintritt | Wenn die Markierung im Ziel steht: flache Hände, der Rip. |
 
-## Verfügbare Sprünge
+Die Zielfarbe ist überall dieselbe: Markierung rechts im grünen Feld, gold wenn sie dort verharrt.
 
-| Nr. | Name | DD | Schwierigkeit |
-|-----|------|-----|---------------|
-| 101C | Kopfsprung vorwärts gehockt | 1.4 | Anfänger |
-| 103B | 1½ Salto vorwärts gehechtet | 1.7 | Fortgeschritten |
-| 5132D | 1½ Salto vorwärts mit 1 Schraube | 2.1 | Experte |
+## Die fünf Phasen
 
-## Wertungssystem
+1. **Anlauf** — drei Schritte im Takt.
+2. **Absprung** — Kraft und Brett-Tiefpunkt, nacheinander, damit beide Entscheidungen lesbar bleiben.
+3. **Flug** — Hocke erhöht die Drehgeschwindigkeit. Die Schraube hat einen eigenen Takt.
+4. **Öffnen** — Loslassen bestimmt, ob der Körper vertikal ankommt.
+5. **Eintritt** — Hand-Grab über dem Wasser. Treffer und senkrechte Linie ergeben den Rip.
 
-Die Wertung folgt dem echten Wasserspringen-Reglement:
+Wer nichts drückt, springt trotzdem zu Ende. Die Ausführung liegt dann nahe 0.
 
+## Sprünge und Wertung
+
+| Nr. | Sprung | DD (10 m) | Was dazukommt |
+|---|---|---|---|
+| 101C | Kopfsprung vorwärts gehockt | 1,4 | halber Salto |
+| 103B | 1½ Salto vorwärts gehechtet | 1,6 | deutlich mehr Rotation |
+| 5132D | 1½ Salto vorwärts mit 1 Schraube | 2,0 | dieselbe Rotation plus zwei Twist-Taps |
+
+```text
+Punkte = Ausführung × DD
 ```
-Endpunktzahl = Ausführung × Schwierigkeitsgrad (DD)
-```
 
-**Ausführung (5.0 - 10.0)** wird berechnet aus:
-- Anlauf-Timing (10%)
-- Absprung-Qualität (25%)
-- Flug/Rotation (30%)
-- Öffnen-Timing (15%)
-- Eintritts-Qualität (20%)
+Die Ausführung startet bei 10 und verliert Punkte über Anlauf, Absprung, Rotation, Öffnen und Eintritt. Ein Rip gibt einen kleinen Bonus, gedeckelt bei 10. Nach dem Eintauchen stehen drei Sätze da: **Absprung**, **Rotation**, **Eintritt**, plus die Abzüge.
 
-## Kampfrichter-Feedback
+Dieselbe Ausführung 8,0 ist auf 101C **11,20** Punkte und auf 5132D **16,00**. Ein sauberer 101C kommt im Test auf **14,00**, derselbe Sprung mit schlechtem Timing unter **1** Punkt.
 
-Nach jedem Sprung erhältst du detailliertes Feedback zu jeder Phase:
-- **Exzellent** - Nahezu perfektes Timing
-- **Gut** - Solide Ausführung
-- **Mangelhaft** - Verbesserungsbedarf
+## Bezug zum GDD
 
-Bei einem perfekten Eintritt erscheint die begehrte **"RIP!"**-Meldung.
+Der Slice setzt die Mechanik aus dem Game Design Document um, nicht die Karriere:
 
-## GDD-Konzepte
+- **Kapitel 5** — fünf Phasen: Anlauf, Absprung (Timing und Kraft), Flug (Hocke, Schraube), Öffnen, Eintritt mit Rip.
+- **Kapitel 6** — Sprungnummern 101C, 103B und 5132D, DD in der Größenordnung der 10-m-Tabelle.
+- **Kapitel 7** — Punkte als Ausführung mal Schwierigkeit. Im vollen Spiel streichen sieben Kampfrichter die Extremwerte. Hier gibt es eine offene Ausführung, damit jeder Abzug nachvollziehbar bleibt.
 
-Dieser Prototyp basiert auf dem Game Design Document für ZEHN METER. Die vollständige Vision umfasst:
-
-- **Karrieremodus** mit 7 Prestige-Stufen (Vereinsneuling → Legende)
-- **Kalender-System** mit Training, Wettkämpfen, Sponsoren
-- **180+ Sprünge** nach echtem Nummernsystem
-- **Physikalisch simulierte Flugphase** mit Drehimpulserhaltung
-- **AAA-Präsentation** mit Unreal Engine 5 und realistischer Wasser-Simulation
-
-Siehe GDD-Dokumente für Details:
-- `turmspringer-gdd.md` - Vollständiges Game Design Document
-- `turmspringer-pitch.md` - Executive Summary
-
-## Technologie
-
-- **Vite** - Build-Tool und Dev-Server
-- **Vanilla JavaScript** - Keine Framework-Abhängigkeiten
-- **Canvas 2D** - Für schnelle Iteration der Gameplay-Mechanik
+Bewusst nicht in diesem Prototyp: Kalender, Sponsoren, Kader, Unreal, Wasser-Simulation in Filmqualität.
 
 ## Nächste Schritte
 
-Dieser Vertical Slice ist der erste Schritt. Geplante Erweiterungen:
+1. Weitere Sprunggruppen (rückwärts, Auerbach, Delphin, Armstand) als Daten, nicht als neue Sonderfälle.
+2. Assist-Stufen aus dem GDD: breitere Fenster, optionale Geisterlinie.
+3. Replay der fünf Inputs, damit ein Sprung erklärbar bleibt.
+4. Erst danach Venue, Athlet und Wettkampf in der Zielengine.
 
-1. **Mehr Sprünge** - Alle Gruppen (Vorwärts, Rückwärts, Auerbach, Delphin, Handstand)
-2. **Verbessertes Feedback** - Visuelle Timing-Indikatoren, Replay
-3. **Sound** - Wasser-Splash, Publikum, Brett-Federung
-4. **3D-Umsetzung** - Three.js oder später Unreal Engine
-
----
-
-**Out of Scope für diesen Prototyp:**
-- Karriere-Kalender und Saisonplanung
-- Sponsoren und Finanzsystem
-- Unreal Engine / AAA-Grafik
-- Realistische Wasser-Simulation
-
----
-
-*ZEHN METER - "Ich stehe allein auf zehn Metern Höhe, 12.000 Menschen halten den Atem an, und in 1,8 Sekunden entscheidet sich, ob vier Jahre Arbeit sich gelohnt haben."*
+Der Code liegt in `src/sim.js` (Phasen und Physik), `src/scoring.js` (Note) und `src/render.js` (Bild). Die Sprünge stehen in `src/dives.js`.
