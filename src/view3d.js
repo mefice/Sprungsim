@@ -235,10 +235,28 @@ function buildCues() {
   grabRing.visible = false;
   scene.add(grabRing);
 
-  spinRing = new THREE.Mesh(
-    new THREE.TorusGeometry(0.62, 0.018, 8, 40),
-    new THREE.MeshBasicMaterial({ color: 0xf1c40f, transparent: true, opacity: 0.35 }),
+  const trackMat = new THREE.MeshBasicMaterial({
+    color: 0xf1c40f,
+    transparent: true,
+    opacity: 0.38,
+    side: THREE.DoubleSide,
+  });
+  const arcMat = new THREE.MeshBasicMaterial({
+    color: 0xf1c40f,
+    transparent: true,
+    opacity: 0.96,
+    side: THREE.DoubleSide,
+  });
+  spinRing = new THREE.Group();
+  spinRing.userData.arcMat = arcMat;
+  spinRing.add(new THREE.Mesh(new THREE.RingGeometry(1.05, 1.48, 64), trackMat));
+  const arc = new THREE.Mesh(
+    new THREE.RingGeometry(1.05, 1.48, 48, 1, Math.PI / 2, 0.2),
+    arcMat,
   );
+  arc.name = 'spin-arc';
+  spinRing.add(arc);
+  spinRing.userData.into = -1;
   spinRing.visible = false;
   scene.add(spinRing);
 
@@ -494,9 +512,17 @@ function updateCues(state) {
   if (showSpin) {
     const halves = Math.max(0, state.rotation) / Math.PI;
     const into = halves - Math.floor(halves);
-    spinRing.position.copy(hip);
-    spinRing.rotation.y = Math.PI / 2;
-    spinRing.material.opacity = 0.15 + into * 0.65 + (state.halfPulse || 0);
+    const pulse = state.halfPulse || 0;
+    spinRing.position.set(hip.x, hip.y, 6.2);
+    spinRing.scale.setScalar(1 + pulse * 0.2);
+    spinRing.userData.arcMat.color.setHex(pulse > 0.05 ? 0xfff4c4 : 0xf1c40f);
+    const shown = Math.round(into * 40) / 40;
+    if (shown !== spinRing.userData.into) {
+      spinRing.userData.into = shown;
+      const arc = spinRing.getObjectByName('spin-arc');
+      arc.geometry.dispose();
+      arc.geometry = new THREE.RingGeometry(1.05, 1.48, 48, 1, Math.PI / 2, Math.max(0.16, shown) * Math.PI * 2);
+    }
   }
 
   const particles = state.splash || [];
