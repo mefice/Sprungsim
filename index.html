@@ -1,0 +1,2376 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Festivalplaner</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect fill='%23141910' width='32' height='32' rx='6'/%3E%3Cpath fill='%23f0b429' d='M6 24 L16 8 L26 24Z'/%3E%3C/svg%3E">
+<style>
+:root {
+  --bg: #141910;
+  --card: #1e261c;
+  --card-2: #273224;
+  --line: #3d4a38;
+  --ink: #f4f1e8;
+  --muted: #b7b2a6;
+  --gold: #f0b429;
+  --mint: #3dce93;
+  --coral: #ff6a45;
+  --sky: #9ec9ff;
+  --shadow: 0 14px 40px rgba(0,0,0,.28);
+  --sans: "Segoe UI", "Helvetica Neue", "Arial Nova", sans-serif;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { margin: 0; padding: 0; }
+body {
+  min-height: 100vh;
+  font-family: var(--sans);
+  font-size: 15px;
+  line-height: 1.45;
+  color: var(--ink);
+  background:
+    radial-gradient(900px 420px at 0% -10%, rgba(240,180,41,.14), transparent 50%),
+    radial-gradient(700px 480px at 100% 0%, rgba(61,206,147,.08), transparent 46%),
+    var(--bg);
+}
+body.is-night {
+  background:
+    radial-gradient(800px 380px at 20% -10%, rgba(120,150,255,.16), transparent 50%),
+    var(--bg);
+}
+body.is-peak {
+  background:
+    radial-gradient(800px 380px at 80% -10%, rgba(255,106,69,.16), transparent 50%),
+    var(--bg);
+}
+button, select {
+  font: inherit;
+  color: var(--ink);
+  background: var(--card-2);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 8px 12px;
+  min-height: 36px;
+  cursor: pointer;
+}
+button:hover { filter: brightness(1.08); }
+button:disabled { opacity: .45; cursor: default; filter: none; }
+button.primary { background: var(--gold); color: #2a1d05; border-color: #e2b33a; font-weight: 700; }
+button.on { background: #3d6a32; border-color: var(--mint); }
+button.need { box-shadow: inset 0 0 0 1px var(--gold); }
+button.tiny { min-height: 28px; padding: 2px 8px; font-size: 13px; }
+button:focus-visible, select:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+select { width: 100%; }
+h1, h2, h3 { font-weight: 720; letter-spacing: -.02em; margin: 0; }
+h1 { font-size: 1.35rem; }
+h2 { font-size: 1rem; color: #f0d78c; margin-bottom: 8px; }
+p { margin: 0 0 8px; }
+.muted { color: var(--muted); }
+.good { color: var(--mint); }
+.bad { color: var(--coral); }
+.warn { color: var(--gold); }
+header, .phase-row, .grace, .hint, .layout {
+  width: min(1240px, calc(100% - 20px));
+  margin-left: auto;
+  margin-right: auto;
+}
+header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 16px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 0 8px;
+}
+.brand { display: flex; gap: 10px; align-items: center; }
+.mark {
+  width: 42px; height: 42px; border-radius: 12px;
+  display: grid; place-items: center;
+  background: linear-gradient(160deg, var(--gold), #3dce93);
+  color: #1a1408; font-weight: 800;
+}
+.brand p, .hint { color: var(--muted); font-size: 13px; }
+.clockbox { text-align: center; min-width: 110px; }
+#clock { font-size: 2rem; font-weight: 760; font-variant-numeric: tabular-nums; line-height: 1; }
+.is-day #clock { color: var(--gold); }
+.is-peak #clock { color: #ffb15a; }
+.is-night #clock { color: var(--sky); }
+#phase, #dayNum { font-size: 13px; color: var(--muted); }
+.speeds, .stats { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.stat {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 6px 10px;
+  min-width: 108px;
+}
+.stat span { display: block; color: var(--muted); font-size: 12px; }
+.stat b { font-size: 1rem; font-variant-numeric: tabular-nums; }
+.chip {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 13px;
+  background: var(--card);
+}
+.phase-row { display: flex; gap: 4px; padding-bottom: 8px; }
+.phase-row i {
+  flex: 1;
+  text-align: center;
+  font-style: normal;
+  font-size: 12px;
+  padding: 4px 2px;
+  border-radius: 999px;
+  color: var(--muted);
+  background: rgba(255,255,255,.03);
+}
+.phase-row i.now { background: var(--gold); color: #2a1d05; font-weight: 700; }
+body.is-night .phase-row i.now { background: var(--sky); color: #101820; }
+body.is-peak .phase-row i.now { background: var(--coral); color: #2a120c; }
+.grace {
+  background: #3a2414;
+  border: 1px solid #d4783a;
+  color: #ffd7a8;
+  border-radius: 12px;
+  padding: 8px 12px;
+  margin-bottom: 10px;
+  text-align: center;
+}
+.hint { margin: 0 0 10px; }
+.layout {
+  display: grid;
+  grid-template-columns: minmax(240px, 300px) minmax(0, 1fr) minmax(220px, 280px);
+  grid-template-areas: "jobs main log";
+  gap: 12px;
+  align-items: start;
+  padding-bottom: 28px;
+}
+.col-jobs { grid-area: jobs; }
+.col-main { grid-area: main; min-width: 0; }
+.col-log { grid-area: log; }
+.panel {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 12px;
+  box-shadow: var(--shadow);
+}
+.panel + .panel { margin-top: 12px; }
+.stack { display: flex; flex-direction: column; gap: 8px; }
+.tabs { display: flex; gap: 4px; margin-bottom: 10px; }
+.tabs button { flex: 1; }
+.tabs button.on { background: var(--gold); color: #2a1d05; border-color: #e2b33a; font-weight: 700; }
+.tabs button.attn { box-shadow: 0 0 0 2px var(--coral); }
+.job {
+  width: 100%;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: #182016;
+}
+.job.sel { border-color: var(--gold); }
+.job.live { border-color: var(--mint); }
+.job.locked { opacity: .55; }
+.job-name { font-weight: 720; }
+.job-meta { color: var(--muted); font-size: 13px; }
+.locknote {
+  font-size: 13px;
+  color: var(--muted);
+  border: 1px dashed var(--line);
+  border-radius: 10px;
+  padding: 8px;
+}
+.bar { height: 8px; background: #121810; border-radius: 99px; overflow: hidden; }
+.bar > i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--mint), var(--gold)); }
+.bar.budget > i { background: linear-gradient(90deg, var(--mint), var(--gold), var(--coral)); }
+.check { display: flex; gap: 6px; font-size: 13px; padding: 2px 0; }
+.welcome {
+  background: #2a2416;
+  border: 1px solid #6a5420;
+  border-radius: 12px;
+  padding: 8px 10px;
+  margin-bottom: 8px;
+}
+.task {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 0;
+  border-bottom: 1px solid #3a3328;
+  font-size: 14px;
+}
+.task.you b { color: var(--gold); }
+.task.done b { color: var(--mint); }
+.hq, .crew, .ext-row {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 8px;
+  margin: 6px 0;
+}
+.hq.owned { border-color: #8a6a20; background: #262214; }
+.hq p, .bonus { color: var(--muted); font-size: 13px; margin: 4px 0; }
+.hq button { width: 100%; margin-top: 4px; }
+.crew-top, .ext-row, .plan-row, .rowl {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: center;
+}
+.role {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 1px 8px;
+  font-size: 12px;
+}
+.skillbar { height: 6px; background: #121810; border-radius: 99px; margin-top: 4px; }
+.skillbar > i { display: block; height: 100%; background: var(--mint); }
+.wish { display: flex; justify-content: space-between; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+.wish .st { font-size: 13px; white-space: nowrap; }
+.wish.done .st { color: var(--mint); }
+.wish.fail .st { color: var(--coral); }
+.wish.pend .st { color: var(--gold); }
+.nego { display: flex; gap: 8px; align-items: flex-start; margin: 6px 0; }
+.tools { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+canvas {
+  width: 100%;
+  height: auto;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  display: block;
+  background: #1d6b34;
+  touch-action: none;
+}
+.live-stat {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px 10px;
+  margin-top: 8px;
+  font-variant-numeric: tabular-nums;
+}
+.live-stat span { color: var(--muted); }
+.legend, #timingHint, #setupLabel { font-size: 13px; color: var(--muted); }
+#timingHint { min-height: 1.2em; }
+.alert { color: var(--coral); font-size: 14px; }
+.log {
+  max-height: 280px;
+  overflow: auto;
+  font-size: 13px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.bill .rowl { padding: 3px 0; }
+.bill .tot { border-top: 1px solid var(--line); margin-top: 6px; padding-top: 6px; font-size: 1.05rem; }
+.kpi { display: flex; justify-content: space-between; gap: 8px; font-size: 14px; padding: 3px 0; border-bottom: 1px solid #2c3828; }
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background: rgba(8,10,8,.72);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+}
+#gameover { z-index: 60; }
+.modal-box, .go-box {
+  width: min(460px, 100%);
+  max-height: 90vh;
+  overflow: auto;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 16px;
+  box-shadow: var(--shadow);
+}
+.go-box { text-align: center; }
+.go-box h2 { color: var(--coral); font-size: 1.6rem; margin-bottom: 8px; }
+.modal-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.modal-actions button { flex: 1; }
+#victory {
+  background: #1c3324;
+  border: 1px solid var(--mint);
+  border-radius: 12px;
+  padding: 8px 10px;
+  margin: 8px 0;
+}
+.foot { color: var(--muted); font-size: 12px; text-align: center; padding: 0 0 18px; }
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-3px); }
+  75% { transform: translateX(3px); }
+}
+.shake { animation: shake .35s ease; }
+@media (prefers-reduced-motion: reduce) {
+  .shake { animation: none; }
+}
+@media (min-width: 981px) {
+  .col-jobs, .col-log {
+    position: sticky;
+    top: 10px;
+    max-height: calc(100vh - 20px);
+    overflow: auto;
+  }
+}
+@media (max-width: 980px) {
+  .layout { grid-template-columns: 1fr; grid-template-areas: "main" "jobs" "log"; }
+  .phase-row i { font-size: 11px; }
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">
+    <div class="mark" aria-hidden="true">FP</div>
+    <div>
+      <h1>Festivalplaner</h1>
+      <p>Solo-Geschäftsführer · ein Festival zur Zeit</p>
+    </div>
+  </div>
+  <div class="clockbox">
+    <div id="clock">08:00</div>
+    <div id="phase">Morgen</div>
+    <div id="dayNum">Tag 1</div>
+  </div>
+  <div class="speeds">
+    <button type="button" data-speed="1" class="on">1×</button>
+    <button type="button" data-speed="2">2×</button>
+    <button type="button" data-speed="5">5×</button>
+    <button type="button" id="pauseBtn">Pause</button>
+  </div>
+  <div class="stats">
+    <div class="stat"><span>Firmenkasse</span><b id="cash">9.000 €</b></div>
+    <div class="stat"><span>Schulden</span><b id="debtTop">0 €</b></div>
+    <div class="stat"><span>Ruf</span><b id="repTop">0</b></div>
+    <div class="stat"><span id="budCaption">Budget frei</span><b id="budTop">7.200 €</b></div>
+    <div class="chip" id="gfChip" title="Büro-Aufgaben, die noch bei dir liegen">GF 5/5</div>
+  </div>
+</header>
+<div class="phase-row" id="phaseRow">
+  <i data-ph="Nacht">Nacht</i>
+  <i data-ph="Morgen">Morgen</i>
+  <i data-ph="Mittag">Mittag</i>
+  <i data-ph="Nachmittag">Nachmittag</i>
+  <i data-ph="Abend-Peak">Abend-Peak</i>
+  <i data-ph="Nacht-Acts">Nacht-Acts</i>
+</div>
+<div class="grace" id="grace" hidden>Kasse im Minus. Gnadenfrist: <b id="graceLeft">—</b>. Danach ist die Firma insolvent.</div>
+<p class="hint">Leertaste pausiert · Tasten 1 / 2 / 5 ändern das Tempo. Bauen und Externe belasten das Auftragsbudget. Löhne, Einstellung und Zentrale gehen auf die Firmenkasse.</p>
+<div class="layout">
+  <aside class="col-jobs">
+    <section class="panel">
+      <h2>Aufträge</h2>
+      <div id="jobs" class="stack"></div>
+      <div class="bar" style="margin-top:8px"><i id="repBar"></i></div>
+      <p class="muted" id="nextHint"></p>
+      <p class="locknote" id="parallelNote">Parallel-Slot gesperrt — höchstens ein Festival.</p>
+      <div class="stack">
+        <button type="button" class="primary" id="briefBtn">Briefing lesen</button>
+        <button type="button" id="startBtn">Event starten</button>
+        <button type="button" id="endBtn" disabled>Abrechnen</button>
+      </div>
+      <h2 style="margin-top:12px">Checkliste</h2>
+      <div id="checklist"></div>
+    </section>
+  </aside>
+  <section class="col-main">
+    <div class="panel">
+      <div class="tabs" role="tablist">
+        <button type="button" id="tab-zentrale" role="tab" aria-selected="true">Zentrale</button>
+        <button type="button" id="tab-client" role="tab" aria-selected="false">Auftraggeber</button>
+        <button type="button" id="tab-fest" role="tab" aria-selected="false">Festival</button>
+        <button type="button" id="tab-bank" role="tab" aria-selected="false">Bank</button>
+      </div>
+
+      <div id="view-zentrale">
+        <p class="welcome" id="welcome">Du bist Geschäftsführer. Marketing, Buchhaltung, Personal, Disposition und Empfang liegen bei dir, bis du die Rolle fest einstellst. Es läuft immer nur ein Festival. Die Pause hält die Uhr an, wenn du in Ruhe lesen willst.</p>
+        <h2>Deine Aufgaben</h2>
+        <div id="ceoTasks"></div>
+        <p id="ceoCap"></p>
+        <div id="victory" hidden>
+          <strong>Die Firma steht.</strong>
+          <p>Stadion-Ruf, Fahrzeugflotte, Büro delegiert, Kasse nicht rot. Weiterbuchen ist freiwillig — die Pleite bleibt möglich, wenn du die Fixkosten vergisst.</p>
+        </div>
+        <h2>Firmenzentrale</h2>
+        <p>Aktuell: <b id="hqName">Homeoffice</b></p>
+        <div id="hqList"></div>
+        <h2>Crew einstellen</h2>
+        <p class="muted">Eine Rolle, für immer. Skill steigt nur im Einsatz, nicht durch Umschulen.</p>
+        <select id="hireRole" aria-label="Rolle"></select>
+        <p id="hireHint" class="muted"></p>
+        <button type="button" id="hireBtn">Einstellen</button>
+        <p id="crewCap" class="muted"></p>
+        <div id="crewList"></div>
+        <h2>Externe für dieses Event</h2>
+        <div id="extBox"></div>
+      </div>
+
+      <div id="view-client" hidden>
+        <div class="kpi"><span>Auftraggeber</span><b id="cliName">—</b></div>
+        <p class="muted" id="cliBlurb"></p>
+        <div class="kpi"><span>Budget</span><b id="cliBud">—</b></div>
+        <div class="kpi"><span>Fixhonorar an die Firma</span><b id="cliFee">—</b></div>
+        <div class="kpi"><span>Budget nach Verhandlung</span><b id="cliEff">—</b></div>
+        <h2>Wunschliste</h2>
+        <div id="wishList"></div>
+        <h2>Verhandelbar</h2>
+        <div id="nego"></div>
+        <h2>Zeitplan</h2>
+        <p class="muted">Die Crew hält den Plan. Schwache Technik verzögert den Act. Zu langsamer Aufbau verschiebt die Gates.</p>
+        <div id="planBox"></div>
+        <div id="forecastBox" style="margin-top:8px"></div>
+        <button type="button" class="primary" id="toMap" style="margin-top:10px">Zum Gelände</button>
+      </div>
+
+      <div id="view-fest" hidden>
+        <div id="buildBar">
+          <div id="tools" class="tools"></div>
+          <button type="button" id="btnRemove">Abriss</button>
+          <p class="legend">Klick setzt das gewählte Teil. Abriss oder Rechtsklick gibt das Geld ins Auftragsbudget zurück.</p>
+        </div>
+        <canvas id="c" width="900" height="520"></canvas>
+        <div id="setupWrap" hidden>
+          <p id="setupLabel">Aufbau</p>
+          <div class="bar"><i id="setupBar"></i></div>
+        </div>
+        <div id="liveActions" hidden>
+          <div class="tools">
+            <button type="button" id="openGates">Gates öffnen</button>
+            <button type="button" id="startAct">Act starten</button>
+          </div>
+          <p id="timingHint"></p>
+        </div>
+        <div class="live-stat">
+          <span>Besucher</span><b id="vis">—</b>
+          <span>Eintritt (Schätzung)</span><b id="ticketEst">—</b>
+          <span>Food</span><b id="foodLive">—</b>
+          <span>Merch</span><b id="merchLive">—</b>
+          <span>Zufriedenheit</span><b id="sat">—</b>
+          <span>Vorfälle</span><b id="inc">—</b>
+          <span>Budget frei</span><b id="budLive">—</b>
+          <span>Ausgaben</span><b id="spentLive">—</b>
+        </div>
+        <div class="bar budget" style="margin-top:6px"><i id="budBar"></i></div>
+        <div id="wishLive"></div>
+        <div id="alerts"></div>
+        <p class="legend">Eintritt, Food und Merch landen erst in der Abrechnung bei der Firma — nicht sofort in der Kasse.</p>
+      </div>
+
+      <div id="view-bank" hidden>
+        <div class="kpi"><span>Kontostand</span><b id="bankCash">—</b></div>
+        <div class="kpi"><span>Offene Kredite</span><b id="bankDebt" class="bad">—</b></div>
+        <div class="kpi"><span>Zinssatz pro Tag</span><b id="bankRate">—</b></div>
+        <div class="kpi"><span>Bonität</span><b id="bankScore">—</b></div>
+        <div class="kpi"><span>Nächste Tagesabrechnung</span><b id="bankNext">—</b></div>
+        <p class="muted">Kredite kommen sofort aufs Konto und in die Schulden. Einmal pro Sim-Tag ziehen Löhne und Zinsen von der Kasse. Im Minus läuft die Gnadenfrist. Mehr Kredite: höherer Zins, kürzere Frist. Höchstens vier Kredite.</p>
+        <h2>Aufnehmen</h2>
+        <div class="stack">
+          <button type="button" data-loan="2000">+2.000 € · kleiner Kredit</button>
+          <button type="button" data-loan="5000">+5.000 € · mittlerer Kredit</button>
+          <button type="button" data-loan="15000">+15.000 € · großer Kredit</button>
+        </div>
+        <h2>Tilgen</h2>
+        <div class="stack">
+          <button type="button" id="repay1000">1.000 € tilgen</button>
+          <button type="button" id="repay5000">5.000 € tilgen</button>
+          <button type="button" class="primary" id="repayAll">Alles tilgen, was die Kasse hergibt</button>
+        </div>
+        <div class="log" id="bankLog" style="margin-top:8px"></div>
+      </div>
+    </div>
+  </section>
+  <aside class="col-log">
+    <section class="panel">
+      <h2>Lage</h2>
+      <div class="kpi"><span>Events geschafft</span><b id="kpiEvents">0</b></div>
+      <div class="kpi"><span>Crew</span><b id="kpiCrew">0/4</b></div>
+      <div class="kpi"><span>Büro bei dir</span><b id="kpiLoad">5/5</b></div>
+      <div class="kpi"><span>Externe gebucht</span><b id="kpiExt">0</b></div>
+      <div class="kpi"><span>Nächste Löhne</span><b id="kpiPay">—</b></div>
+      <div class="kpi"><span>Zins</span><b id="kpiRate">—</b></div>
+      <p style="margin-top:8px"><button type="button" id="newGameBtn">Neues Spiel</button></p>
+    </section>
+    <section class="panel">
+      <h2>Log</h2>
+      <div class="log" id="log" aria-live="polite"></div>
+    </section>
+    <section class="panel">
+      <h2>Letzte Abrechnung</h2>
+      <div id="lastBill"><p class="muted">Noch keine Abrechnung.</p></div>
+    </section>
+  </aside>
+</div>
+<p class="foot">Festivalplaner · Spaßprojekt · Oktober 2026 · ein Event zur Zeit</p>
+<div id="modal" class="overlay" hidden>
+  <div class="modal-box" id="modalBox" role="dialog" aria-modal="true"></div>
+</div>
+<div id="gameover" class="overlay" hidden>
+  <div class="go-box">
+    <h2>Insolvenz</h2>
+    <p id="goReason"></p>
+    <p id="goStats" class="muted"></p>
+    <button type="button" class="primary" id="restartBtn">Neue Firma gründen</button>
+  </div>
+</div>
+<script>
+'use strict';
+const SAVE_KEY = 'festivalplaner-v1';
+const WAGE = 130;
+const WINDOW_MIN = 20;
+const DEPTS = ['Security', 'Technik', 'Orga', 'Catering', 'Aufbau', 'Büro'];
+const FIELD = ['Security', 'Technik', 'Orga', 'Catering', 'Aufbau'];
+const EXT_PRICE = { Security: 1700, Technik: 2100, Orga: 1300, Catering: 1600, Aufbau: 1100 };
+const DEPT_COLOR = {
+  Security: '#ffb15a', Technik: '#8ec8ff', Orga: '#d7b4ff',
+  Catering: '#ff8f6b', Aufbau: '#d7c08a', Büro: '#8fd6b2'
+};
+const NAMES = ['Lena','Jonas','Mira','Cem','Noa','Sara','Mats','Lea','Finn','Aylin','Theo','Ina','Ruben','Mara','Ole','Pia','Juna','Nils','Esra','Karl'];
+const SHIRTS = ['#f6f3ea', '#f0b429', '#8ec8ff', '#5ddeaf', '#ffb15a', '#e3c4ff'];
+const OFFICE = [
+  { roleId: 'buero_mkt', label: 'Marketing' },
+  { roleId: 'buero_fin', label: 'Buchhaltung' },
+  { roleId: 'buero_hr', label: 'Personal' },
+  { roleId: 'buero_disp', label: 'Disposition' },
+  { roleId: 'buero_empf', label: 'Empfang' }
+];
+const ROLES = [
+  { id: 'sec_gate', dept: 'Security', label: 'Einlass' },
+  { id: 'sec_crowd', dept: 'Security', label: 'Crowd' },
+  { id: 'sec_patrol', dept: 'Security', label: 'Streifendienst' },
+  { id: 'tech_sound', dept: 'Technik', label: 'Ton' },
+  { id: 'tech_light', dept: 'Technik', label: 'Licht' },
+  { id: 'tech_stage', dept: 'Technik', label: 'Bühne/Rigging' },
+  { id: 'orga_run', dept: 'Orga', label: 'Ablauf' },
+  { id: 'orga_guest', dept: 'Orga', label: 'Gästebetreuung' },
+  { id: 'cat_cook', dept: 'Catering', label: 'Küche' },
+  { id: 'cat_service', dept: 'Catering', label: 'Service' },
+  { id: 'bau_stage', dept: 'Aufbau', label: 'Bühnenbau' },
+  { id: 'bau_log', dept: 'Aufbau', label: 'Logistik' },
+  { id: 'buero_mkt', dept: 'Büro', label: 'Marketing' },
+  { id: 'buero_fin', dept: 'Büro', label: 'Buchhaltung' },
+  { id: 'buero_hr', dept: 'Büro', label: 'Personal' },
+  { id: 'buero_disp', dept: 'Büro', label: 'Disposition' },
+  { id: 'buero_empf', dept: 'Büro', label: 'Empfang' }
+];
+const ROLE_INFO = {
+  sec_gate: 'Zählt zur Security-Stärke am Einlass.',
+  sec_crowd: 'Zählt zur Security-Stärke in der Menge.',
+  sec_patrol: 'Zählt zur Security-Stärke auf dem Gelände.',
+  tech_sound: 'Ton zählt zur Technik-Kraft. Weniger Pannen, pünktlichere Acts.',
+  tech_light: 'Licht zählt zur Technik-Kraft.',
+  tech_stage: 'Rigging zählt zur Technik-Kraft.',
+  orga_run: 'Ablauf beruhigt Vorfälle und Stimmung.',
+  orga_guest: 'Gästebetreuung beruhigt Vorfälle und Stimmung.',
+  cat_cook: 'Küche hebt den Food-Umsatz.',
+  cat_service: 'Service hebt den Food-Umsatz.',
+  bau_stage: 'Bühnenbau verkürzt den Aufbau.',
+  bau_log: 'Logistik verkürzt den Aufbau.',
+  buero_mkt: 'Nimmt dir Marketing ab. Mehr Besucher.',
+  buero_fin: 'Nimmt dir die Buchhaltung ab. Weniger Zins, besserer Anteil.',
+  buero_hr: 'Nimmt dir Personal ab. Günstigeres Einstellen.',
+  buero_disp: 'Nimmt dir Disposition ab. Weniger Miete, schnellerer Aufbau.',
+  buero_empf: 'Nimmt dir den Empfang ab. Ruhigere Events.'
+};
+const TOOLS = [
+  { id: 'stage', label: 'Bühne', cost: 1500 },
+  { id: 'act', label: 'Act', cost: 980 },
+  { id: 'food', label: 'Food', cost: 480 },
+  { id: 'stand', label: 'Stand', cost: 280 },
+  { id: 'gate', label: 'Eingang', cost: 200 }
+];
+const HQ = [
+  { name: 'Homeoffice', unlockAt: 0, cost: 0, setup: 46, blurb: 'Küchentisch. Enges Crew-Limit, teure Miete, langer Aufbau.',
+    effects: { hire: 1650, place: 1, rental: 0.12, crewCap: 4, tech: 0, cat: 0 } },
+  { name: 'Kleines Büro', unlockAt: 1, cost: 4200, setup: 34, blurb: 'Ein richtiger Raum. Mehr Personal, etwas weniger Miete.',
+    effects: { hire: 1500, place: 0.96, rental: 0.09, crewCap: 8, tech: 0, cat: 0 } },
+  { name: 'Büroetage', unlockAt: 2, cost: 14500, setup: 26, blurb: 'Günstigeres Hiring, kürzere Wege.',
+    effects: { hire: 1280, place: 0.92, rental: 0.07, crewCap: 16, tech: 0, cat: 0 } },
+  { name: 'Lager', unlockAt: 3, cost: 34000, setup: 20, blurb: 'Eigene Bühnentechnik und Küchengeräte. Die Miete bricht ein.',
+    effects: { hire: 1150, place: 0.84, rental: 0.03, crewCap: 22, tech: 2, cat: 2 } },
+  { name: 'Fahrzeugflotte', unlockAt: 4, cost: 62000, setup: 10, blurb: 'Eigene Transporter. Aufbau wird schnell, Miete bleibt niedrig.',
+    effects: { hire: 1050, place: 0.8, rental: 0.018, crewCap: 32, tech: 2, cat: 2 } }
+];
+const PHASES = [
+  { from: 0, to: 6, name: 'Nacht', night: true, crowd: 0.08, food: 0.25, act: 0.35, secRisk: 0.55 },
+  { from: 6, to: 10, name: 'Morgen', night: false, crowd: 0.28, food: 0.55, act: 0.15, secRisk: 0.12 },
+  { from: 10, to: 14, name: 'Mittag', night: false, crowd: 0.62, food: 1.15, act: 0.35, secRisk: 0.18 },
+  { from: 14, to: 17, name: 'Nachmittag', night: false, crowd: 0.78, food: 0.9, act: 0.55, secRisk: 0.22 },
+  { from: 17, to: 21, name: 'Abend-Peak', night: false, crowd: 1, food: 1.35, act: 1, secRisk: 0.42 },
+  { from: 21, to: 24, name: 'Nacht-Acts', night: true, crowd: 0.88, food: 0.85, act: 1.25, secRisk: 0.62 }
+];
+const JOBS = [
+  { id: 0, name: 'Kleine Hochzeit', client: 'Familie Berger', blurb: 'Gartenfest, wenige Gäste, enges Budget.',
+    budget: 7200, fee: 1600, unlockAt: 0, startHour: 12, hours: 7, crowd: 50, ticket: 4,
+    need: { gate: 1, food: 1, stand: 1 },
+    needStaff: { Security: 1, Technik: 0, Orga: 1, Catering: 1, Aufbau: 1, Büro: 0 },
+    wishes: [
+      { id: 'gate', label: 'Gates offen um 14:00', type: 'gateOpen', at: 14 * 60, hard: true },
+      { id: 'sec', label: 'Security-Stärke mindestens 2', type: 'secMin', val: 2, hard: true },
+      { id: 'cat', label: 'Catering vor Ort', type: 'foodMin', val: 1, hard: true }
+    ],
+    nego: [{ id: 'photo', label: 'Fotobox', detail: '+700 € Budget, 280 € Kosten', budgetPlus: 700, cost: 280 }] },
+  { id: 1, name: 'Große Hochzeit', client: 'Hotel Alpenblick', blurb: 'Erste Bühne, ein Act, höhere Erwartungen.',
+    budget: 16800, fee: 3400, unlockAt: 1, startHour: 13, hours: 9, crowd: 120, ticket: 10,
+    need: { stage: 1, act: 1, food: 1, stand: 1, gate: 1 },
+    needStaff: { Security: 2, Technik: 1, Orga: 1, Catering: 1, Aufbau: 2, Büro: 0 },
+    wishes: [
+      { id: 'gate', label: 'Gates offen um 15:00', type: 'gateOpen', at: 15 * 60, hard: true },
+      { id: 'act', label: 'Act startet um 18:00', type: 'actStart', at: 18 * 60, hard: true },
+      { id: 'sec', label: 'Security-Stärke mindestens 4', type: 'secMin', val: 4, hard: true },
+      { id: 'brand', label: 'Branding am Eingang', type: 'standMin', val: 1, hard: false }
+    ],
+    nego: [{ id: 'dj', label: 'Wunsch-DJ', detail: '+1.600 € Budget, 800 € Kosten', budgetPlus: 1600, cost: 800 }] },
+  { id: 2, name: 'Volksfest', client: 'Stadtmarketing Nord', blurb: 'Food, Branding und ein Abend-Peak.',
+    budget: 38000, fee: 7000, unlockAt: 2, startHour: 9, hours: 13, crowd: 280, ticket: 8,
+    need: { stage: 1, act: 2, food: 2, stand: 2, gate: 2 },
+    needStaff: { Security: 4, Technik: 2, Orga: 2, Catering: 2, Aufbau: 4, Büro: 1 },
+    wishes: [
+      { id: 'gate', label: 'Gates offen um 10:00', type: 'gateOpen', at: 10 * 60, hard: true },
+      { id: 'act', label: 'Hauptact um 20:00', type: 'actStart', at: 20 * 60, hard: true },
+      { id: 'sec', label: 'Security-Stärke mindestens 8', type: 'secMin', val: 8, hard: true },
+      { id: 'cat', label: 'Mindestens 2 Food-Stationen', type: 'foodMin', val: 2, hard: true },
+      { id: 'brand', label: 'Zwei Branding-Stände', type: 'standMin', val: 2, hard: false }
+    ],
+    nego: [{ id: 'fire', label: 'Feuerwerk', detail: '+3.200 € Budget, 1.800 € Kosten', budgetPlus: 3200, cost: 1800 }] },
+  { id: 3, name: 'Festival', client: 'Beatwave GmbH', blurb: 'Zwei Bühnen, Nacht-Acts, großes Gelände.',
+    budget: 125000, fee: 22000, unlockAt: 3, startHour: 11, hours: 13, crowd: 900, ticket: 26,
+    need: { stage: 2, act: 3, food: 3, stand: 2, gate: 2 },
+    needStaff: { Security: 7, Technik: 3, Orga: 2, Catering: 3, Aufbau: 5, Büro: 2 },
+    wishes: [
+      { id: 'gate', label: 'Gates offen um 12:00', type: 'gateOpen', at: 12 * 60, hard: true },
+      { id: 'act', label: 'Headliner um 21:30', type: 'actStart', at: 21 * 60 + 30, hard: true },
+      { id: 'sec', label: 'Security-Stärke mindestens 18', type: 'secMin', val: 18, hard: true },
+      { id: 'cat', label: 'Mindestens 3 Food-Stationen', type: 'foodMin', val: 3, hard: true },
+      { id: 'brand', label: 'Sponsor-Branding, 2 Stände', type: 'standMin', val: 2, hard: true }
+    ],
+    nego: [{ id: 'vip', label: 'VIP-Bereich', detail: '+6.000 € Budget, 3.400 € Kosten', budgetPlus: 6000, cost: 3400 }] },
+  { id: 4, name: 'Stadion-Act', client: 'Arena Events AG', blurb: 'Massive Security, enges Zeitfenster.',
+    budget: 320000, fee: 52000, unlockAt: 4, startHour: 15, hours: 9, crowd: 2800, ticket: 42,
+    need: { stage: 1, act: 2, food: 3, stand: 3, gate: 3 },
+    needStaff: { Security: 11, Technik: 5, Orga: 3, Catering: 4, Aufbau: 6, Büro: 3 },
+    wishes: [
+      { id: 'gate', label: 'Gates offen um 17:00', type: 'gateOpen', at: 17 * 60, hard: true },
+      { id: 'act', label: 'Showstart um 20:00', type: 'actStart', at: 20 * 60, hard: true },
+      { id: 'sec', label: 'Security-Stärke mindestens 30', type: 'secMin', val: 30, hard: true },
+      { id: 'cat', label: 'Mindestens 3 Catering-Punkte', type: 'foodMin', val: 3, hard: true },
+      { id: 'brand', label: '3 Merch- und Branding-Stände', type: 'standMin', val: 3, hard: true }
+    ],
+    nego: [{ id: 'led', label: 'LED-Wall', detail: '+9.000 € Budget, 6.000 € Kosten', budgetPlus: 9000, cost: 6000 }] }
+];
+const SAVE_FIELDS = [
+  'cash','loans','rep','hq','crew','nameI','jobId','placed','ext','nego','cleared',
+  'briefed','live','speed','worldMin','sincePay','grace','graceLeft','graceMax',
+  'endMin','setupReadyAt','eventStart','visitors','foodRev','merchRev','incidents',
+  'sat','spent','gateAt','actAt','planGate','planAct','eventsDone','weight','day',
+  'logLines','bankLines','tool','lastBill','setupLogged'
+];
+
+function emptyExt() { return { Security: 0, Technik: 0, Orga: 0, Catering: 0, Aufbau: 0 }; }
+function freshNego() {
+  const o = {};
+  JOBS.forEach(j => { o[j.id] = {}; });
+  return o;
+}
+
+const FP = {
+  cash: 9000, loans: [], rep: 0, hq: 0, crew: [], nameI: 0, jobId: 0,
+  placed: [], ext: emptyExt(), nego: freshNego(), cleared: {},
+  briefed: false, live: false, speed: 1, paused: false, over: false,
+  worldMin: 8 * 60, sincePay: 0, day: 1,
+  grace: false, graceLeft: 0, graceMax: 0,
+  endMin: 0, setupReadyAt: 0, eventStart: 0, weight: 1, setupLogged: false,
+  visitors: 0, foodRev: 0, merchRev: 0, incidents: 0, sat: 74, spent: 0,
+  gateAt: null, actAt: null, planGate: null, planAct: null,
+  eventsDone: 0, people: [], spawnAcc: 0, tool: 'gate', removeMode: false,
+  logLines: [], bankLines: [], lastBill: '', cd: {}, alertCache: '', tab: 'zentrale'
+};
+
+let canvas, ctx, frameNow = 0;
+
+function $(id) { return document.getElementById(id); }
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+function money(n) {
+  const v = Math.round(Number(n) || 0);
+  const sign = v < 0 ? '−' : '';
+  return sign + Math.abs(v).toLocaleString('de-DE') + ' €';
+}
+function pct(r) {
+  return (r * 100).toLocaleString('de-DE', { maximumFractionDigits: 1 }) + ' %';
+}
+function fmtTime(m) {
+  const x = ((m % 1440) + 1440) % 1440;
+  const hh = Math.floor(x / 60);
+  const mm = Math.floor(x % 60);
+  return String(hh).padStart(2, '0') + ':' + String(mm).padStart(2, '0');
+}
+function phaseAt(m) {
+  const h = ((m / 60) % 24 + 24) % 24;
+  return PHASES.find(p => h >= p.from && h < p.to) || PHASES[0];
+}
+function skyMode() {
+  const ph = phaseAt(FP.worldMin);
+  if (ph.name === 'Abend-Peak') return 'peak';
+  if (ph.night) return 'night';
+  return 'day';
+}
+function job() { return JOBS[FP.jobId]; }
+function hq() { return HQ[FP.hq]; }
+function sumLoans() { return FP.loans.reduce((a, n) => a + n, 0); }
+function addCash(n) { FP.cash = Math.round(FP.cash + n); }
+function countId(id) { return FP.placed.filter(p => p.id === id).length; }
+function heads(dept) {
+  const own = FP.crew.filter(c => c.dept === dept).length;
+  if (dept === 'Büro') return own;
+  return own + (FP.ext[dept] || 0);
+}
+function strength(dept) {
+  const own = FP.crew.filter(c => c.dept === dept).reduce((a, c) => a + c.skill, 0);
+  if (dept === 'Büro') return own;
+  return own + (FP.ext[dept] || 0);
+}
+function bestSkill(roleId) {
+  return FP.crew.reduce((m, c) => c.roleId === roleId ? Math.max(m, c.skill) : m, 0);
+}
+function undelegated() {
+  return OFFICE.filter(t => !FP.crew.some(c => c.roleId === t.roleId));
+}
+function techPower() { return strength('Technik') + hq().effects.tech; }
+function hirePrice() {
+  const hr = bestSkill('buero_hr');
+  return Math.max(480, Math.round(hq().effects.hire * (1 - hr * 0.05)));
+}
+function placePrice(tool) {
+  const disp = bestSkill('buero_disp');
+  const mult = Math.max(0.62, hq().effects.place * (1 - disp * 0.03));
+  return Math.max(40, Math.round(tool.cost * mult));
+}
+function rentalAmount() {
+  const disp = bestSkill('buero_disp');
+  const rate = Math.max(0.01, hq().effects.rental * (1 - disp * 0.05));
+  return Math.round(job().budget * rate);
+}
+function interestRate() {
+  const fin = bestSkill('buero_fin');
+  let r = 0.045 + FP.loans.length * 0.018;
+  const debt = sumLoans();
+  if (debt > 20000) r += 0.02;
+  if (debt > 60000) r += 0.025;
+  r -= fin * 0.004;
+  return Math.min(0.2, Math.max(0.02, r));
+}
+function negoOn(n) { return !!(FP.nego[job().id] && FP.nego[job().id][n.id]); }
+function negoCost() { return job().nego.reduce((a, n) => a + (negoOn(n) ? n.cost : 0), 0); }
+function effBudget() { return job().budget + job().nego.reduce((a, n) => a + (negoOn(n) ? n.budgetPlus : 0), 0); }
+function budgetLeftNow() { return effBudget() - FP.spent; }
+function forecastLeft() {
+  if (FP.live) return budgetLeftNow();
+  return effBudget() - FP.spent - rentalAmount() - negoCost();
+}
+function mktMult() {
+  const load = undelegated().length;
+  const over = load >= 4 ? 0.84 : load >= 2 ? 0.94 : 1;
+  return (1 + bestSkill('buero_mkt') * 0.07) * over;
+}
+function calcSetup() {
+  const cut = Math.floor(strength('Aufbau') / 2) + bestSkill('buero_disp') * 2;
+  return Math.max(8, hq().setup - cut);
+}
+function actDelay() {
+  if (!job().wishes.some(w => w.type === 'actStart')) return 0;
+  const rec = Math.max(2, job().needStaff.Technik * 2);
+  return Math.max(0, rec - techPower()) * 24;
+}
+function assumedStartAbs() {
+  if (FP.live && FP.eventStart) return FP.eventStart;
+  const minOfDay = job().startHour * 60;
+  const dayBase = Math.floor(FP.worldMin / 1440) * 1440;
+  let t = dayBase + minOfDay;
+  if (t < FP.worldMin - 1) t += 1440;
+  return t;
+}
+function wishAbs(minOfDay) {
+  const anchor = (FP.live && FP.eventStart) ? FP.eventStart : assumedStartAbs();
+  const dayBase = Math.floor(anchor / 1440) * 1440;
+  let t = dayBase + minOfDay;
+  if (t < anchor - 1) t += 1440;
+  return t;
+}
+function planMinute(kind) {
+  const type = kind === 'gate' ? 'gateOpen' : 'actStart';
+  const w = job().wishes.find(x => x.type === type);
+  if (!w) return null;
+  const custom = kind === 'gate' ? FP.planGate : FP.planAct;
+  return custom == null ? w.at : custom;
+}
+function scheduledGateAt() {
+  const minute = planMinute('gate');
+  if (minute == null) return null;
+  const plan = wishAbs(minute);
+  const ready = (FP.live && FP.eventStart) ? FP.setupReadyAt : assumedStartAbs() + calcSetup();
+  return Math.max(plan, ready);
+}
+function scheduledActAt() {
+  const minute = planMinute('act');
+  if (minute == null) return null;
+  const plan = wishAbs(minute) + actDelay();
+  const ready = (FP.live && FP.eventStart) ? FP.setupReadyAt : assumedStartAbs() + calcSetup();
+  return Math.max(plan, ready);
+}
+function gateForecast() {
+  const w = job().wishes.find(x => x.type === 'gateOpen');
+  if (!w) return null;
+  const target = wishAbs(w.at);
+  if (FP.gateAt != null) {
+    const ok = Math.abs(FP.gateAt - target) <= WINDOW_MIN;
+    return { ok, text: 'Gates ' + fmtTime(FP.gateAt) + ' · Wunsch ' + fmtTime(w.at) + ' · ' + (ok ? 'im Fenster' : 'daneben') };
+  }
+  const openAt = scheduledGateAt();
+  const ok = Math.abs(openAt - target) <= WINDOW_MIN;
+  let extra = '';
+  if (!ok) {
+    const ready = (FP.live && FP.eventStart) ? FP.setupReadyAt : assumedStartAbs() + calcSetup();
+    extra = ready > target + WINDOW_MIN ? ' · Aufbau zu langsam' : ' · Plan liegt daneben';
+  }
+  return { ok, text: 'Gates voraussichtlich ' + fmtTime(openAt) + ' · Wunsch ' + fmtTime(w.at) + ' · ' + (ok ? 'im Fenster' : 'zu spät') + extra };
+}
+function actForecast() {
+  const w = job().wishes.find(x => x.type === 'actStart');
+  if (!w) return null;
+  const target = wishAbs(w.at);
+  if (FP.actAt != null) {
+    const ok = Math.abs(FP.actAt - target) <= WINDOW_MIN;
+    return { ok, text: 'Act ' + fmtTime(FP.actAt) + ' · Wunsch ' + fmtTime(w.at) + ' · ' + (ok ? 'im Fenster' : 'daneben') };
+  }
+  const at = scheduledActAt();
+  const ok = Math.abs(at - target) <= WINDOW_MIN;
+  const delay = actDelay();
+  const extra = delay > 0 ? ' · Technik verzögert ' + delay + ' Min' : '';
+  return { ok, text: 'Act voraussichtlich ' + fmtTime(at) + ' · Wunsch ' + fmtTime(w.at) + ' · ' + (ok ? 'im Fenster' : 'zu spät') + extra };
+}
+function evalWish(w, final) {
+  if (w.type === 'gateOpen' || w.type === 'actStart') {
+    const at = w.type === 'gateOpen' ? FP.gateAt : FP.actAt;
+    const target = wishAbs(w.at);
+    if (at == null) {
+      if (final || (FP.live && FP.worldMin > target + WINDOW_MIN)) return 'fail';
+      return 'pend';
+    }
+    return Math.abs(at - target) <= WINDOW_MIN ? 'done' : 'fail';
+  }
+  if (w.type === 'secMin') return strength('Security') >= w.val ? 'done' : 'fail';
+  if (w.type === 'foodMin' || w.type === 'standMin') {
+    const id = w.type === 'foodMin' ? 'food' : 'stand';
+    if (countId(id) >= w.val) return 'done';
+    return (final || FP.live) ? 'fail' : 'pend';
+  }
+  return 'pend';
+}
+function requirementReport() {
+  const gaps = [];
+  const warnings = [];
+  if (!FP.briefed) gaps.push('Briefing');
+  Object.entries(job().need).forEach(([id, n]) => {
+    if (countId(id) < n) {
+      const tool = TOOLS.find(t => t.id === id);
+      gaps.push(tool.label + ' ' + countId(id) + '/' + n);
+    }
+  });
+  DEPTS.forEach(d => {
+    const n = job().needStaff[d] || 0;
+    if (n && heads(d) < n) gaps.push(d + ' ' + heads(d) + '/' + n);
+  });
+  const sec = job().wishes.find(w => w.type === 'secMin');
+  if (sec && strength('Security') < sec.val) {
+    warnings.push('Security-Stärke ' + strength('Security') + '/' + sec.val + ' — Pflichtwunsch wäre verfehlt');
+  }
+  const g = gateForecast();
+  if (g && !g.ok && FP.gateAt == null) warnings.push(g.text);
+  const a = actForecast();
+  if (a && !a.ok && FP.actAt == null) warnings.push(a.text);
+  if (forecastLeft() < 0) warnings.push('Budget voraussichtlich ' + money(forecastLeft()));
+  return { gaps, warnings };
+}
+function bankScore() {
+  const n = FP.loans.length;
+  const d = sumLoans();
+  if (n >= 4 || d > 80000) return 'Kritisch';
+  if (n >= 3 || d > 40000) return 'Angespannt';
+  if (n >= 1) return 'Solide';
+  return 'Gut';
+}
+function nextPayText() {
+  const left = Math.max(0, 1440 - FP.sincePay);
+  const h = Math.floor(left / 60);
+  const m = Math.floor(left % 60);
+  return h + ' h ' + String(m).padStart(2, '0') + ' min';
+}
+function victoryOn() {
+  return !FP.over && FP.rep >= 4 && FP.hq >= 4 && undelegated().length === 0 && FP.cash >= 0 && FP.eventsDone >= 4;
+}
+function log(msg, kind) {
+  FP.logLines.unshift({ t: fmtTime(FP.worldMin) + '  ' + msg, k: kind || '' });
+  if (FP.logLines.length > 40) FP.logLines.length = 40;
+  const el = $('log');
+  if (el) el.innerHTML = FP.logLines.map(l => '<div class="' + esc(l.k) + '">' + esc(l.t) + '</div>').join('');
+}
+function banklog(msg) {
+  FP.bankLines.unshift(fmtTime(FP.worldMin) + '  ' + msg);
+  if (FP.bankLines.length > 20) FP.bankLines.length = 20;
+  renderBankLog();
+}
+function renderBankLog() {
+  const el = $('bankLog');
+  if (!el) return;
+  el.innerHTML = FP.bankLines.map(t => '<div>' + esc(t) + '</div>').join('');
+}
+function setText(id, text) {
+  const el = $(id);
+  if (el) el.textContent = text;
+}
+function showTab(name) {
+  ['zentrale', 'client', 'fest', 'bank'].forEach(n => {
+    const view = $('view-' + n);
+    const tab = $('tab-' + n);
+    if (view) view.hidden = n !== name;
+    if (tab) {
+      tab.classList.toggle('on', n === name);
+      tab.setAttribute('aria-selected', n === name ? 'true' : 'false');
+    }
+  });
+  FP.tab = name;
+}
+function openModal(html) {
+  $('modalBox').innerHTML = html;
+  $('modal').hidden = false;
+  const btn = $('modalBox').querySelector('button');
+  if (btn) btn.focus();
+}
+function closeModal() {
+  $('modal').hidden = true;
+  $('modalBox').innerHTML = '';
+}
+function checkSolvency() {
+  if (FP.over) return;
+  if (FP.cash < 0) {
+    if (!FP.grace) {
+      FP.grace = true;
+      const hours = Math.max(10, 36 - FP.loans.length * 6);
+      FP.graceMax = hours * 60;
+      FP.graceLeft = FP.graceMax;
+      log('Kasse im Minus. Die Gnadenfrist läuft.', 'bad');
+      const tab = $('tab-bank');
+      if (tab) tab.classList.add('attn');
+    }
+  } else if (FP.grace) {
+    FP.grace = false;
+    FP.graceLeft = 0;
+    log('Kasse wieder im Plus. Gnadenfrist beendet.', 'good');
+    const tab = $('tab-bank');
+    if (tab) tab.classList.remove('attn');
+  }
+  paintGrace();
+}
+function gameOver(reason) {
+  if (FP.over) return;
+  FP.over = true;
+  FP.live = false;
+  FP.paused = true;
+  FP.grace = false;
+  $('goReason').textContent = reason;
+  $('goStats').textContent = 'Ruf ' + FP.rep + ' · Events ' + FP.eventsDone + ' · ' + hq().name + ' · Schulden ' + money(sumLoans());
+  $('gameover').hidden = false;
+  $('pauseBtn').textContent = 'Pause';
+  log('Insolvenz.', 'bad');
+  try { localStorage.removeItem(SAVE_KEY); } catch (e) { /* ignore */ }
+}
+function payroll() {
+  if (FP.over) return;
+  FP.day += 1;
+  const wages = FP.crew.length * WAGE;
+  const debt = sumLoans();
+  const interest = debt > 0 ? Math.max(1, Math.round(debt * interestRate())) : 0;
+  if (wages + interest <= 0) return;
+  addCash(-(wages + interest));
+  log('Tagesabrechnung: Löhne ' + money(wages) + ', Zinsen ' + money(interest) + '.', 'warn');
+  banklog('Tag ' + FP.day + ': Löhne ' + money(wages) + ', Zinsen ' + money(interest) + '.');
+  checkSolvency();
+  sync();
+}
+function advance(dt) {
+  if (dt <= 0 || FP.over) return;
+  let left = dt;
+  while (left > 0.0001 && !FP.over) {
+    const toPay = Math.max(0.0001, 1440 - FP.sincePay);
+    const step = Math.min(left, toPay);
+    FP.worldMin += step;
+    FP.sincePay += step;
+    if (FP.grace && FP.cash < 0) {
+      FP.graceLeft -= step;
+      if (FP.graceLeft <= 0) {
+        FP.graceLeft = 0;
+        gameOver('Die Gnadenfrist ist abgelaufen und die Firmenkasse steht immer noch im Minus.');
+        return;
+      }
+    }
+    left -= step;
+    if (FP.sincePay >= 1440 - 0.0001) {
+      FP.sincePay = 0;
+      payroll();
+    }
+  }
+}
+function save() {
+  if (FP.over) return;
+  try {
+    const data = { v: 1 };
+    SAVE_FIELDS.forEach(k => { data[k] = FP[k]; });
+    localStorage.setItem(SAVE_KEY, JSON.stringify(data));
+  } catch (e) { /* ignore */ }
+}
+function ensureShape() {
+  FP.ext = Object.assign(emptyExt(), FP.ext || {});
+  FIELD.forEach(d => { FP.ext[d] = Math.max(0, FP.ext[d] | 0); });
+  if (!FP.nego || typeof FP.nego !== 'object') FP.nego = freshNego();
+  JOBS.forEach(j => { if (!FP.nego[j.id]) FP.nego[j.id] = {}; });
+  if (!Array.isArray(FP.loans)) FP.loans = [];
+  FP.loans = FP.loans.map(n => Math.max(0, Math.round(n))).filter(n => n > 0);
+  if (!Array.isArray(FP.crew)) FP.crew = [];
+  FP.crew = FP.crew.filter(c => c && ROLES.some(r => r.id === c.roleId)).map(c => {
+    const role = ROLES.find(r => r.id === c.roleId);
+    return {
+      name: String(c.name || 'Crew'),
+      roleId: role.id,
+      dept: role.dept,
+      roleLabel: role.label,
+      skill: Math.max(1, Math.min(8, c.skill | 0))
+    };
+  });
+  if (!Array.isArray(FP.placed)) FP.placed = [];
+  FP.placed = FP.placed.filter(p => p && TOOLS.some(t => t.id === p.id)).map(p => ({
+    id: p.id,
+    x: +p.x || 0,
+    y: +p.y || 0,
+    cost: Math.max(0, p.cost | 0),
+    label: TOOLS.find(t => t.id === p.id).label
+  }));
+  if (!Array.isArray(FP.logLines)) FP.logLines = [];
+  if (!Array.isArray(FP.bankLines)) FP.bankLines = [];
+  if (!FP.cleared || typeof FP.cleared !== 'object') FP.cleared = {};
+  FP.hq = Math.max(0, Math.min(HQ.length - 1, FP.hq | 0));
+  FP.jobId = Math.max(0, Math.min(JOBS.length - 1, FP.jobId | 0));
+  if (![1, 2, 5].includes(FP.speed)) FP.speed = 1;
+  FP.people = [];
+  FP.over = false;
+  FP.paused = false;
+  FP.removeMode = false;
+  FP.cd = {};
+  if (FP.live && !FP.eventStart) FP.live = false;
+  FP.cash = Math.round(FP.cash);
+  FP.rep = Math.max(0, FP.rep | 0);
+}
+function load() {
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    if (!raw) return false;
+    const data = JSON.parse(raw);
+    if (!data || data.v !== 1) return false;
+    SAVE_FIELDS.forEach(k => { if (data[k] !== undefined) FP[k] = data[k]; });
+    return true;
+  } catch (e) { return false; }
+}
+function renderJobs() {
+  $('jobs').innerHTML = JOBS.map(j => {
+    const lock = FP.rep < j.unlockAt;
+    const sel = j.id === FP.jobId;
+    const live = FP.live && sel;
+    const done = !!FP.cleared[j.id];
+    const meta = lock ? ('Ruf ' + j.unlockAt) : (done ? 'Geschafft' : ('Honorar ' + money(j.fee)));
+    return '<button type="button" class="job' + (sel ? ' sel' : '') + (lock ? ' locked' : '') + (live ? ' live' : '') + '" data-job="' + j.id + '">' +
+      '<span class="job-name">' + esc(j.name) + '</span>' +
+      '<span class="job-meta">' + esc(j.client) + ' · ' + money(j.budget) + '</span>' +
+      '<span class="job-meta">' + esc(meta) + '</span></button>';
+  }).join('');
+  $('jobs').querySelectorAll('[data-job]').forEach(b => { b.onclick = () => selectJob(+b.dataset.job); });
+}
+function checkRow(ok, text) {
+  return '<div class="check ' + (ok ? 'good' : 'bad') + '"><span>' + (ok ? '✓' : '○') + '</span><span>' + esc(text) + '</span></div>';
+}
+function renderChecklist() {
+  const rows = [];
+  rows.push(checkRow(FP.briefed, 'Briefing gelesen'));
+  Object.entries(job().need).forEach(([id, n]) => {
+    const tool = TOOLS.find(t => t.id === id);
+    const have = countId(id);
+    rows.push(checkRow(have >= n, tool.label + ' ' + have + '/' + n));
+  });
+  DEPTS.forEach(d => {
+    const n = job().needStaff[d] || 0;
+    if (!n) return;
+    rows.push(checkRow(heads(d) >= n, d + ' ' + heads(d) + '/' + n));
+  });
+  const sec = job().wishes.find(w => w.type === 'secMin');
+  if (sec) rows.push(checkRow(strength('Security') >= sec.val, 'Security-Stärke ' + strength('Security') + '/' + sec.val));
+  const g = gateForecast();
+  if (g) rows.push(checkRow(!!g.ok, g.text));
+  const a = actForecast();
+  if (a) rows.push(checkRow(!!a.ok, a.text));
+  rows.push(checkRow(forecastLeft() >= 0, 'Budget danach ca. ' + money(forecastLeft())));
+  $('checklist').innerHTML = rows.join('');
+}
+function renderCeo() {
+  $('ceoTasks').innerHTML = OFFICE.map(t => {
+    const who = FP.crew.find(c => c.roleId === t.roleId);
+    return '<div class="task ' + (who ? 'done' : 'you') + '"><span>' + esc(t.label) + '</span><b>' + (who ? esc(who.name) : 'Du') + '</b></div>';
+  }).join('');
+  const n = undelegated().length;
+  const cls = n >= 4 ? 'bad' : n >= 2 ? 'warn' : 'good';
+  $('ceoCap').innerHTML = 'Deine Last: <b class="' + cls + '">' + n + '/5</b> · Einsatz-Limit: <b>1 Festival</b>. Parallel-Events gibt es in dieser Version nicht.';
+  setText('gfChip', 'GF ' + n + '/5');
+}
+function renderHq() {
+  setText('hqName', hq().name);
+  $('hqList').innerHTML = HQ.map((h, i) => {
+    const current = i === FP.hq;
+    const owned = i < FP.hq;
+    const next = i === FP.hq + 1;
+    let action = '';
+    if (current) action = '<div class="bonus">Aktuell</div>';
+    else if (owned) action = '<div class="bonus">Erledigt</div>';
+    else if (next) {
+      const can = FP.rep >= h.unlockAt && FP.cash >= h.cost && !FP.over;
+      const why = FP.rep < h.unlockAt ? ('Ruf ' + h.unlockAt) : money(h.cost);
+      action = '<button type="button" data-up="' + i + '"' + (can ? '' : ' disabled') + '>Ausbauen · ' + esc(why) + '</button>';
+    } else action = '<div class="bonus">Danach · Ruf ' + h.unlockAt + '</div>';
+    return '<article class="hq' + (current ? ' owned' : '') + '"><b>' + esc(h.name) + '</b><p>' + esc(h.blurb) + '</p>' +
+      '<div class="bonus">Crew ' + h.effects.crewCap + ' · Miete ' + Math.round(h.effects.rental * 100) + ' % · Aufbau ' + h.setup + ' Min</div>' +
+      action + '</article>';
+  }).join('');
+  $('hqList').querySelectorAll('[data-up]').forEach(b => { b.onclick = () => upgrade(+b.dataset.up); });
+}
+function renderCrew() {
+  const cap = hq().effects.crewCap;
+  setText('crewCap', FP.crew.length + '/' + cap + ' Plätze · Lohn ' + money(WAGE) + ' / Person / Tag');
+  if (!FP.crew.length) {
+    $('crewList').innerHTML = '<p class="muted">Noch niemand auf der Payroll. Du machst das Büro allein.</p>';
+  } else {
+    $('crewList').innerHTML = FP.crew.map((c, i) => {
+      return '<div class="crew"><div class="crew-top"><b>' + esc(c.name) + '</b><span class="role" style="border-color:' + DEPT_COLOR[c.dept] + '">' + esc(c.roleLabel) + '</span>' +
+        '<button type="button" class="tiny" data-fire="' + i + '">entlassen</button></div>' +
+        '<div class="muted">' + esc(c.dept) + (FP.live ? ' · im Einsatz' : '') + ' · Skill ' + c.skill + '/8</div>' +
+        '<div class="skillbar"><i style="width:' + (c.skill / 8 * 100) + '%"></i></div></div>';
+    }).join('');
+    $('crewList').querySelectorAll('[data-fire]').forEach(b => { b.onclick = () => askFire(+b.dataset.fire); });
+  }
+  const rows = FIELD.map(d => {
+    const price = FP.live ? Math.round(EXT_PRICE[d] * 1.65) : EXT_PRICE[d];
+    const n = FP.ext[d] || 0;
+    return '<div class="ext-row"><span>' + esc(d) + ' <b>×' + n + '</b></span><span>' +
+      '<button type="button" data-ext-sub="' + esc(d) + '"' + (n && !FP.live ? '' : ' disabled') + '>−</button> ' +
+      '<button type="button" data-ext-add="' + esc(d) + '">+ ' + (FP.live ? 'Notfall ' : '') + money(price) + '</button></span></div>';
+  }).join('');
+  $('extBox').innerHTML = rows + '<p class="muted">Externe zählen als Stärke 1, lernen nichts und gehen aufs Auftragsbudget. Büro gibt es nicht auf Tagesbasis — nur eine feste Einstellung nimmt dir die Aufgabe ab.</p>';
+  $('extBox').querySelectorAll('[data-ext-add]').forEach(b => { b.onclick = () => bookExt(b.dataset.extAdd, 1); });
+  $('extBox').querySelectorAll('[data-ext-sub]').forEach(b => { b.onclick = () => bookExt(b.dataset.extSub, -1); });
+}
+function renderWishes(el) {
+  if (!el) return;
+  el.innerHTML = job().wishes.map(w => {
+    const st = evalWish(w, false);
+    const label = st === 'done' ? 'erfüllt' : st === 'fail' ? 'verfehlt' : 'offen';
+    return '<div class="wish ' + st + '"><span>' + esc(w.label) + (w.hard ? ' · Pflicht' : ' · Wunsch') + '</span><span class="st">' + label + '</span></div>';
+  }).join('');
+}
+function renderNego() {
+  const j = job();
+  $('nego').innerHTML = j.nego.map(n => {
+    return '<label class="nego"><input type="checkbox" data-nego="' + esc(n.id) + '"' + (negoOn(n) ? ' checked' : '') + (FP.live ? ' disabled' : '') + '> ' +
+      esc(n.label) + ' <span class="muted">' + esc(n.detail) + '</span></label>';
+  }).join('');
+  $('nego').querySelectorAll('[data-nego]').forEach(box => {
+    box.onchange = () => {
+      FP.nego[job().id][box.dataset.nego] = box.checked;
+      sync();
+      save();
+    };
+  });
+}
+function renderPlan() {
+  const bits = [];
+  if (planMinute('gate') != null) bits.push(planRow('gate', 'Gates'));
+  if (planMinute('act') != null) bits.push(planRow('act', 'Act'));
+  $('planBox').innerHTML = bits.join('');
+  $('planBox').querySelectorAll('[data-nudge]').forEach(b => {
+    b.onclick = () => {
+      const parts = b.dataset.nudge.split(':');
+      nudgePlan(parts[0], +parts[1]);
+    };
+  });
+  $('planBox').querySelectorAll('[data-reset-plan]').forEach(b => {
+    b.onclick = () => {
+      if (b.dataset.resetPlan === 'gate') FP.planGate = null;
+      else FP.planAct = null;
+      sync();
+    };
+  });
+}
+function planRow(kind, label) {
+  const dis = FP.live ? ' disabled' : '';
+  return '<div class="plan-row"><span>' + label + ' geplant <b>' + fmtTime(planMinute(kind)) + '</b></span><span>' +
+    '<button type="button" data-nudge="' + kind + ':-15"' + dis + '>−15</button> ' +
+    '<button type="button" data-nudge="' + kind + ':15"' + dis + '>+15</button> ' +
+    '<button type="button" data-reset-plan="' + kind + '"' + dis + '>Wunschzeit</button></span></div>';
+}
+function renderForecast() {
+  const lines = ['Aufbau etwa ' + calcSetup() + ' Min · ' + hq().name + '.'];
+  const g = gateForecast();
+  if (g) lines.push(g.text);
+  const a = actForecast();
+  if (a) lines.push(a.text);
+  if (job().wishes.some(w => w.type === 'actStart')) {
+    const rec = Math.max(2, job().needStaff.Technik * 2);
+    lines.push('Technik-Kraft ' + techPower() + ' / empfohlen ' + rec + '.');
+  }
+  if (FP.live) lines.push('Budget-Rest ' + money(budgetLeftNow()) + '. Ausgaben ' + money(FP.spent) + '.');
+  else lines.push('Miete bei Start ' + money(rentalAmount()) + '. Verhandelte Kosten ' + money(negoCost()) + '. Rest danach ca. ' + money(forecastLeft()) + '.');
+  $('forecastBox').innerHTML = lines.map(l => '<div>' + esc(l) + '</div>').join('');
+}
+function renderClient() {
+  const j = job();
+  setText('cliName', j.client);
+  setText('cliBlurb', j.blurb);
+  setText('cliBud', money(j.budget));
+  setText('cliFee', money(j.fee));
+  setText('cliEff', money(effBudget()));
+  renderWishes($('wishList'));
+  renderNego();
+  renderPlan();
+  renderForecast();
+  $('toMap').hidden = !FP.briefed;
+}
+function renderTools() {
+  $('tools').innerHTML = TOOLS.map(t => {
+    const need = job().need[t.id] || 0;
+    const have = countId(t.id);
+    const on = !FP.removeMode && FP.tool === t.id;
+    const short = need > 0 && have < need;
+    return '<button type="button" data-tool="' + t.id + '" class="' + (on ? 'on' : '') + (short ? ' need' : '') + '">' +
+      esc(t.label) + ' ' + money(placePrice(t)) + (need ? ' ' + have + '/' + need : '') + '</button>';
+  }).join('');
+  $('tools').querySelectorAll('[data-tool]').forEach(b => {
+    b.onclick = () => {
+      FP.tool = b.dataset.tool;
+      FP.removeMode = false;
+      renderTools();
+    };
+  });
+  $('btnRemove').classList.toggle('on', FP.removeMode);
+  $('btnRemove').disabled = !!FP.live;
+  $('buildBar').hidden = !!FP.live;
+  $('liveActions').hidden = !FP.live;
+}
+function renderActions() {
+  const rep = requirementReport();
+  const ready = FP.briefed && !rep.gaps.length && !FP.live && !FP.over;
+  $('startBtn').disabled = FP.live || FP.over;
+  $('startBtn').classList.toggle('primary', ready);
+  $('startBtn').textContent = FP.live ? 'Festival läuft' : 'Event starten';
+  $('endBtn').disabled = !FP.live || FP.over;
+  $('briefBtn').textContent = FP.briefed ? 'Briefing ✓' : 'Briefing lesen';
+  const nxt = JOBS.find(j => j.unlockAt > FP.rep);
+  const max = JOBS[JOBS.length - 1].unlockAt || 1;
+  $('repBar').style.width = Math.min(100, FP.rep / max * 100) + '%';
+  setText('nextHint', nxt
+    ? ('Nächster neuer Auftrag: ' + nxt.name + ' bei Ruf ' + nxt.unlockAt + ' (du hast ' + FP.rep + '). Erstabschluss zählt.')
+    : ('Alle Aufträge frei · Ruf ' + FP.rep + '.'));
+  setText('parallelNote', FP.live ? 'Dieses Festival belegt den einzigen Slot.' : 'Parallel-Slot gesperrt — höchstens ein Festival.');
+}
+function paintHireHint() {
+  const role = ROLES.find(r => r.id === $('hireRole').value);
+  if (!role) return;
+  $('hireHint').textContent = role.dept + ' · ' + role.label + '. ' + (ROLE_INFO[role.id] || '') + ' Lohn ' + money(WAGE) + ' pro Sim-Tag. Die Rolle bleibt fest.';
+  const full = FP.crew.length >= hq().effects.crewCap;
+  const price = hirePrice();
+  $('hireBtn').disabled = full || FP.cash < price || FP.over;
+  $('hireBtn').textContent = full ? 'Crew-Limit erreicht' : ('Einstellen · ' + money(price));
+}
+function sync() {
+  renderJobs();
+  renderChecklist();
+  renderActions();
+  renderCeo();
+  renderHq();
+  renderCrew();
+  renderClient();
+  renderTools();
+  renderWishes($('wishLive'));
+  renderBankLog();
+  paintHireHint();
+  const bill = FP.lastBill || '<p class="muted">Noch keine Abrechnung.</p>';
+  $('lastBill').innerHTML = bill;
+  $('victory').hidden = !victoryOn();
+  paintNumbers();
+}
+function paintGrace() {
+  const bar = $('grace');
+  if (!bar) return;
+  const on = FP.grace && !FP.over && FP.cash < 0;
+  bar.hidden = !on;
+  if (!on) return;
+  const left = Math.max(0, FP.graceLeft);
+  const h = Math.floor(left / 60);
+  const m = Math.floor(left % 60);
+  setText('graceLeft', h + ' h ' + String(m).padStart(2, '0') + ' min');
+}
+function paintPhaseRow() {
+  const name = phaseAt(FP.worldMin).name;
+  document.querySelectorAll('#phaseRow i').forEach(el => el.classList.toggle('now', el.dataset.ph === name));
+}
+function alertsHtml() {
+  if (!FP.live) return '';
+  const bits = [];
+  const ph = phaseAt(FP.worldMin);
+  if (ph.night) bits.push('<div class="alert">Nacht: höheres Risiko</div>');
+  if (ph.name === 'Abend-Peak') bits.push('<div class="good">Abend-Peak — volles Gelände</div>');
+  if (budgetLeftNow() < 0) bits.push('<div class="alert">Auftragsbudget überzogen</div>');
+  if (FP.worldMin < FP.setupReadyAt) bits.push('<div class="warn">Aufbau läuft — Gates noch zu</div>');
+  const sec = job().wishes.find(w => w.type === 'secMin');
+  if (sec && strength('Security') < sec.val) bits.push('<div class="alert">Security-Stärke zu niedrig</div>');
+  return bits.join('');
+}
+function paintGateButton() {
+  const b = $('openGates');
+  const a = $('startAct');
+  if (!b || !a) return;
+  const hasAct = job().wishes.some(w => w.type === 'actStart');
+  a.hidden = !hasAct;
+  if (!FP.live) {
+    b.disabled = true;
+    b.textContent = 'Gates öffnen';
+    a.disabled = true;
+    return;
+  }
+  if (FP.gateAt != null) {
+    b.disabled = true;
+    b.textContent = 'Gates offen · ' + fmtTime(FP.gateAt);
+  } else if (FP.worldMin < FP.setupReadyAt) {
+    b.disabled = true;
+    b.textContent = 'Gates · Aufbau läuft';
+  } else {
+    b.disabled = false;
+    b.textContent = 'Gates jetzt öffnen';
+  }
+  if (!hasAct) return;
+  if (FP.actAt != null) {
+    a.disabled = true;
+    a.textContent = 'Act läuft · ' + fmtTime(FP.actAt);
+  } else if (FP.worldMin < FP.setupReadyAt) {
+    a.disabled = true;
+    a.textContent = 'Act · Bühne im Aufbau';
+  } else {
+    a.disabled = false;
+    a.textContent = 'Act jetzt starten';
+  }
+}
+function paintNumbers() {
+  setText('clock', fmtTime(FP.worldMin));
+  const ph = phaseAt(FP.worldMin);
+  setText('phase', ph.name + (FP.live ? ' · LIVE' : '') + (FP.paused ? ' · Pause' : ''));
+  setText('dayNum', 'Tag ' + FP.day);
+  setText('cash', money(FP.cash));
+  const cashEl = $('cash');
+  if (cashEl) cashEl.className = FP.cash < 0 ? 'bad' : 'good';
+  setText('debtTop', money(sumLoans()));
+  setText('repTop', String(FP.rep));
+  setText('budTop', money(budgetLeftNow()));
+  const budEl = $('budTop');
+  if (budEl) budEl.className = budgetLeftNow() < 0 ? 'bad' : 'good';
+  setText('budCaption', FP.live ? 'Budget-Rest' : 'Budget frei');
+  setText('bankCash', money(FP.cash));
+  setText('bankDebt', money(sumLoans()));
+  setText('bankRate', pct(interestRate()));
+  setText('bankScore', bankScore());
+  setText('bankNext', nextPayText());
+  setText('kpiEvents', String(FP.eventsDone));
+  setText('kpiCrew', FP.crew.length + '/' + hq().effects.crewCap);
+  setText('kpiLoad', undelegated().length + '/5');
+  setText('kpiPay', nextPayText());
+  setText('kpiExt', String(FIELD.reduce((a, d) => a + (FP.ext[d] || 0), 0)));
+  setText('kpiRate', pct(interestRate()));
+  const scoreEl = $('bankScore');
+  if (scoreEl) {
+    const s = bankScore();
+    scoreEl.className = s === 'Gut' || s === 'Solide' ? 'good' : s === 'Angespannt' ? 'warn' : 'bad';
+  }
+  paintGrace();
+  paintPhaseRow();
+  const live = FP.live;
+  setText('vis', live ? String(Math.floor(FP.visitors)) : '—');
+  setText('ticketEst', live ? money(FP.visitors * job().ticket) : '—');
+  setText('foodLive', live ? money(FP.foodRev) : '—');
+  setText('merchLive', live ? money(FP.merchRev) : '—');
+  setText('sat', live ? Math.round(FP.sat) + ' %' : '—');
+  const satEl = $('sat');
+  if (satEl) satEl.className = !live ? '' : FP.sat >= 70 ? 'good' : FP.sat >= 45 ? 'warn' : 'bad';
+  setText('inc', live ? String(FP.incidents) : '—');
+  setText('budLive', money(budgetLeftNow()));
+  setText('spentLive', money(FP.spent));
+  const bar = $('budBar');
+  if (bar) bar.style.width = Math.max(0, Math.min(100, FP.spent / Math.max(1, effBudget()) * 100)) + '%';
+  const wrap = $('setupWrap');
+  if (wrap) {
+    wrap.hidden = !live;
+    if (live) {
+      const total = Math.max(1, FP.setupReadyAt - FP.eventStart);
+      const p = Math.max(0, Math.min(1, (FP.worldMin - FP.eventStart) / total));
+      $('setupBar').style.width = (p * 100) + '%';
+      setText('setupLabel', p >= 1 ? 'Aufbau fertig' : ('Aufbau noch ' + Math.ceil(FP.setupReadyAt - FP.worldMin) + ' Min'));
+    }
+  }
+  paintGateButton();
+  const hint = [];
+  if (live) {
+    const g = gateForecast();
+    const a = actForecast();
+    if (g) hint.push(g.text);
+    if (a) hint.push(a.text);
+  }
+  setText('timingHint', hint.join(' · '));
+  const html = alertsHtml();
+  if (html !== FP.alertCache) {
+    FP.alertCache = html;
+    const box = $('alerts');
+    if (box) box.innerHTML = html;
+  }
+  document.body.classList.remove('is-day', 'is-peak', 'is-night');
+  const mode = skyMode();
+  document.body.classList.add(mode === 'night' ? 'is-night' : mode === 'peak' ? 'is-peak' : 'is-day');
+  if (canvas) canvas.style.cursor = FP.live ? 'default' : (FP.removeMode ? 'cell' : 'crosshair');
+}
+function selectJob(id) {
+  if (FP.over) return;
+  if (FP.live) {
+    log('Es läuft schon ein Festival. Erst abrechnen — parallel geht hier nicht.', 'warn');
+    return;
+  }
+  const j = JOBS[id];
+  if (!j) return;
+  if (FP.rep < j.unlockAt) {
+    log(j.name + ' ist noch gesperrt (Ruf ' + j.unlockAt + ').', 'warn');
+    return;
+  }
+  if (id !== FP.jobId) {
+    FP.jobId = id;
+    FP.placed = [];
+    FP.ext = emptyExt();
+    FP.spent = 0;
+    FP.briefed = false;
+    FP.planGate = null;
+    FP.planAct = null;
+    FP.removeMode = false;
+    log('Auftrag gewählt: ' + j.name + '. Erst das Briefing lesen.');
+  }
+  showTab('client');
+  sync();
+  save();
+}
+function confirmBrief() {
+  if (FP.over) return;
+  if (!FP.live) {
+    const was = FP.briefed;
+    FP.briefed = true;
+    if (!was) log('Briefing: ' + job().client + '. Budget ' + money(effBudget()) + '. ' + job().blurb);
+  }
+  showTab('client');
+  sync();
+  save();
+}
+function hire(roleId) {
+  if (FP.over) return;
+  const role = ROLES.find(r => r.id === roleId);
+  if (!role) return;
+  if (FP.crew.length >= hq().effects.crewCap) {
+    log('Crew-Limit der Zentrale ist voll. Erst ausbauen oder jemanden entlassen.', 'warn');
+    return;
+  }
+  const cost = hirePrice();
+  if (FP.cash < cost) {
+    log('Zu wenig Geld in der Firmenkasse.', 'bad');
+    return;
+  }
+  addCash(-cost);
+  const name = NAMES[FP.nameI % NAMES.length] + (FP.nameI >= NAMES.length ? ' ' + (1 + Math.floor(FP.nameI / NAMES.length)) : '');
+  FP.nameI += 1;
+  FP.crew.push({ name, roleId: role.id, dept: role.dept, roleLabel: role.label, skill: 2 });
+  log(name + ' eingestellt: ' + role.dept + ' / ' + role.label + '. Rolle ist fest.', 'good');
+  checkSolvency();
+  sync();
+  save();
+}
+function askFire(index) {
+  const c = FP.crew[index];
+  if (!c || FP.over) return;
+  openModal('<h2>' + esc(c.name) + ' entlassen?</h2><p>' + esc(c.dept) + ' / ' + esc(c.roleLabel) +
+    ' ist dann weg. Die Rolle springt nicht auf jemand anderen — neu einstellen kostet wieder Geld.</p>' +
+    '<div class="modal-actions"><button type="button" class="primary" id="doFire">Entlassen</button><button type="button" id="cancelFire">Behalten</button></div>');
+  $('doFire').onclick = () => {
+    closeModal();
+    FP.crew.splice(index, 1);
+    log(c.name + ' entlassen (' + c.dept + ' / ' + c.roleLabel + ').', 'warn');
+    sync();
+    save();
+  };
+  $('cancelFire').onclick = closeModal;
+}
+function bookExt(dept, dir) {
+  if (FP.over || !FIELD.includes(dept)) return;
+  if (dir < 0) {
+    if (FP.live) { log('Laufende Externe kannst du nicht stornieren.', 'warn'); return; }
+    if (!FP.ext[dept]) return;
+    const price = EXT_PRICE[dept];
+    FP.ext[dept] -= 1;
+    FP.spent = Math.max(0, FP.spent - price);
+    log('Externe ' + dept + ' storniert, ' + money(price) + ' zurück ins Budget.', 'good');
+  } else {
+    if (!FP.briefed && !FP.live) {
+      log('Erst das Briefing — dann Externe aufs Budget.', 'warn');
+      showTab('client');
+      return;
+    }
+    const price = FP.live ? Math.round(EXT_PRICE[dept] * 1.65) : EXT_PRICE[dept];
+    FP.ext[dept] = (FP.ext[dept] || 0) + 1;
+    FP.spent += price;
+    log((FP.live ? 'Notfall-' : 'Externe ') + dept + ' gebucht, ' + money(price) + ' aus dem Budget. Kein Skill.', 'warn');
+    if (forecastLeft() < 0) log('Auftragsbudget wäre überzogen.', 'warn');
+  }
+  sync();
+  save();
+}
+function upgrade(i) {
+  if (FP.over || i !== FP.hq + 1) return;
+  const h = HQ[i];
+  if (FP.rep < h.unlockAt) { log('Dafür brauchst du Ruf ' + h.unlockAt + '.', 'warn'); return; }
+  if (FP.cash < h.cost) { log('Die Firmenkasse reicht für den Ausbau nicht.', 'bad'); return; }
+  addCash(-h.cost);
+  FP.hq = i;
+  log('Zentrale: ' + h.name + '.', 'good');
+  checkSolvency();
+  sync();
+  save();
+}
+function nudgePlan(kind, delta) {
+  if (FP.live || FP.over) return;
+  const cur = planMinute(kind);
+  if (cur == null) return;
+  const j = job();
+  const start = j.startHour * 60;
+  const end = start + j.hours * 60;
+  const t = Math.max(start, Math.min(end - 15, cur + delta));
+  if (kind === 'gate') FP.planGate = t;
+  else FP.planAct = t;
+  sync();
+}
+function takeLoan(amt) {
+  if (FP.over) return;
+  if (FP.loans.length >= 4) { log('Die Bank lehnt ab. Zu viele offene Kredite.', 'bad'); return; }
+  FP.loans.push(amt);
+  addCash(amt);
+  log('Kredit ' + money(amt) + '. Schulden jetzt ' + money(sumLoans()) + '. Zins ' + pct(interestRate()) + ' am Tag.', 'warn');
+  banklog('Kredit ' + money(amt) + ' aufgenommen.');
+  checkSolvency();
+  sync();
+  save();
+}
+function repay(amount) {
+  if (FP.over) return;
+  const debt = sumLoans();
+  let left = Math.min(amount, debt, Math.max(0, FP.cash));
+  if (left <= 0) {
+    log(debt <= 0 ? 'Keine Schulden.' : 'Nichts zum Tilgen — die Kasse reicht nicht.', 'warn');
+    return;
+  }
+  const paid = left;
+  addCash(-paid);
+  for (let i = FP.loans.length - 1; i >= 0 && left > 0; i--) {
+    const d = Math.min(FP.loans[i], left);
+    FP.loans[i] -= d;
+    left -= d;
+  }
+  FP.loans = FP.loans.filter(n => n > 0);
+  log('Tilgung ' + money(paid) + '. Restschuld ' + money(sumLoans()) + '.', 'good');
+  banklog('Tilgung ' + money(paid) + '.');
+  checkSolvency();
+  sync();
+  save();
+}
+function placeAt(x, y) {
+  if (FP.live || FP.over) return;
+  if (FP.removeMode) { removeAt(x, y); return; }
+  if (!FP.briefed) { log('Erst das Briefing öffnen.', 'warn'); showTab('client'); return; }
+  const tool = TOOLS.find(t => t.id === FP.tool);
+  if (!tool) { log('Erst ein Werkzeug wählen.'); return; }
+  if (countId(tool.id) >= 8) { log('Mehr davon passt nicht sinnvoll aufs Gelände.', 'warn'); return; }
+  const margin = 36;
+  if (x < margin || y < margin || x > canvas.width - margin || y > canvas.height - margin) {
+    log('Zu nah am Zaun.', 'warn');
+    return;
+  }
+  if (FP.placed.some(p => Math.hypot(p.x - x, p.y - y) < 72)) {
+    log('Zu eng — etwas Abstand lassen.', 'warn');
+    return;
+  }
+  const cost = placePrice(tool);
+  FP.spent += cost;
+  FP.placed.push({ id: tool.id, x, y, cost, label: tool.label });
+  log(tool.label + ' gesetzt, ' + money(cost) + ' aus dem Auftragsbudget.');
+  if (forecastLeft() < 0) log('Achtung: Auftragsbudget wäre überzogen.', 'warn');
+  sync();
+  save();
+}
+function removeAt(x, y) {
+  if (FP.live || FP.over) return;
+  let best = -1;
+  let bestD = 40;
+  FP.placed.forEach((p, i) => {
+    const d = Math.hypot(p.x - x, p.y - y);
+    if (d < bestD) { bestD = d; best = i; }
+  });
+  if (best < 0) { log('Nichts zum Abriss in der Nähe.'); return; }
+  const p = FP.placed[best];
+  FP.spent = Math.max(0, FP.spent - p.cost);
+  FP.placed.splice(best, 1);
+  log(p.label + ' abgerissen, ' + money(p.cost) + ' zurück ins Budget.', 'good');
+  sync();
+  save();
+}
+function jumpToEventStart() {
+  const target = assumedStartAbs();
+  const dt = target - FP.worldMin;
+  if (dt > 0.01) advance(dt);
+  return !FP.over;
+}
+function computeWeight(start, hours) {
+  let w = 0;
+  const steps = hours * 60;
+  for (let i = 0; i < steps; i++) w += phaseAt(start + i).crowd;
+  return Math.max(1, w);
+}
+function startEvent(ignoreWarnings) {
+  if (FP.over) return;
+  if (FP.live) { log('Es läuft schon ein Festival. Erst abrechnen — parallel geht hier nicht.', 'warn'); return; }
+  const rep = requirementReport();
+  if (rep.gaps.length) {
+    log('Noch nicht startklar: ' + rep.gaps.join(', ') + '.', 'warn');
+    const box = $('checklist');
+    if (box) {
+      box.classList.remove('shake');
+      void box.offsetWidth;
+      box.classList.add('shake');
+    }
+    return;
+  }
+  if (rep.warnings.length && !ignoreWarnings) {
+    const items = rep.warnings.map(w => '<li>' + esc(w) + '</li>').join('');
+    openModal('<h2>Trotzdem starten?</h2><ul>' + items + '</ul><p>Verfehlte Pflichtwünsche halbieren später den Firmengewinn.</p>' +
+      '<div class="modal-actions"><button type="button" class="primary" id="doStart">Trotzdem starten</button><button type="button" id="cancelStart">Zurück</button></div>');
+    $('doStart').onclick = () => { closeModal(); startEvent(true); };
+    $('cancelStart').onclick = closeModal;
+    return;
+  }
+  if (!jumpToEventStart()) return;
+  const j = job();
+  FP.eventStart = FP.worldMin;
+  FP.setupReadyAt = FP.worldMin + calcSetup();
+  FP.endMin = FP.worldMin + j.hours * 60;
+  FP.weight = computeWeight(FP.eventStart, j.hours);
+  FP.live = true;
+  FP.visitors = 0;
+  FP.foodRev = 0;
+  FP.merchRev = 0;
+  FP.incidents = 0;
+  FP.sat = 74;
+  FP.people = [];
+  FP.spawnAcc = 0;
+  FP.gateAt = null;
+  FP.actAt = null;
+  FP.setupLogged = false;
+  FP.cd = {};
+  FP.alertCache = '';
+  const rent = rentalAmount();
+  const extra = negoCost();
+  FP.spent += rent + extra;
+  log('Eventtag ' + j.name + '. Aufbau ' + calcSetup() + ' Min, Ende ' + fmtTime(FP.endMin) + '. Phase: ' + phaseAt(FP.worldMin).name + '.');
+  if (rent) log('Equipment-Miete ' + money(rent) + ' aus dem Auftragsbudget.');
+  if (extra) log('Verhandelte Extras ' + money(extra) + ' aus dem Auftragsbudget.');
+  const load = undelegated().length;
+  if (load >= 4) log('Du trägst noch ' + load + ' Büro-Aufgaben. Das bremst das Event.', 'warn');
+  else if (load === 0) log('Das Büro läuft ohne dich.', 'good');
+  showTab('fest');
+  sync();
+  save();
+}
+function openGates(manual, at) {
+  if (!FP.live || FP.over || FP.gateAt != null) return;
+  if (countId('gate') < 1) { log('Kein Eingang auf dem Gelände.', 'warn'); return; }
+  if (FP.worldMin + 0.05 < FP.setupReadyAt && (at == null || at < FP.setupReadyAt)) {
+    log('Aufbau noch ' + Math.max(1, Math.ceil(FP.setupReadyAt - FP.worldMin)) + ' Min.', 'warn');
+    return;
+  }
+  FP.gateAt = at != null ? at : FP.worldMin;
+  const w = job().wishes.find(x => x.type === 'gateOpen');
+  if (w) {
+    const slack = wishAbs(w.at) - FP.setupReadyAt;
+    if (slack >= 30) {
+      FP.sat = Math.min(100, FP.sat + 4);
+      log('Aufbau mit Puffer. Der Einlass kann ruhig bleiben.', 'good');
+    } else if (slack < 15) {
+      FP.sat = Math.max(8, FP.sat - 6);
+      log('Aufbau knapp vor den Gates. Aus der kleinen Zentrale wird das hektisch.', 'warn');
+    }
+    const ok = Math.abs(FP.gateAt - wishAbs(w.at)) <= WINDOW_MIN;
+    log((manual ? 'Gates manuell geöffnet ' : 'Gates geöffnet ') + fmtTime(FP.gateAt) + (ok ? ' — im Fenster.' : ' — außerhalb des Fensters.'), ok ? 'good' : 'bad');
+  } else log('Gates geöffnet ' + fmtTime(FP.gateAt) + '.');
+  renderWishes($('wishLive'));
+  renderWishes($('wishList'));
+}
+function startAct(manual, at) {
+  if (!FP.live || FP.over || FP.actAt != null) return;
+  if (!job().wishes.some(w => w.type === 'actStart')) return;
+  if (countId('act') + countId('stage') < 1) { log('Keine Bühne und kein Act auf dem Gelände.', 'warn'); return; }
+  if (FP.worldMin + 0.05 < FP.setupReadyAt && (at == null || at < FP.setupReadyAt)) {
+    log('Die Bühne steht noch nicht.', 'warn');
+    return;
+  }
+  FP.actAt = at != null ? at : FP.worldMin;
+  const w = job().wishes.find(x => x.type === 'actStart');
+  const ok = Math.abs(FP.actAt - wishAbs(w.at)) <= WINDOW_MIN;
+  log((manual ? 'Act manuell gestartet ' : 'Act gestartet ') + fmtTime(FP.actAt) + (ok ? ' — pünktlich.' : ' — daneben.'), ok ? 'good' : 'bad');
+  renderWishes($('wishLive'));
+  renderWishes($('wishList'));
+}
+function billHtml(model) {
+  const cls = model.gain >= 0 ? 'good' : 'bad';
+  const skillLine = model.ranFull
+    ? (model.leveled ? ('Eigene Crew im Einsatz: ' + model.leveled + ' Personen +1 Skill.') : 'Keine eigene Crew im Einsatz.')
+    : 'Abbruch: kein Skill.';
+  let note = '';
+  if (!model.ranFull) note = 'Vorzeitig beendet.';
+  else if (model.hardFail) note = 'Pflichtwunsch verfehlt. Honorar gekürzt, kein Ruf.';
+  else if (model.repDelta === 2) note = 'Auftraggeber begeistert. Erstabschluss, Ruf +2.';
+  else if (model.repDelta === 1) note = 'Solide. Für +2 Ruf brauchen es Stimmung, Budget und auch die weichen Wünsche.';
+  else note = 'Bekanntes Event — Ruf bleibt. Geld und Skill zählen trotzdem.';
+  const repTxt = model.repBefore + ' → ' + model.repAfter + (model.repDelta ? ' (' + (model.repDelta > 0 ? '+' : '') + model.repDelta + ')' : '');
+  return '<h2>' + (model.ranFull ? 'Endabrechnung' : 'Abbruch') + '</h2><p class="muted">' + esc(model.client) + ' · ' + esc(model.name) + '</p>' +
+    '<div class="bill">' +
+    '<div class="rowl"><span>Budget</span><b>' + money(model.bud) + '</b></div>' +
+    '<div class="rowl"><span>Ausgaben</span><b>' + money(model.spent) + '</b></div>' +
+    '<div class="rowl"><span>Budget-Rest</span><b class="' + (model.left >= 0 ? 'good' : 'bad') + '">' + money(model.left) + '</b></div>' +
+    '<div class="rowl"><span>Eintritt</span><b>' + money(model.tickets) + '</b></div>' +
+    '<div class="rowl"><span>Food</span><b>' + money(model.food) + '</b></div>' +
+    '<div class="rowl"><span>Merch</span><b>' + money(model.merch) + '</b></div>' +
+    '<div class="rowl"><span>Vorfälle</span><b>' + model.incidents + '</b></div>' +
+    '<div class="rowl"><span>Zufriedenheit</span><b>' + model.sat + ' %</b></div>' +
+    '<div class="rowl"><span>Pflichtwünsche</span><b>' + model.hardOk + '/' + model.hardN + '</b></div>' +
+    '<div class="rowl"><span>Ruf</span><b>' + esc(repTxt) + '</b></div>' +
+    '<div class="rowl tot ' + cls + '"><span>Firmengewinn</span><b>' + money(model.gain) + '</b></div>' +
+    '<div class="rowl"><span>Kasse jetzt</span><b class="' + (model.cashNow < 0 ? 'bad' : '') + '">' + money(model.cashNow) + '</b></div>' +
+    '</div><p>' + esc(skillLine) + ' Externe lernen nichts.</p><p>' + esc(note) + '</p>' +
+    (model.cashNow < 0 ? '<p class="bad">Die Kasse ist im Minus. Die Gnadenfrist läuft.</p>' : '');
+}
+function settle(auto) {
+  if (!FP.live || FP.over) return;
+  const j = job();
+  const results = j.wishes.map(w => ({ w, st: evalWish(w, true) }));
+  let hardFail = 0, hardOk = 0, hardN = 0, softFail = 0;
+  results.forEach(item => {
+    if (item.w.hard) {
+      hardN += 1;
+      if (item.st === 'done') hardOk += 1;
+      else hardFail += 1;
+    } else if (item.st !== 'done') softFail += 1;
+  });
+  const ranFull = !!auto || FP.worldMin >= FP.endMin - 2;
+  const tickets = Math.round(FP.visitors * j.ticket);
+  const food = Math.round(FP.foodRev);
+  const merch = Math.round(FP.merchRev);
+  const income = tickets + food + merch;
+  const bud = effBudget();
+  const left = bud - FP.spent;
+  const fin = bestSkill('buero_fin');
+  const repBefore = FP.rep;
+  let gain = 0;
+  let repDelta = 0;
+  let leveled = 0;
+  if (ranFull) {
+    gain = j.fee;
+    if (left >= 0) {
+      const share = 0.34 + Math.min(0.12, fin * 0.025);
+      gain += Math.round(left * share);
+      gain += Math.round(income * 0.3);
+    } else {
+      gain -= Math.abs(left);
+      gain += Math.round(income * 0.12);
+    }
+    if (hardFail > 0) gain = Math.round(gain * 0.5);
+    if (softFail > 0) gain -= softFail * Math.round(j.fee * 0.05);
+    gain -= FP.incidents * 100;
+    if (FP.sat >= 78 && hardFail === 0) gain = Math.round(gain * 1.08);
+    if (FP.sat < 42) gain = Math.round(gain * 0.86);
+    gain = Math.round(gain);
+    const success = hardFail === 0 && left >= -j.budget * 0.03 && FP.sat >= 45;
+    if (success && !FP.cleared[j.id]) {
+      repDelta = (softFail === 0 && left >= 0 && FP.sat >= 70) ? 2 : 1;
+      FP.rep += repDelta;
+      FP.cleared[j.id] = true;
+    }
+    FP.eventsDone += 1;
+    FP.crew.forEach(c => {
+      if (c.skill < 8) { c.skill += 1; leveled += 1; }
+    });
+  } else {
+    const elapsed = Math.max(0, FP.worldMin - FP.eventStart);
+    const ratio = Math.min(1, elapsed / (j.hours * 60));
+    gain = Math.round(j.fee * ratio * 0.35);
+    if (hardFail > 0) gain = Math.round(gain * 0.5);
+  }
+  addCash(gain);
+  const model = {
+    ranFull, client: j.client, name: j.name, bud, spent: FP.spent, left,
+    tickets, food, merch, incidents: FP.incidents, sat: Math.round(FP.sat),
+    hardOk, hardN, hardFail, repBefore, repAfter: FP.rep, repDelta, gain,
+    cashNow: FP.cash, leveled
+  };
+  FP.live = false;
+  FP.eventStart = 0;
+  FP.placed = [];
+  FP.ext = emptyExt();
+  FP.spent = 0;
+  FP.briefed = false;
+  FP.planGate = null;
+  FP.planAct = null;
+  FP.gateAt = null;
+  FP.actAt = null;
+  FP.people = [];
+  FP.visitors = 0;
+  FP.foodRev = 0;
+  FP.merchRev = 0;
+  FP.incidents = 0;
+  FP.sat = 74;
+  FP.nego[j.id] = {};
+  FP.removeMode = false;
+  FP.tool = 'gate';
+  const body = billHtml(model);
+  FP.lastBill = body;
+  if (ranFull) {
+    if (repDelta > 0) log('Abgerechnet. Ruf +' + repDelta + '.', 'good');
+    else if (hardFail) log('Abgerechnet. Pflichtwünsche verfehlt, kein Ruf.', 'bad');
+    else log('Abgerechnet. Kein neuer Ruf — das Event ist schon bekannt.');
+  } else log('Vorzeitig beendet. Kaum Honorar, kein Skill.', 'warn');
+  checkSolvency();
+  showTab('zentrale');
+  sync();
+  save();
+  if (!FP.over) {
+    openModal(body + '<button type="button" class="primary" id="billClose">Weiter</button>');
+    $('billClose').onclick = closeModal;
+  }
+}
+function askEnd() {
+  if (!FP.live || FP.over) return;
+  const left = FP.endMin - FP.worldMin;
+  if (left <= 2) { settle(false); return; }
+  openModal('<h2>Event abbrechen?</h2><p>Es laufen noch etwa ' + Math.ceil(left) +
+    ' Sim-Minuten. Ein Abbruch streicht Anteil und Skill, das Honorar schrumpft. Offene Wunschzeiten gelten als verfehlt.</p>' +
+    '<div class="modal-actions"><button type="button" class="primary" id="doEnd">Jetzt abrechnen</button><button type="button" id="cancelEnd">Weiterlaufen lassen</button></div>');
+  $('doEnd').onclick = () => { closeModal(); settle(false); };
+  $('cancelEnd').onclick = closeModal;
+}
+function maybeIncident(key, perMin, dtMin, msg, satHit) {
+  if (perMin <= 0 || Math.random() >= perMin * dtMin) return;
+  if (FP.worldMin < (FP.cd[key] || 0)) return;
+  FP.cd[key] = FP.worldMin + 12;
+  FP.incidents += 1;
+  FP.sat = Math.max(8, FP.sat - satHit);
+  FP.flashUntil = performance.now() + 450;
+  log(msg, 'bad');
+}
+function hash01(n) {
+  const x = Math.sin(n * 127.1) * 43758.5453;
+  return x - Math.floor(x);
+}
+function spawnOne() {
+  const gates = FP.placed.filter(p => p.id === 'gate');
+  const gate = gates[Math.floor(Math.random() * gates.length)] || { x: 80, y: canvas.height / 2 };
+  const targets = FP.placed.filter(p => p.id !== 'gate');
+  const t = targets.length ? targets[Math.floor(Math.random() * targets.length)] : gate;
+  FP.people.push({
+    x: gate.x + (Math.random() * 18 - 9),
+    y: gate.y + (Math.random() * 18 - 9),
+    tx: t.x, ty: t.y,
+    shirt: Math.floor(Math.random() * SHIRTS.length)
+  });
+}
+function movePeople(dtMin) {
+  const targets = FP.placed.filter(p => p.id !== 'gate');
+  const sp = 26 * dtMin;
+  FP.people.forEach(p => {
+    const dx = p.tx - p.x;
+    const dy = p.ty - p.y;
+    const dist = Math.hypot(dx, dy) || 1;
+    p.x += dx / dist * sp;
+    p.y += dy / dist * sp;
+    if (dist < 12 && targets.length) {
+      const t = targets[Math.floor(Math.random() * targets.length)];
+      p.tx = t.x + (Math.random() * 30 - 15);
+      p.ty = t.y + (Math.random() * 30 - 15);
+    }
+  });
+  if (FP.people.length > 70) FP.people.splice(0, FP.people.length - 55);
+  while (FP.spawnAcc >= 1 && FP.people.length < 55) {
+    FP.spawnAcc -= 1;
+    spawnOne();
+  }
+}
+function tickLive(dtMin) {
+  const prev = phaseAt(FP.worldMin).name;
+  advance(dtMin);
+  if (FP.over || !FP.live) return;
+  const ph = phaseAt(FP.worldMin);
+  if (ph.name !== prev) log('Phase: ' + ph.name + '.', ph.name === 'Abend-Peak' ? 'good' : '');
+  if (!FP.setupLogged && FP.worldMin >= FP.setupReadyAt) {
+    FP.setupLogged = true;
+    log('Aufbau steht.');
+  }
+  if (FP.gateAt == null && countId('gate') > 0 && scheduledGateAt() != null && FP.worldMin >= scheduledGateAt()) {
+    openGates(false, scheduledGateAt());
+  }
+  if (FP.actAt == null && scheduledActAt() != null && (countId('act') + countId('stage')) > 0 && FP.worldMin >= scheduledActAt()) {
+    startAct(false, scheduledActAt());
+  }
+  const j = job();
+  if (FP.gateAt != null) {
+    const rate = (j.crowd / FP.weight) * ph.crowd * mktMult();
+    const room = j.crowd * 1.35 - FP.visitors;
+    const add = Math.max(0, Math.min(room, rate * dtMin));
+    FP.visitors += add;
+    FP.spawnAcc += add;
+    const catPow = strength('Catering') + hq().effects.cat;
+    const pop = Math.min(1.25, FP.visitors / Math.max(20, j.crowd * 0.35));
+    const quality = 1 + catPow * 0.1;
+    FP.foodRev += countId('food') * 2.4 * ph.food * quality * Math.max(0.35, pop) * dtMin;
+    FP.merchRev += countId('stand') * 1.6 * ph.crowd * Math.max(0.35, pop) * (1 + bestSkill('buero_mkt') * 0.04) * dtMin;
+  }
+  const secWish = j.wishes.find(w => w.type === 'secMin');
+  const secNeed = secWish ? secWish.val : Math.max(1, j.needStaff.Security);
+  const secStrong = strength('Security') >= secNeed;
+  const orgaOk = strength('Orga') + bestSkill('buero_empf') >= Math.max(1, j.needStaff.Orga * 2);
+  let secP = ph.secRisk * (secStrong ? 0.008 : 0.02) * (orgaOk ? 0.75 : 1);
+  if (FP.gateAt == null) secP *= 0.15;
+  maybeIncident('sec', secP, dtMin, ph.night ? 'Nacht-Vorfall am Gelände.' : 'Security-Vorfall.', 5);
+  if (FP.actAt != null && ph.act >= 0.6) {
+    const rec = Math.max(2, j.needStaff.Technik * 2);
+    if (techPower() < rec) maybeIncident('tech', 0.012 * ph.act, dtMin, 'Technikpanne auf der Bühne.', 4);
+  }
+  const catPow = strength('Catering') + hq().effects.cat;
+  if (FP.gateAt != null && countId('food') > 0 && ph.food > 1 && catPow < Math.max(2, j.needStaff.Catering * 2) && FP.visitors > j.crowd * 0.45) {
+    FP.sat -= 0.08 * dtMin;
+    if (FP.worldMin >= (FP.cd.food || 0)) {
+      FP.cd.food = FP.worldMin + 20;
+      log('Schlange am Food.', 'warn');
+    }
+  }
+  let target = 70 + Math.min(8, strength('Orga') * 0.35) + bestSkill('buero_empf') * 0.5;
+  if (undelegated().length >= 4) target -= 8;
+  FP.sat += (target - FP.sat) * 0.0015 * dtMin;
+  FP.sat = Math.max(8, Math.min(100, FP.sat));
+  movePeople(dtMin);
+  if (Math.floor(FP.worldMin) !== FP.wishBucket) {
+    FP.wishBucket = Math.floor(FP.worldMin);
+    renderWishes($('wishLive'));
+    renderWishes($('wishList'));
+  }
+  if (FP.worldMin >= FP.endMin) {
+    FP.worldMin = FP.endMin;
+    settle(true);
+    return;
+  }
+  if (Math.floor(FP.worldMin / 10) !== FP.saveBucket) {
+    FP.saveBucket = Math.floor(FP.worldMin / 10);
+    save();
+  }
+}
+function roundRect(x, y, w, h, r) {
+  ctx.beginPath();
+  if (typeof ctx.roundRect === 'function') ctx.roundRect(x, y, w, h, r);
+  else ctx.rect(x, y, w, h);
+}
+function drawField() {
+  const w = canvas.width;
+  const h = canvas.height;
+  const sky = skyMode();
+  const g = ctx.createLinearGradient(0, 0, 0, h);
+  if (sky === 'night') { g.addColorStop(0, '#101a14'); g.addColorStop(1, '#183222'); }
+  else if (sky === 'peak') { g.addColorStop(0, '#1c3a24'); g.addColorStop(1, '#245c34'); }
+  else { g.addColorStop(0, '#2f8f49'); g.addColorStop(1, '#1f6d34'); }
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, w, h);
+  ctx.fillStyle = sky === 'night' ? 'rgba(255,255,255,.03)' : 'rgba(255,255,255,.05)';
+  for (let y = 0; y < h; y += 26) ctx.fillRect(0, y, w, 13);
+  ctx.fillStyle = 'rgba(232, 214, 170, .16)';
+  ctx.beginPath();
+  ctx.ellipse(w / 2, h / 2, 160, 84, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(10, 20, 12, .5)';
+  ctx.lineWidth = 4;
+  ctx.strokeRect(14, 14, w - 28, h - 28);
+  if (sky !== 'day') {
+    ctx.fillStyle = 'rgba(5, 8, 16, .30)';
+    ctx.fillRect(0, 0, w, h);
+    for (let x = 26; x < w - 18; x += 18) {
+      ctx.globalAlpha = 0.35 + 0.45 * Math.abs(Math.sin(frameNow / 500 + x));
+      ctx.fillStyle = sky === 'peak' ? '#ffb15a' : '#ffe7a3';
+      ctx.beginPath();
+      ctx.arc(x, 14, 2.2, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
+  ctx.fillStyle = 'rgba(214, 186, 120, .22)';
+  ctx.beginPath();
+  ctx.ellipse(w * 0.38, h * 0.58, 200, 26, -0.15, 0, Math.PI * 2);
+  ctx.fill();
+  [[86, 92, 1.7], [168, 62, 1.2], [w - 96, 100, 1.55], [w - 170, h - 86, 1.35], [78, h - 96, 1.6], [w - 72, h * 0.4, 1.15]].forEach(t => drawTree(t[0], t[1], t[2]));
+}
+function drawTree(x, y, s) {
+  ctx.fillStyle = 'rgba(0,0,0,.22)';
+  ctx.beginPath();
+  ctx.ellipse(x + 2, y + 10 * s, 12 * s, 5 * s, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#14562a';
+  ctx.beginPath();
+  ctx.arc(x, y, 16 * s, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#2f9a48';
+  ctx.beginPath();
+  ctx.arc(x - 5 * s, y - 4 * s, 10 * s, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#8fd18a';
+  ctx.beginPath();
+  ctx.arc(x + 4 * s, y - 6 * s, 5 * s, 0, Math.PI * 2);
+  ctx.fill();
+}
+function drawShadow(x, y, rx, ry) {
+  ctx.fillStyle = 'rgba(0,0,0,.22)';
+  ctx.beginPath();
+  ctx.ellipse(x, y + 10, rx, ry, 0, 0, Math.PI * 2);
+  ctx.fill();
+}
+function drawShape(p) {
+  if (p.id === 'stage') {
+    drawShadow(p.x, p.y, 46, 16);
+    ctx.fillStyle = '#1b2433';
+    roundRect(p.x - 44, p.y - 22, 88, 46, 8);
+    ctx.fill();
+    ctx.fillStyle = '#31425f';
+    roundRect(p.x - 34, p.y - 8, 68, 22, 4);
+    ctx.fill();
+    ['#ff5d73', '#f0b429', '#7eb6ff'].forEach((col, i) => {
+      const lx = p.x - 24 + i * 24;
+      const pulse = 0.45 + 0.55 * Math.abs(Math.sin(frameNow / 280 + i));
+      ctx.fillStyle = col;
+      ctx.globalAlpha = skyMode() === 'day' ? 0.8 : pulse;
+      ctx.beginPath();
+      ctx.arc(lx, p.y - 20, 4.2, 0, Math.PI * 2);
+      ctx.fill();
+      if (skyMode() !== 'day') {
+        ctx.globalAlpha = 0.25 * pulse;
+        ctx.beginPath();
+        ctx.moveTo(lx - 3, p.y - 12);
+        ctx.lineTo(lx - 14, p.y + 24);
+        ctx.lineTo(lx + 14, p.y + 24);
+        ctx.closePath();
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+    });
+  } else if (p.id === 'act') {
+    drawShadow(p.x, p.y, 16, 7);
+    const on = FP.actAt != null && FP.live;
+    ctx.fillStyle = on ? '#ff7aa8' : '#c45b86';
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, 14, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#2a1420';
+    ctx.font = '700 14px Segoe UI, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('♪', p.x, p.y + 5);
+    if (on) {
+      ctx.globalAlpha = 0.28;
+      ctx.fillStyle = '#ff7aa8';
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, 26 + Math.sin(frameNow / 200) * 2, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+  } else if (p.id === 'food') {
+    drawShadow(p.x, p.y, 34, 12);
+    ctx.fillStyle = '#f4f6fb';
+    roundRect(p.x - 32, p.y - 14, 64, 32, 7);
+    ctx.fill();
+    ctx.fillStyle = '#ff7a45';
+    ctx.fillRect(p.x - 32, p.y - 22, 64, 10);
+    ctx.fillStyle = '#ffe08a';
+    for (let i = 0; i < 5; i++) ctx.fillRect(p.x - 28 + i * 12, p.y - 22, 6, 10);
+    ctx.fillStyle = '#243044';
+    roundRect(p.x - 10, p.y - 2, 22, 12, 2);
+    ctx.fill();
+  } else if (p.id === 'stand') {
+    drawShadow(p.x, p.y, 22, 9);
+    ctx.fillStyle = '#3dce93';
+    ctx.beginPath();
+    ctx.moveTo(p.x, p.y - 28);
+    ctx.lineTo(p.x + 28, p.y + 10);
+    ctx.lineTo(p.x - 28, p.y + 10);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = '#146b48';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(p.x, p.y - 28);
+    ctx.lineTo(p.x, p.y + 10);
+    ctx.stroke();
+    ctx.fillStyle = '#f0b429';
+    ctx.beginPath();
+    ctx.arc(p.x + 16, p.y - 10, 5, 0, Math.PI * 2);
+    ctx.fill();
+  } else if (p.id === 'gate') {
+    drawShadow(p.x, p.y, 26, 7);
+    ctx.strokeStyle = '#f6f3ea';
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(p.x - 22, p.y + 14);
+    ctx.lineTo(p.x - 22, p.y - 8);
+    ctx.quadraticCurveTo(p.x, p.y - 36, p.x + 22, p.y - 8);
+    ctx.lineTo(p.x + 22, p.y + 14);
+    ctx.stroke();
+    ctx.fillStyle = FP.gateAt != null && FP.live ? '#3dce93' : '#f0b429';
+    ctx.beginPath();
+    ctx.arc(p.x, p.y - 4, 3.2, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+function drawLabel(x, y, text) {
+  ctx.font = '700 13px Segoe UI, sans-serif';
+  const w = ctx.measureText(text).width + 12;
+  ctx.fillStyle = 'rgba(12,18,12,.82)';
+  roundRect(x - w / 2, y, w, 18, 6);
+  ctx.fill();
+  ctx.fillStyle = '#f6f3ea';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(text, x, y + 9);
+  ctx.textBaseline = 'alphabetic';
+}
+function drawPerson(x, y, shirt, angry) {
+  if (x < 10 || y < 10 || x > canvas.width - 10 || y > canvas.height - 10) return;
+  ctx.fillStyle = 'rgba(0,0,0,.28)';
+  ctx.beginPath();
+  ctx.ellipse(x, y + 3, 3.2, 1.5, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = angry ? '#ff6b4a' : SHIRTS[Math.abs(shirt) % SHIRTS.length];
+  ctx.beginPath();
+  ctx.arc(x, y, 3.3, 0, Math.PI * 2);
+  ctx.fill();
+}
+function drawAmbient() {
+  if (!FP.live || FP.gateAt == null) return;
+  const anchors = FP.placed.filter(p => p.id !== 'gate');
+  if (!anchors.length) return;
+  const n = Math.min(70, Math.floor(FP.visitors / Math.max(1, job().crowd) * 60));
+  for (let i = 0; i < n; i++) {
+    const a = anchors[i % anchors.length];
+    const ang = hash01(i + 2) * Math.PI * 2;
+    const rad = 18 + hash01(i + 5) * 68;
+    const x = a.x + Math.cos(ang) * rad + Math.sin(frameNow / 800 + i) * 1.4;
+    const y = a.y + Math.sin(ang) * rad * 0.72;
+    drawPerson(x, y, i, FP.sat < 48 && hash01(i + 4) > 0.84);
+  }
+}
+function draw() {
+  if (!ctx) return;
+  drawField();
+  const items = FP.placed.slice().sort((a, b) => a.y - b.y);
+  items.forEach(drawShape);
+  FP.people.forEach(p => drawPerson(p.x, p.y, p.shirt, FP.sat < 48 && hash01(p.x + p.y) > 0.86));
+  drawAmbient();
+  const dy = { stage: 20, act: 18, food: 20, stand: 22, gate: 20 };
+  items.forEach(p => {
+    const text = (p.id === 'gate' && FP.gateAt != null && FP.live) ? 'Offen' : p.label;
+    drawLabel(p.x, p.y + (dy[p.id] || 16), text);
+  });
+  if (!FP.placed.length && !FP.live) {
+    ctx.fillStyle = 'rgba(255,255,255,.92)';
+    ctx.font = '600 18px Segoe UI, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(FP.briefed ? 'Werkzeug wählen und auf die Wiese klicken' : 'Zuerst das Briefing öffnen', canvas.width / 2, canvas.height / 2);
+  }
+  if (frameNow < (FP.flashUntil || 0)) {
+    ctx.fillStyle = 'rgba(255,80,60,.16)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  }
+}
+function setSpeed(s) {
+  if (FP.over) return;
+  FP.speed = s;
+  document.querySelectorAll('[data-speed]').forEach(b => b.classList.toggle('on', +b.dataset.speed === s));
+}
+function togglePause() {
+  if (FP.over) return;
+  FP.paused = !FP.paused;
+  $('pauseBtn').textContent = FP.paused ? 'Weiter' : 'Pause';
+  $('pauseBtn').classList.toggle('on', FP.paused);
+}
+function restart() {
+  try { localStorage.removeItem(SAVE_KEY); } catch (e) { /* ignore */ }
+  location.reload();
+}
+function askRestart() {
+  openModal('<h2>Neue Firma?</h2><p>Der lokale Spielstand wird gelöscht.</p>' +
+    '<div class="modal-actions"><button type="button" class="primary" id="doRestart">Neu starten</button><button type="button" id="cancelRestart">Abbrechen</button></div>');
+  $('doRestart').onclick = restart;
+  $('cancelRestart').onclick = closeModal;
+}
+function onKey(e) {
+  if (e.target.closest('button, a, input, select, textarea')) return;
+  if (e.code === 'Space') { e.preventDefault(); togglePause(); }
+  if (e.key === '1') setSpeed(1);
+  if (e.key === '2') setSpeed(2);
+  if (e.key === '5') setSpeed(5);
+}
+function canvasPoint(e) {
+  const r = canvas.getBoundingClientRect();
+  return {
+    x: (e.clientX - r.left) * (canvas.width / r.width),
+    y: (e.clientY - r.top) * (canvas.height / r.height)
+  };
+}
+function bind() {
+  $('tab-zentrale').onclick = () => showTab('zentrale');
+  $('tab-client').onclick = () => showTab('client');
+  $('tab-fest').onclick = () => showTab('fest');
+  $('tab-bank').onclick = () => showTab('bank');
+  document.querySelectorAll('[data-speed]').forEach(b => { b.onclick = () => setSpeed(+b.dataset.speed); });
+  $('pauseBtn').onclick = togglePause;
+  $('briefBtn').onclick = confirmBrief;
+  $('startBtn').onclick = () => startEvent(false);
+  $('endBtn').onclick = askEnd;
+  $('hireBtn').onclick = () => hire($('hireRole').value);
+  $('hireRole').onchange = paintHireHint;
+  $('toMap').onclick = () => showTab('fest');
+  $('btnRemove').onclick = () => {
+    FP.removeMode = !FP.removeMode;
+    if (FP.removeMode) FP.tool = '';
+    renderTools();
+  };
+  $('openGates').onclick = () => openGates(true);
+  $('startAct').onclick = () => startAct(true);
+  document.querySelectorAll('[data-loan]').forEach(b => { b.onclick = () => takeLoan(+b.dataset.loan); });
+  $('repay1000').onclick = () => repay(1000);
+  $('repay5000').onclick = () => repay(5000);
+  $('repayAll').onclick = () => repay(sumLoans());
+  $('restartBtn').onclick = restart;
+  $('newGameBtn').onclick = askRestart;
+  canvas.addEventListener('click', e => {
+    const p = canvasPoint(e);
+    placeAt(p.x, p.y);
+  });
+  canvas.addEventListener('contextmenu', e => {
+    e.preventDefault();
+    if (FP.live || FP.over) return;
+    const p = canvasPoint(e);
+    removeAt(p.x, p.y);
+  });
+  document.addEventListener('keydown', onKey);
+  window.addEventListener('beforeunload', () => save());
+}
+function fillHireSelect() {
+  const sel = $('hireRole');
+  sel.innerHTML = '';
+  let current = '';
+  let group = null;
+  ROLES.forEach(r => {
+    if (r.dept !== current) {
+      current = r.dept;
+      group = document.createElement('optgroup');
+      group.label = r.dept;
+      sel.appendChild(group);
+    }
+    const o = document.createElement('option');
+    o.value = r.id;
+    o.textContent = r.label;
+    group.appendChild(o);
+  });
+  sel.value = 'sec_gate';
+}
+function boot() {
+  canvas = $('c');
+  ctx = canvas.getContext('2d');
+  const params = new URLSearchParams(location.search);
+  if (params.has('neu')) {
+    try { localStorage.removeItem(SAVE_KEY); } catch (e) { /* ignore */ }
+  }
+  const loaded = load();
+  ensureShape();
+  fillHireSelect();
+  bind();
+  setSpeed(FP.speed);
+  if (!loaded) {
+    log('Willkommen. Fünf Büro-Aufgaben liegen bei dir. Nur ein Festival gleichzeitig.');
+    log('Ablauf: Briefing, Gelände, Personal, Event, Abrechnung.');
+  } else log('Spielstand geladen.', 'good');
+  showTab(FP.live ? 'fest' : 'zentrale');
+  FP.saveBucket = Math.floor(FP.worldMin / 10);
+  sync();
+  window.FPDebug = {
+    get state() { return FP; },
+    checkSolvency, strength, heads, money, job, advance
+  };
+  requestAnimationFrame(frame);
+}
+let lastStamp = 0;
+function frame(now) {
+  frameNow = now;
+  try {
+    if (!lastStamp) lastStamp = now;
+    let raw = (now - lastStamp) / 1000;
+    lastStamp = now;
+    if (raw > 0.25) raw = 0.25;
+    const dtMin = (FP.paused || FP.over) ? 0 : raw * FP.speed;
+    if (dtMin > 0) {
+      if (FP.live) tickLive(dtMin);
+      else {
+        advance(dtMin);
+        if (Math.floor(FP.worldMin / 10) !== FP.saveBucket) {
+          FP.saveBucket = Math.floor(FP.worldMin / 10);
+          save();
+        }
+      }
+    }
+    paintNumbers();
+    draw();
+  } catch (err) {
+    if (!FP.frameError) {
+      FP.frameError = true;
+      console.error(err);
+    }
+  }
+  requestAnimationFrame(frame);
+}
+boot();
+</script>
+</body>
+</html>
