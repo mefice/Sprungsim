@@ -5,6 +5,8 @@ import {
   emptyCareer,
   isUnlocked,
   lockRival,
+  recordDive,
+  rememberMeet,
   rivalSlot,
   standings,
   suggestProgram,
@@ -18,8 +20,12 @@ test('Vorschlag nutzt nur freigeschaltete Sprünge und füllt drei Startplätze'
     assert.equal(isUnlocked(emptyCareer(), DIVES.find((dive) => dive.id === id)), true);
   }
 
-  const open = suggestProgram(DIVES, { ...emptyCareer(), points: 100 });
-  assert.deepEqual(open, ['101C', '103B', '107C']);
+  const club = suggestProgram(DIVES, { ...emptyCareer(), points: 40 });
+  assert.deepEqual(club, ['101C', '401C', '103B']);
+
+  const region = suggestProgram(DIVES, { ...emptyCareer(), points: 100, tier: 'regional' });
+  assert.deepEqual(region, ['103B', '5132D', '107C']);
+  assert.equal(region.includes('101C'), false);
 });
 
 test('Ein Dreikampf behält den Rivalen und summiert den Laufstand', () => {
@@ -39,4 +45,24 @@ test('Ein Dreikampf behält den Rivalen und summiert den Laufstand', () => {
   assert.equal(table.player, 33);
   assert.equal(table.rival, Math.round((slots[0].total + slots[1].total + slots[2].total) * 100) / 100);
   assert.ok(['vorn', 'hinten', 'gleich'].includes(table.verdict));
+});
+
+test('Abgeschlossene Dreikämpfe bleiben die letzten fünf und überleben die nächste Wertung', () => {
+  let career = emptyCareer();
+  for (let i = 0; i < 6; i += 1) {
+    career = rememberMeet(career, {
+      rival: `Rivale ${i}`,
+      player: 30 + i,
+      rivalTotal: 28,
+      verdict: 'vorn',
+      program: ['101C', '103B', '103B'],
+    });
+  }
+  assert.equal(career.meets.length, 5);
+  assert.equal(career.meets[0].rival, 'Rivale 5');
+  assert.equal(career.meets[4].rival, 'Rivale 1');
+
+  const after = recordDive(career, DIVES[0], 10, false, DIVES);
+  assert.equal(after.career.meets[0].rival, 'Rivale 5');
+  assert.equal(career.meets.length, 5);
 });

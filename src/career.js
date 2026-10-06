@@ -1,6 +1,12 @@
 /** Leichte Karriere: Punkte, Freischaltungen, Verein → Region. Kein Kalender. */
 
 export const REGIONAL_AT = 48;
+
+/** Pflichtlisten. Verein bleibt bei den leichten Nummern, die Region zieht nach oben. */
+export const REQUIRED = {
+  club: ['101C', '401C', '103B'],
+  regional: ['103B', '5132D', '105C', '107C'],
+};
 const STORAGE_KEY = 'zehn-meter-career-v1';
 
 const RIVALS = [
@@ -17,7 +23,17 @@ export function emptyCareer() {
     best: 0,
     bestByDive: {},
     rips: 0,
+    meets: [],
   };
+}
+
+export function careerTier(career) {
+  if (career?.tier === 'regional' || (career?.points ?? 0) >= REGIONAL_AT) return 'regional';
+  return 'club';
+}
+
+export function requiredIds(career) {
+  return REQUIRED[careerTier(career)];
 }
 
 export function tierName(tier) {
@@ -51,6 +67,7 @@ export function recordDive(career, dive, total, rip, catalog) {
       [dive.id]: round2(Math.max(career.bestByDive[dive.id] ?? 0, total)),
     },
     rips: career.rips + (rip ? 1 : 0),
+    meets: career.meets ?? [],
   };
   const unlocked = catalog.filter((item) => (item.unlockAt ?? 0) > career.points && (item.unlockAt ?? 0) <= points);
   return {
@@ -94,15 +111,27 @@ export function rivalSlot(locked, dive, slot) {
 }
 
 export function suggestProgram(catalog, career) {
-  const open = catalog
-    .filter((dive) => isUnlocked(career, dive))
-    .slice()
+  const byId = new Map(catalog.map((dive) => [dive.id, dive]));
+  const pool = requiredIds(career)
+    .map((id) => byId.get(id))
+    .filter((dive) => dive && isUnlocked(career, dive))
     .sort((a, b) => a.dd - b.dd || a.id.localeCompare(b.id));
-  if (!open.length) return [];
-  if (open.length === 1) return [open[0].id, open[0].id, open[0].id];
-  if (open.length === 2) return [open[0].id, open[1].id, open[1].id];
-  const mid = open[Math.floor((open.length - 1) / 2)];
-  return [open[0].id, mid.id, open[open.length - 1].id];
+  if (!pool.length) return [];
+  if (pool.length === 1) return [pool[0].id, pool[0].id, pool[0].id];
+  if (pool.length === 2) return [pool[0].id, pool[1].id, pool[1].id];
+  const mid = pool[Math.floor((pool.length - 1) / 2)];
+  return [pool[0].id, mid.id, pool[pool.length - 1].id];
+}
+
+export function rememberMeet(career, entry) {
+  const meets = [{
+    rival: entry.rival,
+    player: round2(entry.player),
+    rivalTotal: round2(entry.rivalTotal),
+    verdict: entry.verdict,
+    program: entry.program.slice(0, 3),
+  }, ...(career.meets ?? [])].slice(0, 5);
+  return { ...career, meets };
 }
 
 export function standings(rows) {
@@ -127,6 +156,9 @@ export function loadCareer() {
       best: Number(raw.best) || 0,
       rips: Number(raw.rips) || 0,
       bestByDive: raw.bestByDive && typeof raw.bestByDive === 'object' ? raw.bestByDive : {},
+      meets: Array.isArray(raw.meets)
+        ? raw.meets.filter((meet) => meet && typeof meet.player === 'number' && typeof meet.rivalTotal === 'number').slice(0, 5)
+        : [],
     };
   } catch {
     return emptyCareer();

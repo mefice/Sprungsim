@@ -1,11 +1,14 @@
 import { playCreak, playJudge, playSplash, playWhoosh, setAmbience, unlockAudio } from './audio.js';
 import {
+  careerTier,
   clearCareer,
   isUnlocked,
   loadCareer,
   lockRival,
   nextUnlock,
   recordDive,
+  rememberMeet,
+  requiredIds,
   rivalFor,
   rivalSlot,
   saveCareer,
@@ -57,6 +60,7 @@ const ui = {
   meetBtn: document.getElementById('meet-btn'),
   meetSetup: document.getElementById('meet-setup'),
   meetRival: document.getElementById('meet-rival-label'),
+  meetDuty: document.getElementById('meet-duty'),
   meetSlots: document.getElementById('meet-slots'),
   meetSuggest: document.getElementById('meet-suggest'),
   meetGo: document.getElementById('meet-go'),
@@ -193,6 +197,7 @@ function renderMenu() {
     rows.splice(1, 0, ['Bis zur Region', formatPoints(Math.max(0, REGIONAL_AT - career.points))]);
   }
   if (upcoming) rows.push(['Nächster Sprung', `${upcoming.id} ab ${upcoming.unlockAt}`]);
+  rows.push(['Pflicht', requiredIds(career).join(' · ')]);
   for (const [label, value] of rows) {
     const row = document.createElement('div');
     row.className = 'stat-row';
@@ -214,6 +219,24 @@ function renderMenu() {
     selectedId = '101C';
     renderMenu();
   });
+  if (career.meets?.length) {
+    const history = document.createElement('h3');
+    history.textContent = 'Letzte Dreikämpfe';
+    ui.stats.append(history);
+    for (const meetResult of career.meets.slice(0, 3)) {
+      const row = document.createElement('div');
+      row.className = 'stat-row';
+      const name = document.createElement('span');
+      name.className = 'label';
+      const verdict = meetResult.verdict === 'vorn' ? 'vorn' : meetResult.verdict === 'hinten' ? 'hinten' : 'gleich';
+      name.textContent = `${meetResult.rival} · ${verdict}`;
+      const number = document.createElement('span');
+      number.className = 'value';
+      number.textContent = `${formatPoints(meetResult.player)} : ${formatPoints(meetResult.rivalTotal)}`;
+      row.append(name, number);
+      ui.stats.append(row);
+    }
+  }
   ui.stats.append(reset);
 }
 
@@ -331,10 +354,20 @@ function sync(view) {
     logged = true;
     lastProgress = recordDive(career, state.dive, state.result.total, state.result.rip, DIVES);
     career = lastProgress.career;
-    saveCareer(career);
     if (meet && rival) {
       meet.rounds.push({ diveId: state.dive.id, player: state.result.total, rival: rival.total });
+      if (meet.rounds.length >= 3) {
+        const table = standings(meet.rounds);
+        career = rememberMeet(career, {
+          rival: meet.locked.name,
+          player: table.player,
+          rivalTotal: table.rival,
+          verdict: table.verdict,
+          program: meet.program.map((item) => item.id),
+        });
+      }
     }
+    saveCareer(career);
   }
 
   if (state?.result && state.splashT > 1.15 && !shown) {
@@ -514,6 +547,7 @@ function setMode(nextTraining) {
 function openMeetSetup() {
   const locked = lockRival(career);
   ui.meetRival.textContent = `Rivale für alle drei Sprünge: ${locked.name}`;
+  ui.meetDuty.textContent = `Pflicht ${tierName(careerTier(career))}: ${requiredIds(career).join(' · ')}`;
   ui.meetSetup.dataset.seed = String(locked.seed);
   ui.meetSetup.dataset.base = String(locked.base);
   ui.meetSetup.dataset.name = locked.name;

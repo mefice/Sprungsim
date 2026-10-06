@@ -69,7 +69,9 @@ Jeder gewertete Sprung addiert seine Punktzahl zu den Karrierepunkten. Die bleib
 | 105C | 2½ Salto vorwärts gehockt | 2,2 | 48 Punkte |
 | 107C | 3½ Salto vorwärts gehockt | 2,8 | 76 Punkte |
 
-Im **Wettkampf** gibt es zwei Wege. **Einzelsprung** ist ein Sprung gegen einen Rivalen. **Dreikampf** sind drei Sprünge hintereinander gegen denselben Namen. Die Liste wählst du aus den freigeschalteten Sprüngen, oder du nimmst den **Vorschlag** (leicht, mittel, schwer, soweit freigeschaltet).
+Im **Wettkampf** gibt es zwei Wege. **Einzelsprung** ist ein Sprung gegen einen Rivalen. **Dreikampf** sind drei Sprünge hintereinander gegen denselben Namen. Die Liste wählst du aus den freigeschalteten Sprüngen, oder du nimmst den **Vorschlag**.
+
+Der Vorschlag folgt der **Pflichtliste** der Stufe. Im Verein sind das die leichteren Nummern `101C · 401C · 103B`. In der Region wird es schwerer: `103B · 5132D · 105C · 107C`, jeweils nur was schon frei ist. Ein abgeschlossener Dreikampf bleibt unter **Letzte Dreikämpfe** (die letzten fünf, lokal).
 
 Nach jedem Sprung steht der Laufstand. `R` wiederholt nur den laufenden Versuch, solange die Note noch nicht steht. In der Pause beendet **Meet abbrechen** den Rest; bereits gewertete Sprünge bleiben in der Karriere. Im Training gibt es keinen Gegner und keinen Dreikampf.
 
@@ -105,6 +107,6 @@ Bewusst nicht in diesem Prototyp: Kalender, Sponsoren, Kader, Unreal, filmische 
 
 ## Danach
 
-Der nächste sinnvolle Slice ist eine kleine Dreikampf-Historie plus eine Pflichtliste je Stufe: im Verein leichtere Nummern, in der Region höhere DD. Der Vorschlag wächst dann mit dem Aufstieg mit. Erst danach echte Drehrichtungen oder ein Kalender.
+Der nächste sinnvolle Slice ist ein Rückkampf aus dem letzten Dreikampf: dieselbe Liste, nach einem Sieg ein stärkerer Rivale. Die Historie wird damit zum nächsten Start. Erst danach echte Drehrichtungen oder ein Kalender.
 
 Der Code liegt in `src/sim.js` (Phasen und Physik), `src/scoring.js` (Note), `src/career.js` (Punkte und Gegner), `src/render.js` (Bild und Kamera) und `src/audio.js` (Klänge). Die Sprünge stehen in `src/dives.js`.
