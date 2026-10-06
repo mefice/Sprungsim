@@ -61,14 +61,58 @@ export function recordDive(career, dive, total, rip, catalog) {
   };
 }
 
-/** Deterministischer Gegner für den Wettkampfmodus. */
+function rivalProfile(career) {
+  return RIVALS[(career.dives ?? 0) % RIVALS.length];
+}
+
+function executionFor(base, dive, seed, slot) {
+  const wobble = ((dive.id.charCodeAt(0) + dive.id.charCodeAt(1) + seed * 5 + slot * 3) % 9) / 10 - 0.4;
+  return Math.round(Math.min(9.2, Math.max(5.2, base + wobble)) * 10) / 10;
+}
+
+/** Deterministischer Gegner für einen einzelnen Wettkampfsprung. */
 export function rivalFor(dive, career) {
-  const rival = RIVALS[career.dives % RIVALS.length];
+  const rival = rivalProfile(career);
   const base = career.tier === 'regional' ? rival.regional : rival.club;
-  const wobble = ((dive.id.charCodeAt(0) + dive.id.charCodeAt(1) + career.dives * 5) % 9) / 10 - 0.4;
-  const execution = Math.round(Math.min(9.2, Math.max(5.2, base + wobble)) * 10) / 10;
-  const total = round2(execution * dive.dd);
-  return { name: rival.name, execution, total };
+  const execution = executionFor(base, dive, career.dives ?? 0, 0);
+  return { name: rival.name, execution, total: round2(execution * dive.dd) };
+}
+
+/** Derselbe Name für alle drei Sprünge eines Dreikampfs. */
+export function lockRival(career) {
+  const rival = rivalProfile(career);
+  return {
+    name: rival.name,
+    base: career.tier === 'regional' ? rival.regional : rival.club,
+    seed: career.dives ?? 0,
+  };
+}
+
+export function rivalSlot(locked, dive, slot) {
+  const execution = executionFor(locked.base, dive, locked.seed, slot);
+  return { name: locked.name, execution, total: round2(execution * dive.dd), slot };
+}
+
+export function suggestProgram(catalog, career) {
+  const open = catalog
+    .filter((dive) => isUnlocked(career, dive))
+    .slice()
+    .sort((a, b) => a.dd - b.dd || a.id.localeCompare(b.id));
+  if (!open.length) return [];
+  if (open.length === 1) return [open[0].id, open[0].id, open[0].id];
+  if (open.length === 2) return [open[0].id, open[1].id, open[1].id];
+  const mid = open[Math.floor((open.length - 1) / 2)];
+  return [open[0].id, mid.id, open[open.length - 1].id];
+}
+
+export function standings(rows) {
+  const player = round2(rows.reduce((sum, row) => sum + row.player, 0));
+  const rival = round2(rows.reduce((sum, row) => sum + row.rival, 0));
+  const delta = round2(player - rival);
+  let verdict = 'gleich';
+  if (delta >= 0.05) verdict = 'vorn';
+  else if (delta <= -0.05) verdict = 'hinten';
+  return { player, rival, delta, verdict };
 }
 
 export function loadCareer() {

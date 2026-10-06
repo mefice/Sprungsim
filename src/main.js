@@ -3,10 +3,14 @@ import {
   clearCareer,
   isUnlocked,
   loadCareer,
+  lockRival,
   nextUnlock,
   recordDive,
   rivalFor,
+  rivalSlot,
   saveCareer,
+  standings,
+  suggestProgram,
   tierName,
   REGIONAL_AT,
 } from './career.js';
@@ -50,6 +54,14 @@ const ui = {
   modeCopy: document.getElementById('mode-copy'),
   buttons: document.getElementById('dive-buttons'),
   start: document.getElementById('start-btn'),
+  meetBtn: document.getElementById('meet-btn'),
+  meetSetup: document.getElementById('meet-setup'),
+  meetRival: document.getElementById('meet-rival-label'),
+  meetSlots: document.getElementById('meet-slots'),
+  meetSuggest: document.getElementById('meet-suggest'),
+  meetGo: document.getElementById('meet-go'),
+  meetBack: document.getElementById('meet-back'),
+  pauseCopy: document.getElementById('pause-copy'),
   reference: document.getElementById('reference-btn'),
   stats: document.getElementById('session-stats'),
 };
@@ -60,6 +72,7 @@ const pressed = new Set();
 let career = loadCareer();
 let rival = null;
 let lastProgress = null;
+let meet = null;
 
 let selectedId = DIVES[0].id;
 let training = true;
@@ -95,8 +108,8 @@ window.addEventListener('keydown', (event) => {
     setPaused(!paused);
     return;
   }
-  if (event.code === 'KeyR' && running) {
-    begin(selectedId, false);
+  if (event.code === 'KeyR' && running && !state?.result) {
+    begin(activeDiveId(), false);
     return;
   }
   if (paused) return;
@@ -204,10 +217,17 @@ function renderMenu() {
   ui.stats.append(reset);
 }
 
+function activeDiveId() {
+  if (meet) return meet.program[meet.index].id;
+  return selectedId;
+}
+
 function begin(diveId, asReference = false) {
   const dive = DIVES.find((item) => item.id === diveId);
   if (!dive || !isUnlocked(career, dive)) return;
-  rival = !asReference && !training ? rivalFor(dive, career) : null;
+  if (asReference) meet = null;
+  if (meet && !asReference) rival = rivalSlot(meet.locked, dive, meet.index);
+  else rival = !asReference && !training ? rivalFor(dive, career) : null;
   lastProgress = null;
   state = startDive(dive, { training });
   running = true;
@@ -228,24 +248,38 @@ function begin(diveId, asReference = false) {
   ui.judge.classList.remove('visible');
   ui.score.replaceChildren();
   ui.judge.replaceChildren();
-  ui.diveName.textContent = `${dive.id} — ${dive.name}`;
+  ui.diveName.textContent = meet
+    ? `Dreikampf ${meet.index + 1}/3 — ${dive.id}`
+    : `${dive.id} — ${dive.name}`;
   ui.diveDd.textContent = `DD ${formatPoints(dive.dd, 1)} · ${dive.somersaults.toLocaleString('de-DE')} Saltos · ${training ? 'Training' : 'Wettkampf'}`;
 }
 
 function setPaused(next) {
   paused = next;
   ui.pause.classList.toggle('hidden', !paused);
+  ui.restart.classList.toggle('hidden', Boolean(state?.result));
+  ui.pauseMenu.textContent = meet ? 'Meet abbrechen' : 'Sprung wechseln';
+  ui.pauseCopy.textContent = meet
+    ? 'Esc macht weiter. R wiederholt den laufenden Versuch, solange die Note noch nicht steht. Meet abbrechen verwirft nur den offenen Sprung.'
+    : 'Esc macht weiter. R startet den laufenden Versuch neu, solange die Note noch nicht steht.';
   pressed.clear();
   down.clear();
 }
 
 function leaveToMenu() {
+  meet = null;
   running = false;
   paused = false;
   ui.pause.classList.add('hidden');
   ui.overlay.classList.remove('active');
   ui.menu.classList.remove('hidden');
   renderMenu();
+}
+
+function meetStandText() {
+  if (!meet || !meet.rounds.length || state?.phase === 'result') return '';
+  const table = standings(meet.rounds);
+  return `Stand ${formatPoints(table.player)} : ${formatPoints(table.rival)} · ${meet.locked.name}`;
 }
 
 function sync(view) {
@@ -259,9 +293,8 @@ function sync(view) {
   const showRing = view.showTiming || view.showGrab || view.showTwist;
   ui.meters.classList.toggle('hidden', !(view.showPower || view.showLineup));
   ui.ring.classList.toggle('hidden', !showRing);
-  ui.readout.textContent = view.inAir
-    ? `Rotation ${view.somersaults.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} / ${view.somersaultTarget.toLocaleString('de-DE', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}`
-    : '';
+  const rotation = `Rotation ${view.somersaults.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} / ${view.somersaultTarget.toLocaleString('de-DE', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}`;
+  ui.readout.textContent = view.inAir ? rotation : meetStandText();
 
   const current = ORDER.indexOf(view.phase);
   for (const item of ui.track.children) {
@@ -299,6 +332,9 @@ function sync(view) {
     lastProgress = recordDive(career, state.dive, state.result.total, state.result.rip, DIVES);
     career = lastProgress.career;
     saveCareer(career);
+    if (meet && rival) {
+      meet.rounds.push({ diveId: state.dive.id, player: state.result.total, rival: rival.total });
+    }
   }
 
   if (state?.result && state.splashT > 1.15 && !shown) {
@@ -348,15 +384,36 @@ function showResult(result) {
   const again = document.createElement('button');
   again.type = 'button';
   again.className = 'continue-btn';
-  again.textContent = 'Nochmal';
-  again.addEventListener('click', () => begin(selectedId, false));
+  again.textContent = meet ? 'Zur Auswahl' : 'Nochmal';
+  again.addEventListener('click', () => {
+    if (meet) leaveToMenu();
+    else begin(selectedId, false);
+  });
   const menu = document.createElement('button');
   menu.type = 'button';
   menu.className = 'continue-btn';
-  menu.textContent = 'Zur Auswahl';
-  menu.addEventListener('click', leaveToMenu);
-  actions.append(again, menu);
+  if (meet && meet.index < 2) {
+    menu.textContent = 'Nächster Sprung';
+    menu.addEventListener('click', () => {
+      meet.index += 1;
+      begin(meet.program[meet.index].id, false);
+    });
+  } else {
+    menu.textContent = meet ? 'Ende' : 'Zur Auswahl';
+    menu.addEventListener('click', leaveToMenu);
+  }
+  actions.append(again);
+  if (!meet || meet.index < 2) actions.append(menu);
   ui.score.append(total, breakdown, rating);
+  if (meet) {
+    const stand = document.createElement('div');
+    stand.className = 'standings';
+    const table = standings(meet.rounds);
+    const finalLabel = meet.rounds.length >= 3;
+    const verdict = table.verdict === 'vorn' ? 'du liegst vorn' : table.verdict === 'hinten' ? 'der Rivale liegt vorn' : 'gleichauf';
+    stand.textContent = `${finalLabel ? 'Endstand' : `Nach Sprung ${meet.rounds.length}/3`} ${formatPoints(table.player)} : ${formatPoints(table.rival)} — ${verdict}`;
+    ui.score.append(stand);
+  }
   if (!reference && lastProgress) {
     const progress = document.createElement('div');
     progress.className = 'career-note';
@@ -425,6 +482,7 @@ function frame(now) {
 }
 
 ui.start.addEventListener('click', () => {
+  meet = null;
   unlockAudio();
   begin(selectedId, false);
 });
@@ -435,17 +493,84 @@ ui.reference.addEventListener('click', () => {
 });
 
 ui.resume.addEventListener('click', () => setPaused(false));
-ui.restart.addEventListener('click', () => begin(selectedId, false));
+ui.restart.addEventListener('click', () => {
+  if (state?.result) return;
+  begin(activeDiveId(), false);
+});
 ui.pauseMenu.addEventListener('click', leaveToMenu);
 
 function setMode(nextTraining) {
   training = nextTraining;
   ui.modeTraining.classList.toggle('selected', training);
   ui.modeMeet.classList.toggle('selected', !training);
+  ui.start.textContent = training ? 'Sprung starten' : 'Einzelsprung';
+  ui.meetBtn.classList.toggle('hidden', training);
+  ui.meetSetup.classList.add('hidden');
   ui.modeCopy.textContent = training
     ? 'Weitere Fenster. Ein brauchbarer Sprung gelingt schnell, Gold bleibt knapp.'
-    : 'Engere Fenster. Sauberes Timing bleibt bei 14 bis 20 Punkten.';
+    : 'Engere Fenster. Einzelsprung gegen einen Rivalen, oder ein Dreikampf über drei Sprünge.';
 }
+
+function openMeetSetup() {
+  const locked = lockRival(career);
+  ui.meetRival.textContent = `Rivale für alle drei Sprünge: ${locked.name}`;
+  ui.meetSetup.dataset.seed = String(locked.seed);
+  ui.meetSetup.dataset.base = String(locked.base);
+  ui.meetSetup.dataset.name = locked.name;
+  const suggestion = suggestProgram(DIVES, career);
+  ui.meetSlots.replaceChildren();
+  for (let slot = 0; slot < 3; slot += 1) {
+    const label = document.createElement('label');
+    label.textContent = `Sprung ${slot + 1}`;
+    const select = document.createElement('select');
+    select.id = `meet-slot-${slot}`;
+    select.name = select.id;
+    select.dataset.slot = String(slot);
+    for (const dive of DIVES.filter((item) => isUnlocked(career, item))) {
+      const option = document.createElement('option');
+      option.value = dive.id;
+      option.textContent = `${dive.id} · DD ${formatPoints(dive.dd, 1)}`;
+      if (dive.id === suggestion[slot]) option.selected = true;
+      select.append(option);
+    }
+    label.append(select);
+    ui.meetSlots.append(label);
+  }
+  ui.meetSetup.classList.remove('hidden');
+}
+
+function chosenProgram() {
+  return [...ui.meetSlots.querySelectorAll('select')].map((select) => select.value);
+}
+
+ui.meetBtn.addEventListener('click', () => {
+  unlockAudio();
+  openMeetSetup();
+});
+ui.meetSuggest.addEventListener('click', () => {
+  const suggestion = suggestProgram(DIVES, career);
+  ui.meetSlots.querySelectorAll('select').forEach((select, index) => {
+    select.value = suggestion[index];
+  });
+});
+ui.meetBack.addEventListener('click', () => ui.meetSetup.classList.add('hidden'));
+ui.meetGo.addEventListener('click', () => {
+  const ids = chosenProgram();
+  if (ids.length !== 3 || ids.some((id) => !isUnlocked(career, DIVES.find((item) => item.id === id)))) return;
+  meet = {
+    program: ids.map((id) => DIVES.find((item) => item.id === id)),
+    index: 0,
+    locked: {
+      name: ui.meetSetup.dataset.name,
+      base: Number(ui.meetSetup.dataset.base),
+      seed: Number(ui.meetSetup.dataset.seed),
+    },
+    rounds: [],
+  };
+  ui.meetSetup.classList.add('hidden');
+  training = false;
+  begin(meet.program[0].id, false);
+});
 
 ui.modeTraining.addEventListener('click', () => setMode(true));
 ui.modeMeet.addEventListener('click', () => setMode(false));

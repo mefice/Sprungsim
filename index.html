@@ -65,10 +65,10 @@
       <div class="pause-card">
         <p class="eyebrow">Pause</p>
         <h2>Sprung angehalten</h2>
-        <p>Esc macht weiter. R startet denselben Sprung neu.</p>
+        <p id="pause-copy">Esc macht weiter. R startet den laufenden Versuch neu, solange die Note noch nicht steht.</p>
         <div class="pause-actions">
           <button id="resume-btn" class="menu-btn" type="button">Weiter</button>
-          <button id="restart-btn" class="menu-btn ghost" type="button">Neu starten</button>
+          <button id="restart-btn" class="menu-btn ghost" type="button">Sprung neu</button>
           <button id="pause-menu-btn" class="menu-btn ghost" type="button">Sprung wechseln</button>
         </div>
       </div>
@@ -88,7 +88,16 @@
           <div id="dive-buttons"></div>
         </div>
         <button id="start-btn" class="menu-btn" type="button">Sprung starten</button>
+        <button id="meet-btn" class="menu-btn ghost hidden" type="button">Dreikampf</button>
         <button id="reference-btn" class="menu-btn ghost" type="button">Referenz ansehen</button>
+        <div id="meet-setup" class="hidden">
+          <h2>Dreikampf</h2>
+          <p id="meet-rival-label" class="mode-copy"></p>
+          <div id="meet-slots"></div>
+          <button id="meet-suggest" class="menu-btn ghost" type="button">Vorschlag</button>
+          <button id="meet-go" class="menu-btn" type="button">Start</button>
+          <button id="meet-back" class="text-btn" type="button">Zurück</button>
+        </div>
         <div class="controls">
           <h2>Steuerung</h2>
           <p><kbd>Leertaste</kbd> Anlauf, Kraft, Absprung, Hand-Grab</p>

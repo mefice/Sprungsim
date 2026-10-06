@@ -316,6 +316,18 @@ body {
 .dive-btn.locked, .dive-btn:disabled { opacity: 0.45; cursor: not-allowed; }
 .dive-btn.locked:hover { border-color: transparent; background: rgba(255,255,255,0.08); }
 .career-note { margin-top: 8px; color: rgba(255,255,255,0.82); font-size: 14px; }
+.standings { margin-top: 10px; color: #f4fbff; font-size: 18px; font-variant-numeric: tabular-nums; }
+#meet-setup { margin-top: 16px; text-align: left; }
+#meet-setup h2 { margin-bottom: 6px; text-align: center; }
+#meet-slots { display: grid; gap: 8px; margin: 12px 0; }
+#meet-slots label { display: grid; gap: 4px; color: rgba(255,255,255,0.7); font-size: 13px; }
+#meet-slots select {
+  padding: 8px 10px;
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 8px;
+  color: #fff;
+  background: rgba(255,255,255,0.08);
+}
 .text-btn {
   margin-top: 12px;
   padding: 0;
