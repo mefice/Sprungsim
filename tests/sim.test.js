@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { DIVES } from '../src/dives.js';
 import { createLatch, policyInput } from '../src/policy.js';
-import { WORLD, grabOpen, lineupMeter, startDive, step } from '../src/sim.js';
+import { WORLD, commitLine, grabOpen, lineupMeter, startDive, step } from '../src/sim.js';
 
 function run(dive, mode, training = false) {
   const state = startDive(dive, { training });
@@ -77,6 +77,34 @@ test('die Geisterlinie im Wasser zeigt dieselbe Lage wie die Öffnen-Nadel', () 
   const value = lineupMeter(over);
   assert.ok(value > 0.9, String(value));
   assert.equal(lineupMeter({ ...vertical, phase: 'flight', airTime: 0.1, y: WORLD.waterY - 600, vy: 20 }), null);
+});
+
+test('nach dem Loslassen bleibt die Linie stehen und folgt der Öffnen-Note', () => {
+  const state = {
+    opened: false,
+    phase: 'kickout',
+    airTime: 1,
+    training: false,
+    y: WORLD.waterY - 180,
+    vy: 420,
+    rotation: 1,
+    targetRad: 1,
+    pose: 0,
+    omegaStraight: 0,
+    omegaTuck: 0,
+    lineLock: null,
+    lineGrade: null,
+  };
+  commitLine(state);
+  assert.equal(state.lineLock, 0);
+  assert.equal(state.lineGrade, 1);
+  state.rotation = 4;
+  commitLine(state);
+  assert.equal(state.lineLock, 0);
+
+  const dive = run(DIVES[0], 'perfect').state;
+  assert.notEqual(dive.lineLock, null);
+  assert.equal(dive.lineGrade, dive.result.phases.kickout);
 });
 
 test('derselbe Sprung wird bei schlechtem Timing klar schlechter', () => {

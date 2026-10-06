@@ -1,4 +1,4 @@
-import { bandFor, bandScore, evaluate, grabScore, rateOsc } from './scoring.js';
+import { angleScore, bandFor, bandScore, evaluate, grabScore, rateOsc } from './scoring.js';
 
 export const WORLD = {
   width: 1280,
@@ -68,6 +68,15 @@ export function lineupMeter(state) {
 
 export const LINEUP_CENTER = 0.16;
 
+/** Friert die Öffnen-Linie auf der Lage beim Loslassen ein. Ein zweiter Aufruf ändert sie nicht. */
+export function commitLine(state) {
+  if (state.lineLock !== null && state.lineLock !== undefined) return;
+  const scale = state.training ? 0.7 : 1;
+  const error = predictError(state) * scale;
+  state.lineLock = clampMeter(error / (Math.PI / 2));
+  state.lineGrade = angleScore(error);
+}
+
 export function predictError(state) {
   const t = timeToWater(state.y, state.vy);
   return predictRotation(state, t) - state.targetRad;
@@ -109,6 +118,8 @@ export function startDive(dive, options = {}) {
     halfSeq: 0,
     kickoutAge: 0,
     releaseQueued: false,
+    lineLock: null,
+    lineGrade: null,
     chargeTime: 0,
     snapTime: 0,
     bend: 0,
@@ -317,7 +328,10 @@ function updateAir(state, input, dt) {
     state.kickoutAge += dt;
     if (!input.tuckDown) state.releaseQueued = true;
     const arm = state.training ? 0.2 : 0.12;
-    if (!state.opened && state.kickoutAge >= arm && state.releaseQueued) state.opened = true;
+    if (!state.opened && state.kickoutAge >= arm && state.releaseQueued) {
+      commitLine(state);
+      state.opened = true;
+    }
   }
   if (phaseAtStart === 'entry' && input.spacePressed) {
     const dist = WORLD.waterY - state.y;
@@ -362,7 +376,10 @@ function updateAir(state, input, dt) {
 
   if (!state.opened && (state.phase === 'kickout' || state.phase === 'flight')) {
     const remaining = timeToWater(state.y, state.vy);
-    if (remaining < 0.09) state.opened = true;
+    if (remaining < 0.09) {
+      commitLine(state);
+      state.opened = true;
+    }
   }
 
   if (state.opened && state.phase !== 'entry') {
@@ -401,7 +418,12 @@ function finish(state) {
   state.metrics.angleError = state.training ? rawError * 0.72 : rawError;
   state.metrics.grab = state.grabValue ?? 0;
   state.metrics.approach = average(state.approachScores);
+  if (state.lineLock === null) {
+    state.lineLock = clampMeter(state.metrics.angleError / (Math.PI / 2));
+    state.lineGrade = angleScore(state.metrics.angleError);
+  }
   state.result = evaluate(state.metrics, state.dive);
+  state.lineGrade = state.result.phases.kickout;
   state.phase = 'result';
   state.splash = createSplash(state.x, WORLD.waterY, state.result);
   state.splashT = 0;

@@ -337,16 +337,24 @@ function drawGrabGate(ctx, state) {
   ctx.restore();
 }
 
+function lineupColor(state, value) {
+  if (state.lineGrade === null || state.lineGrade === undefined) {
+    return Math.abs(value) <= LINEUP_CENTER ? 'rgba(241, 196, 15, 0.95)' : 'rgba(255,255,255,0.62)';
+  }
+  if (state.lineGrade >= 0.85) return 'rgba(46, 204, 113, 0.95)';
+  if (state.lineGrade >= 0.55) return 'rgba(241, 196, 15, 0.95)';
+  return 'rgba(255, 141, 122, 0.95)';
+}
+
 function drawLineupGhost(ctx, state) {
-  const value = lineupMeter(state);
-  if (value === null) return;
-  const aligned = Math.abs(value) <= LINEUP_CENTER;
+  const value = state.lineLock ?? lineupMeter(state);
+  if (value === null || value === undefined) return;
   const tilt = value * (Math.PI / 2) * 0.85;
   ctx.save();
   ctx.translate(state.x, WORLD.waterY + 6);
   ctx.rotate(tilt);
-  ctx.strokeStyle = aligned ? 'rgba(241, 196, 15, 0.95)' : 'rgba(255,255,255,0.62)';
-  ctx.lineWidth = aligned ? 4 : 2.5;
+  ctx.strokeStyle = lineupColor(state, value);
+  ctx.lineWidth = Math.abs(value) <= LINEUP_CENTER || (state.lineGrade ?? 0) >= 0.85 ? 4 : 2.5;
   ctx.setLineDash([7, 6]);
   ctx.beginPath();
   ctx.moveTo(0, 0);
