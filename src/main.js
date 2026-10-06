@@ -1,4 +1,15 @@
 import { playCreak, playJudge, playSplash, playWhoosh, setAmbience, unlockAudio } from './audio.js';
+import {
+  clearCareer,
+  isUnlocked,
+  loadCareer,
+  nextUnlock,
+  recordDive,
+  rivalFor,
+  saveCareer,
+  tierName,
+  REGIONAL_AT,
+} from './career.js';
 import { DIVES } from './dives.js';
 import { createLatch, policyInput } from './policy.js';
 import { draw } from './render.js';
@@ -46,7 +57,9 @@ const ui = {
 const ORDER = ['approach', 'takeoff', 'flight', 'kickout', 'entry'];
 const down = new Set();
 const pressed = new Set();
-const session = { dives: 0, total: 0, best: 0, rips: 0 };
+let career = loadCareer();
+let rival = null;
+let lastProgress = null;
 
 let selectedId = DIVES[0].id;
 let training = true;
@@ -121,46 +134,52 @@ function resize() {
 }
 
 function renderMenu() {
+  if (!isUnlocked(career, DIVES.find((item) => item.id === selectedId))) selectedId = '101C';
   ui.buttons.replaceChildren();
   for (const dive of DIVES) {
+    const open = isUnlocked(career, dive);
     const button = document.createElement('button');
     button.type = 'button';
-    button.className = `dive-btn${dive.id === selectedId ? ' selected' : ''}`;
+    button.disabled = !open;
+    button.className = `dive-btn${dive.id === selectedId ? ' selected' : ''}${open ? '' : ' locked'}`;
     const text = document.createElement('div');
     const title = document.createElement('div');
     title.innerHTML = `<strong>${dive.id}</strong> — ${dive.name}`;
     const summary = document.createElement('div');
     summary.className = 'dive-difficulty';
-    summary.textContent = `${dive.level} · ${dive.summary}`;
+    const best = career.bestByDive[dive.id];
+    summary.textContent = open
+      ? `${dive.level} · ${dive.summary}${best ? ` · Best ${formatPoints(best)}` : ''}`
+      : `ab ${dive.unlockAt} Punkten · ${dive.summary}`;
     text.append(title, summary);
     const dd = document.createElement('div');
     dd.className = 'dive-dd';
-    dd.textContent = `DD ${formatPoints(dive.dd, 1)}`;
+    dd.textContent = open ? `DD ${formatPoints(dive.dd, 1)}` : 'Gesperrt';
     button.append(text, dd);
-    button.addEventListener('click', () => {
-      selectedId = dive.id;
-      renderMenu();
-    });
+    if (open) {
+      button.addEventListener('click', () => {
+        selectedId = dive.id;
+        renderMenu();
+      });
+    }
     ui.buttons.append(button);
   }
 
   ui.stats.replaceChildren();
   const heading = document.createElement('h3');
-  heading.textContent = 'Session';
+  heading.textContent = tierName(career.tier);
   ui.stats.append(heading);
-  if (session.dives === 0) {
-    const empty = document.createElement('p');
-    empty.className = 'empty-stats';
-    empty.textContent = 'Noch kein Sprung. Die Note folgt nur aus dem Timing.';
-    ui.stats.append(empty);
-    return;
-  }
+  const upcoming = nextUnlock(career, DIVES);
   const rows = [
-    ['Sprünge', String(session.dives)],
-    ['Schnitt', formatPoints(session.total / session.dives)],
-    ['Bestleistung', formatPoints(session.best)],
-    ['Rips', String(session.rips)],
+    ['Karrierepunkte', formatPoints(career.points)],
+    ['Highscore', career.best > 0 ? formatPoints(career.best) : '—'],
+    ['Sprünge', String(career.dives)],
+    ['Rips', String(career.rips)],
   ];
+  if (career.tier === 'club') {
+    rows.splice(1, 0, ['Bis zur Region', formatPoints(Math.max(0, REGIONAL_AT - career.points))]);
+  }
+  if (upcoming) rows.push(['Nächster Sprung', `${upcoming.id} ab ${upcoming.unlockAt}`]);
   for (const [label, value] of rows) {
     const row = document.createElement('div');
     row.className = 'stat-row';
@@ -173,10 +192,23 @@ function renderMenu() {
     row.append(name, number);
     ui.stats.append(row);
   }
+  const reset = document.createElement('button');
+  reset.type = 'button';
+  reset.className = 'text-btn';
+  reset.textContent = 'Karriere zurücksetzen';
+  reset.addEventListener('click', () => {
+    career = clearCareer();
+    selectedId = '101C';
+    renderMenu();
+  });
+  ui.stats.append(reset);
 }
 
 function begin(diveId, asReference = false) {
   const dive = DIVES.find((item) => item.id === diveId);
+  if (!dive || !isUnlocked(career, dive)) return;
+  rival = !asReference && !training ? rivalFor(dive, career) : null;
+  lastProgress = null;
   state = startDive(dive, { training });
   running = true;
   paused = false;
@@ -264,10 +296,9 @@ function sync(view) {
 
   if (state?.result && !logged && !reference) {
     logged = true;
-    session.dives += 1;
-    session.total += state.result.total;
-    session.best = Math.max(session.best, state.result.total);
-    if (state.result.rip) session.rips += 1;
+    lastProgress = recordDive(career, state.dive, state.result.total, state.result.rip, DIVES);
+    career = lastProgress.career;
+    saveCareer(career);
   }
 
   if (state?.result && state.splashT > 1.15 && !shown) {
@@ -325,7 +356,27 @@ function showResult(result) {
   menu.textContent = 'Zur Auswahl';
   menu.addEventListener('click', leaveToMenu);
   actions.append(again, menu);
-  ui.score.append(total, breakdown, rating, actions);
+  ui.score.append(total, breakdown, rating);
+  if (!reference && lastProgress) {
+    const progress = document.createElement('div');
+    progress.className = 'career-note';
+    const bits = [`+${formatPoints(lastProgress.gained)} Karrierepunkte · ${tierName(career.tier)}`];
+    if (lastProgress.promoted) bits.push('Aufstieg in die Region');
+    if (lastProgress.unlocked.length) {
+      bits.push(`Frei: ${lastProgress.unlocked.map((item) => item.id).join(', ')}`);
+    }
+    progress.textContent = bits.join(' · ');
+    ui.score.append(progress);
+  }
+  if (!reference && rival) {
+    const line = document.createElement('div');
+    line.className = 'career-note';
+    const delta = result.total - rival.total;
+    const verdict = delta >= 0.5 ? 'du liegst vorn' : delta <= -0.5 ? 'der Gegner liegt vorn' : 'fast gleich';
+    line.textContent = `${rival.name} ${formatPoints(rival.total)} — ${verdict}`;
+    ui.score.append(line);
+  }
+  ui.score.append(actions);
   ui.score.classList.add('visible');
 
   ui.judge.replaceChildren();

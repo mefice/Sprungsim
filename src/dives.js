@@ -1,4 +1,4 @@
-/** Drei Sprünge für den Vertical Slice, DD nach GDD-Größenordnung (10 m). */
+/** Sprünge des Slices. DD in der Größenordnung der 10-m-Tabelle. unlockAt = Karrierepunkte. */
 export const DIVES = [
   {
     id: '101C',
@@ -10,6 +10,7 @@ export const DIVES = [
     twistHalves: 0,
     position: 'C',
     powerBand: [0.56, 0.82],
+    unlockAt: 0,
   },
   {
     id: '103B',
@@ -21,6 +22,7 @@ export const DIVES = [
     twistHalves: 0,
     position: 'B',
     powerBand: [0.7, 0.92],
+    unlockAt: 0,
   },
   {
     id: '5132D',
@@ -32,6 +34,43 @@ export const DIVES = [
     twistHalves: 2,
     position: 'D',
     powerBand: [0.74, 0.96],
+    unlockAt: 32,
+  },
+  {
+    id: '401C',
+    name: 'Delphin-Kopfsprung gehockt',
+    summary: 'Kurzer Kopfsprung mit engerem Kraftfenster.',
+    dd: 1.5,
+    level: 'Anfänger',
+    somersaults: 0.5,
+    twistHalves: 0,
+    position: 'C',
+    powerBand: [0.64, 0.78],
+    unlockAt: 18,
+  },
+  {
+    id: '105C',
+    name: '2½ Salto vorwärts gehockt',
+    summary: 'Viel Drehung. Das Öffnen muss früh genug sitzen.',
+    dd: 2.2,
+    level: 'Fortgeschritten',
+    somersaults: 2.5,
+    twistHalves: 0,
+    position: 'C',
+    powerBand: [0.76, 0.93],
+    unlockAt: 48,
+  },
+  {
+    id: '107C',
+    name: '3½ Salto vorwärts gehockt',
+    summary: 'Hoher DD. Nur mit festem Absprung und sauberem Öffnen.',
+    dd: 2.8,
+    level: 'Experte',
+    somersaults: 3.5,
+    twistHalves: 0,
+    position: 'C',
+    powerBand: [0.82, 0.96],
+    unlockAt: 76,
   },
 ];
 

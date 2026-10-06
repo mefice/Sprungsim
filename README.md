@@ -1,6 +1,6 @@
 # ZEHN METER — Vertical Slice
 
-Spielbarer Browser-Prototyp für **ZEHN METER / Sprungsim**: ein Wassersprung als Skill-Event in fünf Phasen. Kein Karrieremodus, kein Unreal-Projekt. Die Note soll aus dem Input lesbar sein.
+Spielbarer Browser-Prototyp für **ZEHN METER / Sprungsim**: ein Wassersprung als Skill-Event in fünf Phasen, plus eine leichte Karriere vom Verein in die Region. Kein Sponsoren-System, kein Unreal-Projekt. Die Note soll aus dem Input lesbar sein.
 
 ## Starten
 
@@ -51,13 +51,27 @@ Die Zielfarbe ist überall dieselbe: Markierung rechts im grünen Feld, gold wen
 
 Wer nichts drückt, springt trotzdem zu Ende. Die Ausführung liegt dann nahe 0.
 
-## Sprünge und Wertung
+## Karriere, light
 
-| Nr. | Sprung | DD (10 m) | Was dazukommt |
+Jeder gewertete Sprung addiert seine Punktzahl zu den Karrierepunkten. Die bleiben im Browser (`localStorage`), zusammen mit dem Highscore je Sprung. Eine Referenz zählt nicht.
+
+| Stufe | Ab | Bedeutung |
+|---|---|---|
+| Verein | 0 | Start |
+| Region | 48 Punkte | Kurzer Aufstieg, noch kein Kalender |
+
+| Nr. | Sprung | DD | Frei ab |
 |---|---|---|---|
-| 101C | Kopfsprung vorwärts gehockt | 1,4 | halber Salto |
-| 103B | 1½ Salto vorwärts gehechtet | 1,6 | deutlich mehr Rotation |
-| 5132D | 1½ Salto vorwärts mit 1 Schraube | 2,0 | dieselbe Rotation plus zwei Twist-Taps |
+| 101C | Kopfsprung vorwärts gehockt | 1,4 | Start |
+| 103B | 1½ Salto vorwärts gehechtet | 1,6 | Start |
+| 401C | Delphin-Kopfsprung gehockt | 1,5 | 18 Punkte |
+| 5132D | 1½ Salto vorwärts mit 1 Schraube | 2,0 | 32 Punkte |
+| 105C | 2½ Salto vorwärts gehockt | 2,2 | 48 Punkte |
+| 107C | 3½ Salto vorwärts gehockt | 2,8 | 76 Punkte |
+
+Im **Wettkampf** springt ein leichter Gegner denselben Sprung. Der Name und die Note stehen unter deinem Ergebnis. Im Training gibt es keinen Gegner.
+
+## Sprünge und Wertung
 
 ```text
 Punkte = Ausführung × DD
@@ -87,11 +101,8 @@ Bild und Ton liegen über der Mechanik, die Wertung bleibt dieselbe.
 
 Bewusst nicht in diesem Prototyp: Kalender, Sponsoren, Kader, Unreal, filmische Fluid-Simulation.
 
-## Nächste Schritte
+## Danach
 
-1. Weitere Sprunggruppen (rückwärts, Auerbach, Delphin, Armstand) als Daten, nicht als neue Sonderfälle.
-2. Assist-Stufen aus dem GDD: breitere Fenster, optionale Geisterlinie.
-3. Replay der fünf Inputs, damit ein Sprung erklärbar bleibt.
-4. Erst danach Venue, Athlet und Wettkampf in der Zielengine.
+Der nächste sinnvolle Slice ist ein kleiner Wettkampf aus drei Sprüngen hintereinander gegen denselben Rivalen, mit Laufstand. Die Liste kommt aus den freigeschalteten Sprüngen. Erst danach echte Drehrichtungen (rückwärts, Auerbach) oder ein Kalender.
 
-Der Code liegt in `src/sim.js` (Phasen und Physik), `src/scoring.js` (Note), `src/render.js` (Bild und Kamera) und `src/audio.js` (Klänge). Die Sprünge stehen in `src/dives.js`.
+Der Code liegt in `src/sim.js` (Phasen und Physik), `src/scoring.js` (Note), `src/career.js` (Punkte und Gegner), `src/render.js` (Bild und Kamera) und `src/audio.js` (Klänge). Die Sprünge stehen in `src/dives.js`.
