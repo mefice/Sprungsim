@@ -9,7 +9,7 @@ npm install
 npm run dev
 ```
 
-Im Browser `http://localhost:3000` öffnen. Produktion bauen mit `npm run build`, lokal prüfen mit `npm run preview`.
+Im Browser `http://localhost:3000` öffnen. **Referenz ansehen** spielt den gewählten Sprung einmal sauber vor, ohne die Session zu werten. Danach selbst springen. Produktion bauen mit `npm run build`, lokal prüfen mit `npm run preview`.
 
 Die Wertung ist deterministisch getestet:
 

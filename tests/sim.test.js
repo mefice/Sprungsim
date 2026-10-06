@@ -1,84 +1,19 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { DIVES } from '../src/dives.js';
-import {
-  WORLD,
-  emptyInput,
-  oscAt,
-  predictError,
-  startDive,
-  step,
-} from '../src/sim.js';
+import { createLatch, policyInput } from '../src/policy.js';
+import { startDive, step } from '../src/sim.js';
 
 function run(dive, mode) {
   const state = startDive(dive);
   const seen = new Set([state.phase]);
-  const latch = { approachBeat: -1, approach: false, snap: false, twist: false, prevErr: null };
+  const latch = createLatch();
   for (let i = 0; i < 60 * 18; i += 1) {
     if (state.phase === 'result') break;
-    step(state, policy(state, mode, latch), 1 / 60);
+    step(state, policyInput(state, mode, latch), 1 / 60);
     seen.add(state.phase);
   }
   return { state, seen };
-}
-
-function policy(state, mode, latch) {
-  const input = emptyInput();
-  if (mode === 'none') return input;
-
-  if (state.phase === 'approach') {
-    const beat = Math.floor(state.time / WORLD.approachPeriod);
-    if (latch.approachBeat !== beat) {
-      latch.approachBeat = beat;
-      latch.approach = false;
-    }
-    const osc = oscAt(state.time, WORLD.approachPeriod);
-    const hit = mode === 'sloppy' ? osc >= 0.02 && osc <= 0.18 : osc >= 0.985;
-    if (hit && !latch.approach) {
-      input.spacePressed = true;
-      latch.approach = true;
-    }
-  }
-
-  if (state.phase === 'takeoff' && state.stage === 'charge' && !state.needFreshPress) {
-    const [min, max] = state.dive.powerBand;
-    const mid = (min + max) / 2;
-    input.spaceDown = mode === 'sloppy' ? state.power < 0.12 : state.power < mid;
-  }
-
-  if (state.phase === 'takeoff' && state.stage === 'snap' && !state.needFreshPress) {
-    const osc = oscAt(state.boardT, WORLD.takeoffPeriod);
-    const hit = mode === 'sloppy' ? osc >= 0.12 && osc <= 0.3 : osc >= 0.985;
-    if (hit && !latch.snap) {
-      input.spacePressed = true;
-      latch.snap = true;
-    }
-  }
-
-  const airborne = state.phase === 'flight' || state.phase === 'kickout';
-  if (mode !== 'sloppy' && airborne && !state.opened) {
-    if (state.phase === 'kickout' && mode === 'early') input.tuckDown = false;
-    else if (state.phase === 'kickout') {
-      const err = predictError(state);
-      input.tuckDown = err < -0.05;
-    } else input.tuckDown = true;
-
-    if (state.dive.twistHalves > 0) {
-      const osc = oscAt(state.airTime, WORLD.twistPeriod);
-      if (osc >= 0.985 && !latch.twist) {
-        input.twistPressed = true;
-        latch.twist = true;
-      }
-      if (osc < 0.4) latch.twist = false;
-    }
-  }
-
-  if (mode !== 'sloppy' && mode !== 'no-grab' && state.phase === 'entry' && !state.grabbed) {
-    const dist = WORLD.waterY - state.y;
-    if (dist <= 76 && dist >= 56) input.spacePressed = true;
-  }
-
-  return input;
 }
 
 function dump(state) {
@@ -91,7 +26,6 @@ function dump(state) {
     metrics: state.metrics,
     rotation: Number(state.rotation.toFixed(3)),
     target: Number(state.targetRad.toFixed(3)),
-    pose: Number(state.pose.toFixed(3)),
   }, null, 2);
 }
 

@@ -1,5 +1,6 @@
 import { playEntry, playJudge, unlockAudio } from './audio.js';
 import { DIVES } from './dives.js';
+import { createLatch, policyInput } from './policy.js';
 import { draw } from './render.js';
 import { formatPoints } from './scoring.js';
 import { present, startDive, step } from './sim.js';
@@ -34,6 +35,7 @@ const ui = {
   instructions: document.getElementById('instructions'),
   buttons: document.getElementById('dive-buttons'),
   start: document.getElementById('start-btn'),
+  reference: document.getElementById('reference-btn'),
   stats: document.getElementById('session-stats'),
 };
 
@@ -47,6 +49,8 @@ let state = null;
 let running = false;
 let logged = false;
 let shown = false;
+let reference = false;
+let latch = null;
 let lastFlash = 0;
 let lastTime = performance.now();
 
@@ -140,10 +144,12 @@ function renderMenu() {
   }
 }
 
-function begin(diveId) {
+function begin(diveId, asReference = false) {
   const dive = DIVES.find((item) => item.id === diveId);
   state = startDive(dive);
   running = true;
+  reference = asReference;
+  latch = asReference ? createLatch() : null;
   logged = false;
   shown = false;
   lastFlash = 0;
@@ -199,7 +205,7 @@ function sync(view) {
     playJudge(view.flash.score);
   }
 
-  if (state?.result && !logged) {
+  if (state?.result && !logged && !reference) {
     logged = true;
     session.dives += 1;
     session.total += state.result.total;
@@ -224,14 +230,14 @@ function showResult(result) {
   breakdown.textContent = `Ausführung ${formatPoints(result.execution, 1)} × DD ${formatPoints(result.dd, 1)}`;
   const rating = document.createElement('div');
   rating.className = `rating ${result.rating.className}`;
-  rating.textContent = result.rip ? `${result.rating.text} · Rip` : result.rating.text;
+  rating.textContent = `${reference ? 'Referenz · ' : ''}${result.rip ? `${result.rating.text} · Rip` : result.rating.text}`;
   const actions = document.createElement('div');
   actions.className = 'result-actions';
   const again = document.createElement('button');
   again.type = 'button';
   again.className = 'continue-btn';
   again.textContent = 'Nochmal';
-  again.addEventListener('click', () => begin(selectedId));
+  again.addEventListener('click', () => begin(selectedId, false));
   const menu = document.createElement('button');
   menu.type = 'button';
   menu.className = 'continue-btn';
@@ -281,8 +287,11 @@ function frame(now) {
   const dt = Math.min(0.05, (now - lastTime) / 1000);
   lastTime = now;
   if (canvas.clientWidth !== Math.round(canvas.width / (window.devicePixelRatio || 1))) resize();
-  if (running && state) step(state, consumeInput(), dt);
-  else pressed.clear();
+  if (running && state) {
+    const input = reference ? policyInput(state, 'perfect', latch) : consumeInput();
+    if (reference) pressed.clear();
+    step(state, input, dt);
+  } else pressed.clear();
   draw(ctx, running ? state : null, canvas.clientWidth, canvas.clientHeight);
   if (running) sync(present(state));
   requestAnimationFrame(frame);
@@ -290,7 +299,12 @@ function frame(now) {
 
 ui.start.addEventListener('click', () => {
   unlockAudio();
-  begin(selectedId);
+  begin(selectedId, false);
+});
+
+ui.reference.addEventListener('click', () => {
+  unlockAudio();
+  begin(selectedId, true);
 });
 
 window.addEventListener('resize', resize);
