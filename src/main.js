@@ -533,6 +533,7 @@ function openMeetSetup() {
       if (dive.id === suggestion[slot]) option.selected = true;
       select.append(option);
     }
+    label.htmlFor = select.id;
     label.append(select);
     ui.meetSlots.append(label);
   }
