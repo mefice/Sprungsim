@@ -63,8 +63,8 @@ function stepCamera(state, dt) {
   } else if (state && (state.phase === 'flight' || state.phase === 'kickout')) {
     target = {
       x: state.x + 30,
-      y: state.y * 0.72 + WORLD.waterY * 0.28,
-      zoom: 1.58,
+      y: state.y * 0.84 + WORLD.waterY * 0.16,
+      zoom: 1.78,
       water: 0,
       label: 'Flug',
     };
@@ -222,8 +222,14 @@ function drawWater(ctx, state) {
     }
     ctx.stroke();
   }
-  ctx.fillStyle = 'rgba(255,255,255,0.42)';
+  const sheen = 0.35 + Math.sin(time * 1.4) * 0.08;
+  ctx.fillStyle = `rgba(255,255,255,${sheen})`;
   ctx.fillRect(0, WORLD.waterY - 2, WORLD.width, 3);
+  ctx.fillStyle = 'rgba(190, 240, 255, 0.35)';
+  for (let i = 0; i < 4; i += 1) {
+    const x = ((time * 40 + i * 320) % (WORLD.width + 80)) - 40;
+    ctx.fillRect(x, WORLD.waterY - 1, 70, 2);
+  }
 
   for (let lane = 1; lane <= 4; lane += 1) {
     ctx.strokeStyle = 'rgba(255,255,255,0.08)';
@@ -292,67 +298,70 @@ function drawAthlete(ctx, state, alpha) {
   ctx.globalAlpha *= alpha;
   ctx.translate(state.x, state.y);
   ctx.rotate(state.rotation || 0);
-  ctx.scale(1.55, 1.55);
-  ctx.translate(0, -8);
+  ctx.scale(1.45, 1.45);
+  ctx.translate(0, -6);
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
 
-  const chestX = t * 8;
-  const chestY = -16 + t * 8;
-  const headY = chestY - 16 + t * 3;
-  const knee = t * 1.25;
+  const suit = '#1496d0';
+  const skin = '#f0c4a6';
+  const knee = t * 1.35;
+  const hipY = 4;
+  const chestX = t * 6;
+  const chestY = -18 + t * 12;
+  const headY = chestY - 14 + t * 6;
 
-  ctx.strokeStyle = '#efc3a4';
-  ctx.lineWidth = 6;
-  ctx.beginPath();
-  ctx.moveTo(-3, 6);
-  ctx.lineTo(-3 - Math.sin(knee) * 7, 8 + (1 - t) * 16);
-  ctx.moveTo(3, 6);
-  ctx.lineTo(6 + Math.sin(knee) * 16, 6 + Math.cos(knee) * 8);
-  ctx.lineTo(8 + Math.sin(knee) * 14, 22 + (1 - t) * 12 - t * 8);
-  ctx.stroke();
+  const limb = (x1, y1, x2, y2, width, color) => {
+    ctx.strokeStyle = 'rgba(4, 16, 28, 0.55)';
+    ctx.lineWidth = width + 3;
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.stroke();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = width;
+    ctx.stroke();
+  };
 
-  ctx.strokeStyle = '#128fc8';
-  ctx.lineWidth = 12;
-  ctx.beginPath();
-  ctx.moveTo(0, 8);
-  ctx.lineTo(chestX, chestY);
-  ctx.stroke();
-  ctx.strokeStyle = 'rgba(255,255,255,0.28)';
+  const thighX = Math.sin(knee) * (8 + (1 - t) * 4);
+  const thighY = hipY + Math.cos(knee) * (8 + (1 - t) * 6);
+  const footY = thighY + (18 - t * 12);
+  limb(0, hipY, thighX, thighY, 7, skin);
+  limb(thighX, thighY, thighX * 0.35, footY, 6, skin);
+  limb(-3, hipY, -4, hipY + (16 - t * 8), 6, skin);
+
+  limb(0, hipY, chestX, chestY, lining ? 9 : 11 - t * 2, suit);
+  ctx.strokeStyle = 'rgba(255,255,255,0.35)';
   ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.moveTo(-2, 4);
-  ctx.lineTo(chestX - 2, chestY + 3);
+  ctx.moveTo(-1, hipY - 2);
+  ctx.lineTo(chestX - 1, chestY + 4);
   ctx.stroke();
 
-  ctx.strokeStyle = '#efc3a4';
-  ctx.lineWidth = 5;
-  ctx.beginPath();
   if (lining) {
-    ctx.moveTo(chestX, chestY + 2);
-    ctx.lineTo(chestX - 2, headY - 16);
-    ctx.moveTo(chestX, chestY + 2);
-    ctx.lineTo(chestX + 2, headY - 16);
+    limb(chestX, chestY, chestX, headY - 18, 5, skin);
     if ((state.grabValue ?? 0) >= 0.65) {
-      ctx.moveTo(chestX - 8, headY - 16);
-      ctx.lineTo(chestX + 8, headY - 16);
+      limb(chestX - 7, headY - 16, chestX + 7, headY - 16, 4, skin);
     }
+  } else if (t > 0.45) {
+    limb(chestX, chestY + 2, thighX + 4, thighY - 2, 5, skin);
+    limb(chestX, chestY + 2, -8, thighY, 5, skin);
   } else {
-    const reach = 14 - t * 4;
-    ctx.moveTo(chestX, chestY + 4);
-    ctx.lineTo(chestX + reach, chestY + 6 + t * 8);
-    ctx.moveTo(chestX, chestY + 4);
-    ctx.lineTo(chestX - reach * 0.8, chestY + 8 + t * 6);
+    limb(chestX, chestY + 4, 16, chestY + 10, 5, skin);
+    limb(chestX, chestY + 4, -14, chestY + 12, 5, skin);
   }
-  ctx.stroke();
 
+  ctx.fillStyle = '#0b2433';
+  ctx.beginPath();
+  ctx.arc(chestX + t, headY, 9.2, 0, Math.PI * 2);
+  ctx.fill();
   ctx.fillStyle = '#f1c40f';
   ctx.beginPath();
-  ctx.arc(chestX + t * 2, headY, 8.2, 0, Math.PI * 2);
+  ctx.arc(chestX + t, headY, 7.6, 0, Math.PI * 2);
   ctx.fill();
-  ctx.fillStyle = '#efc3a4';
+  ctx.fillStyle = skin;
   ctx.beginPath();
-  ctx.arc(chestX + t * 2 + 1.6, headY + 1, 6, 0, Math.PI * 2);
+  ctx.arc(chestX + t + 2.2, headY + 1.2, 5.4, 0, Math.PI * 2);
   ctx.fill();
   ctx.restore();
 }

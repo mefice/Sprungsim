@@ -336,6 +336,7 @@ function sync(view) {
   else ui.ringLabel.textContent = 'Ziel';
 
   ui.power.classList.toggle('hidden', !view.showPower);
+  ui.power.classList.toggle('ready', Boolean(view.powerHot));
   ui.powerFill.style.width = `${view.power * 100}%`;
   ui.powerZone.style.left = `${view.powerBand[0] * 100}%`;
   ui.powerZone.style.width = `${(view.powerBand[1] - view.powerBand[0]) * 100}%`;

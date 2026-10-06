@@ -98,6 +98,14 @@ body {
 .ring-dot { fill: #fff; }
 #cue-ring.hot .ring-dot { fill: #f1c40f; }
 #cue-ring.hot .ring-zone { stroke: #f1c40f; }
+#cue-ring.hot .ring {
+  animation: ring-pulse 0.7s ease-in-out infinite;
+}
+@keyframes ring-pulse {
+  50% { transform: scale(1.06); }
+}
+#power-meter.ready .fill { background: #2ecc71; }
+#power-meter.ready { filter: drop-shadow(0 0 8px rgba(46, 204, 113, 0.45)); }
 #meters {
   width: 100%;
   display: grid;

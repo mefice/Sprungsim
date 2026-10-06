@@ -23,7 +23,7 @@ Die Tests spielen denselben Sprung mit sauberem Timing, mit frühem Öffnen, ohn
 
 Standard ist **Training**: die Fenster sind weiter, im grünen Kraftband läuft die Anzeige langsamer, und ein zu früher Hand-Grab wird vom besseren Moment ersetzt. **Wettkampf** ist enger. Ein sauberer Sprung bleibt in beiden Modi bei Ausführung 10, also 14 bis 20 Punkten je nach DD. Knapp daneben ist brauchbar, weit daneben nicht.
 
-Unten im Bild steht immer die eine Aktion der aktuellen Phase, darunter ein kurzer Tipp. Wird der Ring gold, steht davor „Jetzt“.
+Unten im Bild steht immer die eine Aktion der aktuellen Phase, darunter ein kurzer Tipp. Der Anlauf beginnt mit „Bereit“, damit der erste Schritt nicht überrascht. Wird der Ring gold, pulsiert er und davor steht „Jetzt“. Beim Öffnen bleibt die Nadel einen Moment lesbar, bevor Loslassen zählt.
 
 `Esc` pausiert, `R` startet denselben Sprung neu. In der Pause kannst du weitermachen, neu starten oder den Sprung wechseln.
 

@@ -89,7 +89,10 @@ export function startDive(dive, options = {}) {
     needFreshPress: false,
     takeoffDone: false,
     approachScores: [],
+    approachLead: training ? 1.15 : 0.55,
     beatHit: false,
+    kickoutAge: 0,
+    releaseQueued: false,
     chargeTime: 0,
     snapTime: 0,
     bend: 0,
@@ -157,11 +160,15 @@ function feltOsc(state, key, osc, dt) {
 }
 
 function updateApproach(state, input, dt) {
+  placeOnBoard(state);
+  if (state.approachLead > 0) {
+    state.approachLead -= dt;
+    return;
+  }
   const period = state.approachPeriod;
   const previousBeat = Math.floor(state.time / period);
   state.time += dt;
   const beat = Math.floor(state.time / period);
-  placeOnBoard(state);
   const osc = feltOsc(state, 'approach', oscAt(state.time, period), dt);
 
   if (input.spacePressed && !state.beatHit && state.phase === 'approach') {
@@ -277,8 +284,11 @@ function launch(state) {
 function updateAir(state, input, dt) {
   const phaseAtStart = state.phase;
 
-  if (phaseAtStart === 'kickout' && !state.opened && state.tuckWasDown && !input.tuckDown) {
-    state.opened = true;
+  if (phaseAtStart === 'kickout') {
+    state.kickoutAge += dt;
+    if (!input.tuckDown) state.releaseQueued = true;
+    const arm = state.training ? 0.2 : 0.12;
+    if (!state.opened && state.kickoutAge >= arm && state.releaseQueued) state.opened = true;
   }
   if (phaseAtStart === 'entry' && input.spacePressed) {
     const dist = WORLD.waterY - state.y;
@@ -486,7 +496,12 @@ export function present(state) {
 
   const showTiming = state.phase === 'approach' || (state.phase === 'takeoff' && state.stage === 'snap');
   const showPower = state.phase === 'takeoff' && state.stage === 'charge';
-  const showLineup = state.phase === 'kickout' && !state.opened;
+  const remaining = state.phase === 'flight' || state.phase === 'kickout'
+    ? timeToWater(state.y, state.vy)
+    : 99;
+  const showLineup = !state.opened && (
+    state.phase === 'kickout' || (state.phase === 'flight' && state.airTime > 0.45 && remaining < 1.35)
+  );
   const showGrab = state.phase === 'entry';
   const showTwist = state.dive.twistHalves > 0 && (state.phase === 'flight' || state.phase === 'kickout') && !state.opened;
   const twistOsc = oscAt(state.airTime, state.twistPeriod);
@@ -506,6 +521,7 @@ export function present(state) {
     timingHot: active >= hotAt,
     showPower,
     power: state.power,
+    powerHot: inBand && state.phase === 'takeoff' && state.stage === 'charge',
     powerBand: band,
     showLineup,
     lineup: showLineup ? clampMeter((predictError(state) * errorScale) / (Math.PI / 2)) : 0,
@@ -527,6 +543,12 @@ export function present(state) {
 
 function cues(state, inBand) {
   const step = Math.min(3, Math.floor(state.time / state.approachPeriod) + 1);
+  if (state.phase === 'approach' && state.approachLead > 0) {
+    return {
+      instruction: 'Bereit — der Ring startet gleich',
+      tip: 'Leertaste, wenn er oben gold wird. Drei Schritte.',
+    };
+  }
   if (state.phase === 'approach') {
     return {
       instruction: `Anlauf ${step}/3 — Leertaste, wenn der Ring gold wird`,
@@ -552,6 +574,12 @@ function cues(state, inBand) {
     return quiet
       ? { instruction: 'Flug — S oder ↓ gedrückt halten', tip: 'Ohne Hocke kommt die Drehung nicht herum.' }
       : { instruction: `Flug — S halten, bis die Drehung sitzt.${twist}`, tip: 'Noch nicht loslassen. Das Öffnen kommt gleich.' };
+  }
+  if (state.phase === 'kickout' && state.kickoutAge < (state.training ? 0.2 : 0.12)) {
+    return {
+      instruction: 'Öffnen — Nadel lesen, S noch halten',
+      tip: 'Gleich loslassen, wenn sie in der Mitte steht.',
+    };
   }
   if (state.phase === 'kickout') {
     return {
