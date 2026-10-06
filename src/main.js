@@ -339,7 +339,7 @@ function sync(view) {
   ui.ringDot.setAttribute('cy', cy.toFixed(2));
   ui.ring.classList.toggle('hot', cue >= 0.92);
   if (view.showTwist) ui.ringLabel.textContent = `Schraube ${view.twistTaps}/${view.twistNeed}`;
-  else if (view.showGrab) ui.ringLabel.textContent = 'Hand-Grab';
+  else if (view.showGrab) ui.ringLabel.textContent = 'Wasserlinie';
   else ui.ringLabel.textContent = 'Ziel';
 
   ui.power.classList.toggle('hidden', !view.showPower);

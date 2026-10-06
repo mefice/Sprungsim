@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { DIVES } from '../src/dives.js';
 import { createLatch, policyInput } from '../src/policy.js';
-import { startDive, step } from '../src/sim.js';
+import { WORLD, grabOpen, startDive, step } from '../src/sim.js';
 
 function run(dive, mode, training = false) {
   const state = startDive(dive, { training });
@@ -37,6 +37,23 @@ test('ein sauberer 101C durchläuft alle fünf Phasen und liegt über 8', () => 
   assert.ok(state.result.execution >= 8, dump(state));
   assert.ok(state.result.total > 11, dump(state));
   assert.ok(state.halfCount >= 1, dump(state));
+});
+
+test('der Ring an der Wasserlinie ist offen, wenn der Hand-Grab ideal ist', () => {
+  const state = startDive(DIVES[0]);
+  const latch = createLatch();
+  let best = { open: -1, dist: 999 };
+  for (let i = 0; i < 60 * 18; i += 1) {
+    if (state.phase === 'entry') {
+      const dist = Math.abs(WORLD.waterY - state.y - 72);
+      const open = grabOpen(state);
+      if (open > best.open) best = { open, dist };
+    }
+    if (state.phase === 'result') break;
+    step(state, policyInput(state, 'perfect', latch), 1 / 60);
+  }
+  assert.ok(best.open >= 0.85, JSON.stringify(best));
+  assert.ok(best.dist < 40, JSON.stringify(best));
 });
 
 test('derselbe Sprung wird bei schlechtem Timing klar schlechter', () => {

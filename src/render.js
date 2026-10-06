@@ -1,4 +1,4 @@
-import { WORLD } from './sim.js';
+import { WORLD, grabOpen } from './sim.js';
 
 const cam = { x: 640, y: 390, zoom: 1.04, water: 0, label: 'Halle' };
 let lastStamp = 0;
@@ -105,6 +105,7 @@ function drawWorld(ctx, state) {
   drawCrowd(ctx, state);
   drawReflection(ctx, state);
   drawWater(ctx, state);
+  if (state) drawGrabGate(ctx, state);
   drawTower(ctx, state?.bend ?? 0);
   if (state && state.phase !== 'approach' && state.phase !== 'takeoff') drawShadow(ctx, state);
   for (let i = 0; i < trail.length; i += 1) {
@@ -302,6 +303,35 @@ function drawSpinMeter(ctx, state) {
     ctx.font = '700 20px sans-serif';
     ctx.textAlign = 'center';
     ctx.fillText(String(state.halfCount), 0, -52 - pulse * 12);
+  }
+  ctx.restore();
+}
+
+function drawGrabGate(ctx, state) {
+  if (state.phase !== 'entry' || state.y >= WORLD.waterY) return;
+  const open = grabOpen(state);
+  const x = state.x;
+  const y = WORLD.waterY;
+  const rx = 16 + open * 46;
+  const ry = 5 + open * 13;
+  const gold = open >= 0.78;
+  ctx.save();
+  ctx.strokeStyle = gold
+    ? `rgba(241, 196, 15, ${0.55 + open * 0.45})`
+    : `rgba(255, 255, 255, ${0.28 + open * 0.35})`;
+  ctx.lineWidth = 2 + open * 2.5;
+  ctx.beginPath();
+  ctx.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.ellipse(x, y, Math.max(3, rx * open), Math.max(2, ry * open * 0.72), 0, 0, Math.PI * 2);
+  ctx.stroke();
+  if (open > 0.2) {
+    ctx.globalAlpha = 0.35 * open;
+    ctx.beginPath();
+    ctx.moveTo(x, state.y + 20);
+    ctx.lineTo(x, y - 2);
+    ctx.stroke();
   }
   ctx.restore();
 }

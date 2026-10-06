@@ -610,7 +610,7 @@ function cues(state, inBand) {
   if (state.phase === 'entry') {
     return state.grabbed
       ? { instruction: 'Eintritt — Hände sind gesetzt', tip: 'Ein späterer, besserer Druck ersetzt den ersten.' }
-      : { instruction: 'Eintritt — Leertaste, wenn der Ring gold wird', tip: 'Zu früh zählt noch nicht. Es gilt der beste Moment.' };
+      : { instruction: 'Eintritt — Leertaste, wenn der Ring auf der Wasserlinie aufgeht', tip: 'Gold heißt greifen. Die Note nutzt denselben Moment.' };
   }
   return { instruction: '', tip: '' };
 }
@@ -632,7 +632,11 @@ function clamp01(value) {
   return Math.min(1, Math.max(0, value));
 }
 
-/** Gleicher Takt wie der Anlauf: die Markierung ruht im Ziel, wenn die Hände greifen sollen. */
+/** Dieselbe Öffnung wie die Note: 1, wenn die Hände über der Wasserlinie greifen sollen. */
+export function grabOpen(state) {
+  return grabMarker(state);
+}
+
 function grabMarker(state) {
   if (!state.entryCue) return 0;
   const span = Math.max(0.001, state.entryCue.end - state.entryCue.start);
