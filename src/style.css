@@ -148,16 +148,73 @@ body {
   background: linear-gradient(90deg, #1fa6e0, #f1c40f);
 }
 
-#instructions {
+#key-hint {
+  position: absolute;
+  top: 96px;
+  left: 18px;
+  color: rgba(255,255,255,0.55);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+}
+#hint-stack {
+  position: absolute;
   left: 50%;
   bottom: 16px;
   width: max-content;
   max-width: calc(100% - 24px);
-  padding: 10px 16px;
   transform: translateX(-50%);
-  font-size: 16px;
   text-align: center;
 }
+#instructions, #tip {
+  position: static;
+  border: 0;
+  background: transparent;
+  backdrop-filter: none;
+}
+#instructions {
+  padding: 10px 16px 4px;
+  border-radius: 14px 14px 0 0;
+  background: rgba(6, 12, 18, 0.72);
+  font-size: 16px;
+}
+#instructions.hot { color: #f1c40f; }
+#tip {
+  padding: 0 16px 10px;
+  border-radius: 0 0 14px 14px;
+  background: rgba(6, 12, 18, 0.72);
+  color: rgba(255,255,255,0.72);
+  font-size: 13px;
+}
+#pause-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(5, 10, 16, 0.55);
+}
+.pause-card {
+  width: min(440px, calc(100% - 32px));
+  padding: 28px 22px;
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 16px;
+  background: rgba(7, 14, 22, 0.92);
+  text-align: center;
+}
+.pause-card h2 { margin: 8px 0; font-size: 32px; }
+.pause-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+.mode-switch { display: flex; justify-content: center; gap: 8px; margin-bottom: 8px; }
+.mode-btn {
+  padding: 8px 16px;
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 999px;
+  color: rgba(255,255,255,0.75);
+  background: transparent;
+  cursor: pointer;
+}
+.mode-btn.selected { color: #071018; background: #1fa6e0; border-color: #1fa6e0; }
+.mode-copy { margin-bottom: 16px; color: rgba(255,255,255,0.62); font-size: 14px; }
 
 #score-display {
   position: absolute;

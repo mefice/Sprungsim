@@ -10,12 +10,13 @@ export function policyInput(state, mode, latch) {
   if (mode === 'none') return input;
 
   if (state.phase === 'approach') {
-    const beat = Math.floor(state.time / WORLD.approachPeriod);
+    const period = state.approachPeriod ?? WORLD.approachPeriod;
+    const beat = Math.floor(state.time / period);
     if (latch.approachBeat !== beat) {
       latch.approachBeat = beat;
       latch.approach = false;
     }
-    const osc = oscAt(state.time, WORLD.approachPeriod);
+    const osc = oscAt(state.time, period);
     const hit = mode === 'sloppy' ? osc >= 0.02 && osc <= 0.18 : osc >= 0.93;
     if (hit && !latch.approach) {
       input.spacePressed = true;
@@ -24,13 +25,13 @@ export function policyInput(state, mode, latch) {
   }
 
   if (state.phase === 'takeoff' && state.stage === 'charge' && !state.needFreshPress) {
-    const [min, max] = state.dive.powerBand;
+    const [min, max] = state.metrics?.powerBand ?? state.dive.powerBand;
     const mid = (min + max) / 2;
     input.spaceDown = mode === 'sloppy' ? state.power < 0.12 : state.power < mid;
   }
 
   if (state.phase === 'takeoff' && state.stage === 'snap' && !state.needFreshPress) {
-    const osc = oscAt(state.boardT, WORLD.takeoffPeriod);
+    const osc = oscAt(state.boardT, state.takeoffPeriod ?? WORLD.takeoffPeriod);
     const hit = mode === 'sloppy' ? osc >= 0.12 && osc <= 0.3 : osc >= 0.93;
     if (hit && !latch.snap) {
       input.spacePressed = true;
@@ -45,7 +46,7 @@ export function policyInput(state, mode, latch) {
     else input.tuckDown = true;
 
     if (state.dive.twistHalves > 0) {
-      const osc = oscAt(state.airTime, WORLD.twistPeriod);
+      const osc = oscAt(state.airTime, state.twistPeriod ?? WORLD.twistPeriod);
       if (osc >= 0.93 && !latch.twist) {
         input.twistPressed = true;
         latch.twist = true;

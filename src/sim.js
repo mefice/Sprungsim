@@ -1,4 +1,4 @@
-import { bandScore, evaluate, grabScore, peakScore } from './scoring.js';
+import { bandFor, bandScore, evaluate, grabScore, rateOsc } from './scoring.js';
 
 export const WORLD = {
   width: 1280,
@@ -60,9 +60,14 @@ export function predictError(state) {
   return predictRotation(state, t) - state.targetRad;
 }
 
-export function startDive(dive) {
+export function startDive(dive, options = {}) {
+  const training = Boolean(options.training);
   return {
     dive,
+    training,
+    approachPeriod: training ? 1.7 : 1.38,
+    takeoffPeriod: training ? 1.55 : 1.22,
+    twistPeriod: training ? 0.98 : 0.74,
     phase: 'approach',
     stage: null,
     time: 0,
@@ -106,7 +111,7 @@ export function startDive(dive) {
       takeoffTiming: 0,
       takeoffPower: 0,
       powerRaw: 0,
-      powerBand: dive.powerBand,
+      powerBand: bandFor(dive.powerBand, training),
       avgPose: 0,
       twistHits: 0,
       angleError: Math.PI,
@@ -134,21 +139,40 @@ export function step(state, input, dt) {
   return state;
 }
 
+function feltOsc(state, key, osc, dt) {
+  if (state.holdKey !== key) {
+    state.holdKey = key;
+    state.oscHold = 0;
+    state.oscHoldAge = 0;
+  }
+  const grace = state.training ? 0.16 : 0.1;
+  if (osc >= state.oscHold) {
+    state.oscHold = osc;
+    state.oscHoldAge = 0;
+  } else {
+    state.oscHoldAge += dt;
+    if (state.oscHoldAge > grace) state.oscHold = osc;
+  }
+  return Math.max(osc, state.oscHold);
+}
+
 function updateApproach(state, input, dt) {
-  const period = WORLD.approachPeriod;
+  const period = state.approachPeriod;
   const previousBeat = Math.floor(state.time / period);
   state.time += dt;
   const beat = Math.floor(state.time / period);
   placeOnBoard(state);
+  const osc = feltOsc(state, 'approach', oscAt(state.time, period), dt);
 
   if (input.spacePressed && !state.beatHit && state.phase === 'approach') {
     state.beatHit = true;
-    recordApproach(state, peakScore(oscAt(state.time, period)));
+    recordApproach(state, rateOsc(osc, state.training));
   }
 
   if (beat > previousBeat && state.phase === 'approach') {
     if (!state.beatHit) recordApproach(state, 0);
     state.beatHit = false;
+    state.holdKey = '';
   }
 }
 
@@ -169,6 +193,7 @@ function beginTakeoff(state) {
   state.needFreshPress = true;
   state.charging = false;
   state.power = 0;
+  state.holdKey = '';
   state.metrics.approach = average(state.approachScores);
 }
 
@@ -177,7 +202,7 @@ function updateTakeoff(state, input, dt) {
   placeOnBoard(state);
 
   if (state.needFreshPress) {
-    if (!input.spaceDown && !input.spacePressed) state.needFreshPress = false;
+    state.needFreshPress = false;
     return;
   }
 
@@ -185,7 +210,10 @@ function updateTakeoff(state, input, dt) {
     state.chargeTime += dt;
     if (input.spaceDown) {
       state.charging = true;
-      state.power = Math.min(1, state.power + WORLD.chargeRate * dt);
+      const band = state.metrics.powerBand;
+      const inBand = state.power >= band[0] && state.power <= band[1];
+      const rate = WORLD.chargeRate * (inBand ? 0.42 : 1) * (state.training ? 0.82 : 1);
+      state.power = Math.min(1, state.power + rate * dt);
     }
     const released = state.charging && !input.spaceDown;
     const toppedOut = state.power >= 0.995 && state.charging;
@@ -195,7 +223,7 @@ function updateTakeoff(state, input, dt) {
       state.needFreshPress = true;
       state.snapTime = 0;
       state.metrics.powerRaw = state.power;
-      state.metrics.takeoffPower = bandScore(state.power, state.dive.powerBand);
+      state.metrics.takeoffPower = bandScore(state.power, state.metrics.powerBand);
       return;
     }
     if (state.chargeTime > 4.2 && !state.charging) {
@@ -208,10 +236,11 @@ function updateTakeoff(state, input, dt) {
   }
 
   state.snapTime += dt;
+  const snapOsc = feltOsc(state, 'snap', oscAt(state.boardT, state.takeoffPeriod), dt);
   if (input.spacePressed) {
     state.metrics.powerRaw = state.power;
-    state.metrics.takeoffPower = bandScore(state.power, state.dive.powerBand);
-    state.metrics.takeoffTiming = peakScore(oscAt(state.boardT, WORLD.takeoffPeriod));
+    state.metrics.takeoffPower = bandScore(state.power, state.metrics.powerBand);
+    state.metrics.takeoffTiming = rateOsc(snapOsc, state.training);
     setFlash(state, state.metrics.takeoffTiming);
     launch(state);
     return;
@@ -251,11 +280,17 @@ function updateAir(state, input, dt) {
   if (phaseAtStart === 'kickout' && !state.opened && state.tuckWasDown && !input.tuckDown) {
     state.opened = true;
   }
-  if (phaseAtStart === 'entry' && input.spacePressed && !state.grabbed) {
+  if (phaseAtStart === 'entry' && input.spacePressed) {
     const dist = WORLD.waterY - state.y;
-    state.grabbed = true;
-    state.grabValue = dist < 190 ? grabScore(dist) : 0.05;
-    setFlash(state, state.grabValue);
+    if (dist < 230 && dist > 6) {
+      const judged = state.training ? 72 + (dist - 72) * 0.62 : dist;
+      const score = grabScore(judged);
+      if (!state.grabbed || score >= state.grabValue) {
+        state.grabbed = true;
+        state.grabValue = score;
+        setFlash(state, score);
+      }
+    }
   }
 
   if (!state.opened && (phaseAtStart === 'flight' || phaseAtStart === 'kickout')) {
@@ -263,8 +298,9 @@ function updateAir(state, input, dt) {
     state.poseN += 1;
     if (input.twistPressed && state.dive.twistHalves > 0 && state.twistTaps < state.dive.twistHalves) {
       state.twistTaps += 1;
-      state.twistHits += peakScore(oscAt(state.airTime, WORLD.twistPeriod));
-      setFlash(state, peakScore(oscAt(state.airTime, WORLD.twistPeriod)));
+      const twistOsc = feltOsc(state, 'twist', oscAt(state.airTime, state.twistPeriod), dt);
+      state.twistHits += rateOsc(twistOsc, state.training);
+      setFlash(state, rateOsc(twistOsc, state.training));
     }
   }
 
@@ -322,7 +358,8 @@ function finish(state) {
   state.vy = 0;
   state.metrics.avgPose = state.poseN ? state.poseSum / state.poseN : 0;
   state.metrics.twistHits = state.twistHits;
-  state.metrics.angleError = state.rotation - state.targetRad;
+  const rawError = state.rotation - state.targetRad;
+  state.metrics.angleError = state.training ? rawError * 0.72 : rawError;
   state.metrics.grab = state.grabValue ?? 0;
   state.metrics.approach = average(state.approachScores);
   state.result = evaluate(state.metrics, state.dive);
@@ -333,7 +370,7 @@ function finish(state) {
 
 function placeOnBoard(state) {
   state.bend = state.phase === 'takeoff'
-    ? oscAt(state.boardT, WORLD.takeoffPeriod) * 30
+    ? oscAt(state.boardT, state.takeoffPeriod) * 30
     : 0;
   state.y = WORLD.platformY + state.bend - 42;
   if (state.phase === 'approach') {
@@ -439,53 +476,43 @@ function advanceSplash(state, dt) {
 export function present(state) {
   if (!state) return null;
   const osc = state.phase === 'approach'
-    ? oscAt(state.time, WORLD.approachPeriod)
+    ? oscAt(state.time, state.approachPeriod)
     : state.phase === 'takeoff'
-      ? oscAt(state.boardT, WORLD.takeoffPeriod)
+      ? oscAt(state.boardT, state.takeoffPeriod)
       : 0;
-
-  let instruction = '';
-  if (state.phase === 'approach') {
-    const step = Math.min(3, Math.floor(state.time / WORLD.approachPeriod) + 1);
-    instruction = `Anlauf · Schritt ${step}/3 · Leertaste, wenn die Markierung im Ziel steht`;
-  } else   if (state.phase === 'takeoff' && state.stage === 'charge' && state.needFreshPress) {
-    instruction = 'Absprung · Leertaste kurz lösen, dann für die Kraft halten';
-  } else if (state.phase === 'takeoff' && state.stage === 'charge') {
-    instruction = 'Absprung · Leertaste halten und im grünen Kraftband loslassen';
-  } else if (state.phase === 'takeoff') {
-    instruction = 'Absprung · Leertaste, wenn das Brett unten im Ziel ist';
-  } else if (state.phase === 'flight') {
-    instruction = state.dive.twistHalves > 0
-      ? `Flug · S halten zum Hocken · T im Puls (${state.twistTaps}/${state.dive.twistHalves})`
-      : 'Flug · S oder Pfeil runter halten, damit die Rotation anzieht';
-  } else if (state.phase === 'kickout') {
-    instruction = 'Öffnen · S loslassen, wenn die Linie in der Mitte steht';
-  } else if (state.phase === 'entry') {
-    instruction = 'Eintritt · Leertaste für den flachen Hand-Grab';
-  }
+  const band = state.metrics.powerBand;
+  const inBand = state.power >= band[0] && state.power <= band[1];
+  const copy = cues(state, inBand);
 
   const showTiming = state.phase === 'approach' || (state.phase === 'takeoff' && state.stage === 'snap');
-  const showPower = state.phase === 'takeoff' && state.stage === 'charge' && !state.needFreshPress;
+  const showPower = state.phase === 'takeoff' && state.stage === 'charge';
   const showLineup = state.phase === 'kickout' && !state.opened;
   const showGrab = state.phase === 'entry';
   const showTwist = state.dive.twistHalves > 0 && (state.phase === 'flight' || state.phase === 'kickout') && !state.opened;
+  const twistOsc = oscAt(state.airTime, state.twistPeriod);
+  const grabOsc = showGrab ? grabMarker(state) : 0;
+  const active = showTwist ? twistOsc : showGrab ? grabOsc : osc;
+  const hotAt = state.training ? 0.78 : 0.86;
+  const errorScale = state.training ? 0.7 : 1;
 
   return {
     phase: state.phase,
     phaseLabel: phaseLabel(state),
-    instruction,
+    instruction: copy.instruction,
+    tip: copy.tip,
+    training: state.training,
     showTiming,
     timing: osc,
-    timingHot: osc >= 0.92,
+    timingHot: active >= hotAt,
     showPower,
     power: state.power,
-    powerBand: state.dive.powerBand,
+    powerBand: band,
     showLineup,
-    lineup: showLineup ? clampMeter(predictError(state) / (Math.PI / 2)) : 0,
+    lineup: showLineup ? clampMeter((predictError(state) * errorScale) / (Math.PI / 2)) : 0,
     showGrab,
-    grab: showGrab ? grabMarker(state) : 0,
+    grab: grabOsc,
     showTwist,
-    twist: showTwist ? oscAt(state.airTime, WORLD.twistPeriod) : 0,
+    twist: showTwist ? twistOsc : 0,
     twistTaps: state.twistTaps,
     twistNeed: state.dive.twistHalves,
     somersaults: state.rotation / (Math.PI * 2),
@@ -496,6 +523,48 @@ export function present(state) {
     splashT: state.splashT,
     dive: state.dive,
   };
+}
+
+function cues(state, inBand) {
+  const step = Math.min(3, Math.floor(state.time / state.approachPeriod) + 1);
+  if (state.phase === 'approach') {
+    return {
+      instruction: `Anlauf ${step}/3 — Leertaste, wenn der Ring gold wird`,
+      tip: 'Drei Schritte. Gold ist voll, knapp daneben zählt noch.',
+    };
+  }
+  if (state.phase === 'takeoff' && state.stage === 'charge') {
+    return inBand
+      ? { instruction: 'Absprung — jetzt loslassen', tip: 'Die Kraft sitzt im grünen Band.' }
+      : { instruction: 'Absprung — Leertaste halten, bis die Kraft grün ist', tip: 'Im grünen Band läuft die Anzeige langsamer.' };
+  }
+  if (state.phase === 'takeoff') {
+    return {
+      instruction: 'Absprung — noch einmal Leertaste im goldenen Ring',
+      tip: 'Das ist der tiefste Punkt des Bretts.',
+    };
+  }
+  if (state.phase === 'flight') {
+    const quiet = state.airTime > 0.3 && state.pose < 0.3;
+    const twist = state.dive.twistHalves > 0
+      ? ` Dazu T im goldenen Ring (${state.twistTaps}/${state.dive.twistHalves}).`
+      : '';
+    return quiet
+      ? { instruction: 'Flug — S oder ↓ gedrückt halten', tip: 'Ohne Hocke kommt die Drehung nicht herum.' }
+      : { instruction: `Flug — S halten, bis die Drehung sitzt.${twist}`, tip: 'Noch nicht loslassen. Das Öffnen kommt gleich.' };
+  }
+  if (state.phase === 'kickout') {
+    return {
+      instruction: 'Öffnen — S loslassen, wenn die Nadel in der Mitte steht',
+      tip: 'Links ist zu kurz, rechts überdreht.',
+    };
+  }
+  if (state.phase === 'entry') {
+    return state.grabbed
+      ? { instruction: 'Eintritt — Hände sind gesetzt', tip: 'Ein späterer, besserer Druck ersetzt den ersten.' }
+      : { instruction: 'Eintritt — Leertaste, wenn der Ring gold wird', tip: 'Zu früh zählt noch nicht. Es gilt der beste Moment.' };
+  }
+  return { instruction: '', tip: '' };
 }
 
 function phaseLabel(state) {

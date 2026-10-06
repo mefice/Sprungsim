@@ -12,13 +12,25 @@ export function clamp(value, min = 0, max = 1) {
   return Math.min(max, Math.max(min, value));
 }
 
-/** 1 am Scheitel der Timing-Kurve, deutlich weniger daneben. */
+/** 1 im goldenen Scheitel. Knapp daneben bleibt brauchbar, weit daneben nicht. */
 export function peakScore(value) {
   const v = clamp(value);
-  if (v >= 0.92) return 1;
-  if (v >= 0.72) return 0.62 + ((v - 0.72) / 0.2) * 0.38;
-  if (v >= 0.35) return 0.2 + ((v - 0.35) / 0.37) * 0.42;
-  return (v / 0.35) * 0.2;
+  if (v >= 0.86) return 1;
+  if (v >= 0.55) return 0.7 + ((v - 0.55) / 0.31) * 0.3;
+  if (v >= 0.28) return 0.34 + ((v - 0.28) / 0.27) * 0.36;
+  return (v / 0.28) * 0.34;
+}
+
+/** Training zieht einen knapp verpassten Druck näher an den Scheitel. */
+export function rateOsc(osc, training = false) {
+  const eased = training ? osc + (1 - osc) * 0.16 : osc;
+  return peakScore(eased);
+}
+
+export function bandFor(band, training = false) {
+  if (!training) return band;
+  const [min, max] = band;
+  return [Math.max(0.05, min - 0.08), Math.min(1, max + 0.07)];
 }
 
 /** 1 innerhalb des Kraftbands, linear abfallend außerhalb. */

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { DIVES } from '../src/dives.js';
-import { angleScore, bandScore, evaluate, peakScore } from '../src/scoring.js';
+import { angleScore, bandScore, evaluate, peakScore, rateOsc } from '../src/scoring.js';
 
 const perfectRaw = {
   approach: 1,
@@ -19,6 +19,9 @@ test('Timing am Scheitel ist besser als ein früher Druck', () => {
   assert.equal(peakScore(1), 1);
   assert.ok(peakScore(0.8) < peakScore(0.95));
   assert.ok(peakScore(0.1) < 0.15);
+  assert.equal(peakScore(0.9), 1);
+  assert.ok(rateOsc(0.62, true) > rateOsc(0.62, false));
+  assert.equal(rateOsc(1, false), 1);
 });
 
 test('Kraft im Band ist voll, daneben schlechter', () => {

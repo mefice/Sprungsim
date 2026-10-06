@@ -29,6 +29,14 @@ const ui = {
   score: document.getElementById('score-display'),
   judge: document.getElementById('judge-feedback'),
   instructions: document.getElementById('instructions'),
+  tip: document.getElementById('tip'),
+  pause: document.getElementById('pause-overlay'),
+  resume: document.getElementById('resume-btn'),
+  restart: document.getElementById('restart-btn'),
+  pauseMenu: document.getElementById('pause-menu-btn'),
+  modeTraining: document.getElementById('mode-training'),
+  modeMeet: document.getElementById('mode-meet'),
+  modeCopy: document.getElementById('mode-copy'),
   buttons: document.getElementById('dive-buttons'),
   start: document.getElementById('start-btn'),
   reference: document.getElementById('reference-btn'),
@@ -41,6 +49,8 @@ const pressed = new Set();
 const session = { dives: 0, total: 0, best: 0, rips: 0 };
 
 let selectedId = DIVES[0].id;
+let training = true;
+let paused = false;
 let state = null;
 let running = false;
 let logged = false;
@@ -61,13 +71,22 @@ function ringPoint(value) {
 }
 
 function ringZonePath() {
-  const [x1, y1] = ringPoint(0.72);
+  const [x1, y1] = ringPoint(0.55);
   const [x2, y2] = ringPoint(1);
   return `M ${x1.toFixed(2)} ${y1.toFixed(2)} A 40 40 0 0 0 ${x2.toFixed(2)} ${y2.toFixed(2)}`;
 }
 
 window.addEventListener('keydown', (event) => {
-  if (['Space', 'ArrowDown', 'ArrowUp', 'KeyS', 'KeyT'].includes(event.code)) event.preventDefault();
+  if (['Space', 'ArrowDown', 'ArrowUp', 'KeyS', 'KeyT', 'Escape', 'KeyR'].includes(event.code)) event.preventDefault();
+  if (event.code === 'Escape' && running) {
+    setPaused(!paused);
+    return;
+  }
+  if (event.code === 'KeyR' && running) {
+    begin(selectedId, false);
+    return;
+  }
+  if (paused) return;
   if (!down.has(event.code)) pressed.add(event.code);
   down.add(event.code);
 });
@@ -158,8 +177,10 @@ function renderMenu() {
 
 function begin(diveId, asReference = false) {
   const dive = DIVES.find((item) => item.id === diveId);
-  state = startDive(dive);
+  state = startDive(dive, { training });
   running = true;
+  paused = false;
+  ui.pause.classList.add('hidden');
   reference = asReference;
   latch = asReference ? createLatch() : null;
   logged = false;
@@ -176,14 +197,33 @@ function begin(diveId, asReference = false) {
   ui.score.replaceChildren();
   ui.judge.replaceChildren();
   ui.diveName.textContent = `${dive.id} — ${dive.name}`;
-  ui.diveDd.textContent = `DD ${formatPoints(dive.dd, 1)} · ${dive.somersaults.toLocaleString('de-DE')} Saltos`;
+  ui.diveDd.textContent = `DD ${formatPoints(dive.dd, 1)} · ${dive.somersaults.toLocaleString('de-DE')} Saltos · ${training ? 'Training' : 'Wettkampf'}`;
+}
+
+function setPaused(next) {
+  paused = next;
+  ui.pause.classList.toggle('hidden', !paused);
+  pressed.clear();
+  down.clear();
+}
+
+function leaveToMenu() {
+  running = false;
+  paused = false;
+  ui.pause.classList.add('hidden');
+  ui.overlay.classList.remove('active');
+  ui.menu.classList.remove('hidden');
+  renderMenu();
 }
 
 function sync(view) {
   if (!view) return;
   ui.phase.textContent = view.phaseLabel;
-  ui.instructions.textContent = view.instruction;
+  ui.instructions.textContent = view.timingHot ? `Jetzt. ${view.instruction}` : view.instruction;
   ui.instructions.classList.toggle('hidden', !view.instruction);
+  ui.instructions.classList.toggle('hot', view.timingHot);
+  ui.tip.textContent = view.tip || '';
+  ui.tip.classList.toggle('hidden', !view.tip);
   const showRing = view.showTiming || view.showGrab || view.showTwist;
   ui.meters.classList.toggle('hidden', !(view.showPower || view.showLineup));
   ui.ring.classList.toggle('hidden', !showRing);
@@ -283,12 +323,7 @@ function showResult(result) {
   menu.type = 'button';
   menu.className = 'continue-btn';
   menu.textContent = 'Zur Auswahl';
-  menu.addEventListener('click', () => {
-    running = false;
-    ui.overlay.classList.remove('active');
-    ui.menu.classList.remove('hidden');
-    renderMenu();
-  });
+  menu.addEventListener('click', leaveToMenu);
   actions.append(again, menu);
   ui.score.append(total, breakdown, rating, actions);
   ui.score.classList.add('visible');
@@ -328,7 +363,7 @@ function frame(now) {
   const dt = Math.min(0.05, (now - lastTime) / 1000);
   lastTime = now;
   if (canvas.clientWidth !== Math.round(canvas.width / (window.devicePixelRatio || 1))) resize();
-  if (running && state) {
+  if (running && state && !paused) {
     const input = reference ? policyInput(state, 'perfect', latch) : consumeInput();
     if (reference) pressed.clear();
     step(state, input, dt);
@@ -347,6 +382,22 @@ ui.reference.addEventListener('click', () => {
   unlockAudio();
   begin(selectedId, true);
 });
+
+ui.resume.addEventListener('click', () => setPaused(false));
+ui.restart.addEventListener('click', () => begin(selectedId, false));
+ui.pauseMenu.addEventListener('click', leaveToMenu);
+
+function setMode(nextTraining) {
+  training = nextTraining;
+  ui.modeTraining.classList.toggle('selected', training);
+  ui.modeMeet.classList.toggle('selected', !training);
+  ui.modeCopy.textContent = training
+    ? 'Weitere Fenster. Ein brauchbarer Sprung gelingt schnell, Gold bleibt knapp.'
+    : 'Engere Fenster. Sauberes Timing bleibt bei 14 bis 20 Punkten.';
+}
+
+ui.modeTraining.addEventListener('click', () => setMode(true));
+ui.modeMeet.addEventListener('click', () => setMode(false));
 
 window.addEventListener('resize', resize);
 ui.ringZone.setAttribute('d', ringZonePath());

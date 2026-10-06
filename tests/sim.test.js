@@ -4,8 +4,8 @@ import { DIVES } from '../src/dives.js';
 import { createLatch, policyInput } from '../src/policy.js';
 import { startDive, step } from '../src/sim.js';
 
-function run(dive, mode) {
-  const state = startDive(dive);
+function run(dive, mode, training = false) {
+  const state = startDive(dive, { training });
   const seen = new Set([state.phase]);
   const latch = createLatch();
   for (let i = 0; i < 60 * 18; i += 1) {
@@ -56,6 +56,14 @@ test('früher öffnen und verpasster Hand-Grab kosten Punkte', () => {
   assert.ok(early.result.total < good.result.total - 0.6);
   assert.ok(noGrab.result.phases.entry < 0.2, dump(noGrab));
   assert.ok(noGrab.result.total < run(DIVES[0], 'perfect').state.result.total - 1.5);
+});
+
+test('Training und Wettkampf behalten einen sauberen Sprung oben', () => {
+  const trained = run(DIVES[0], 'perfect', true).state.result;
+  const meet = run(DIVES[0], 'perfect', false).state.result;
+  assert.ok(trained.execution >= 8);
+  assert.ok(meet.execution >= 8);
+  assert.ok(meet.total >= 11);
 });
 
 test('Salto und Schraube bleiben bei gutem Input wertbar und der DD hebt die Punktzahl', () => {

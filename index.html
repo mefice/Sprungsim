@@ -55,13 +55,34 @@
       </div>
       <div id="score-display"></div>
       <div id="judge-feedback"></div>
-      <div id="instructions"></div>
+      <div id="key-hint">Esc Pause · R Neu</div>
+      <div id="hint-stack">
+        <div id="instructions"></div>
+        <div id="tip"></div>
+      </div>
+    </div>
+    <div id="pause-overlay" class="hidden">
+      <div class="pause-card">
+        <p class="eyebrow">Pause</p>
+        <h2>Sprung angehalten</h2>
+        <p>Esc macht weiter. R startet denselben Sprung neu.</p>
+        <div class="pause-actions">
+          <button id="resume-btn" class="menu-btn" type="button">Weiter</button>
+          <button id="restart-btn" class="menu-btn ghost" type="button">Neu starten</button>
+          <button id="pause-menu-btn" class="menu-btn ghost" type="button">Sprung wechseln</button>
+        </div>
+      </div>
     </div>
     <div id="menu-overlay">
       <div id="menu">
         <p class="eyebrow">Sprungsim · Vertical Slice</p>
         <h1>ZEHN METER</h1>
         <p class="subtitle">Fünf Phasen, eine Note. Ausführung mal Schwierigkeit.</p>
+        <div class="mode-switch" id="mode-switch">
+          <button id="mode-training" class="mode-btn selected" type="button">Training</button>
+          <button id="mode-meet" class="mode-btn" type="button">Wettkampf</button>
+        </div>
+        <p class="mode-copy" id="mode-copy">Weitere Fenster. Ein brauchbarer Sprung gelingt schnell, Gold bleibt knapp.</p>
         <div id="dive-selection">
           <h2>Sprung wählen</h2>
           <div id="dive-buttons"></div>
@@ -72,7 +93,8 @@
           <h2>Steuerung</h2>
           <p><kbd>Leertaste</kbd> Anlauf, Kraft, Absprung, Hand-Grab</p>
           <p><kbd>S</kbd> oder <kbd>↓</kbd> Hocke halten, loslassen zum Öffnen</p>
-          <p><kbd>T</kbd> Schraube, wenn der Puls im Ziel steht</p>
+          <p><kbd>T</kbd> Schraube, wenn der Ring gold ist</p>
+          <p><kbd>Esc</kbd> Pause · <kbd>R</kbd> Neu starten</p>
         </div>
         <div id="session-stats"></div>
       </div>
