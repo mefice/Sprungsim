@@ -1284,7 +1284,7 @@ function load() {
   } catch (e) { return false; }
 }
 function isPendingMail(m) {
-  return !!m && m.kind === 'inquiry' && (m.status === 'unread' || m.status === 'read' || m.status === 'later');
+  return !!m && m.kind === 'inquiry' && (m.status === 'unread' || m.status === 'read' || m.status === 'later' || m.status === 'offer');
 }
 function inquiryCap() {
   return FP.rep >= 2 ? 2 : 1;
@@ -1307,7 +1307,7 @@ function inquiryGap() {
   return Math.round((minH + Math.random() * (maxH - minH)) * 60);
 }
 function sanitizeMails() {
-  const okStatus = { unread: 1, read: 1, later: 1, accepted: 1, declined: 1 };
+  const okStatus = { unread: 1, read: 1, later: 1, offer: 1, accepted: 1, declined: 1 };
   if (!Array.isArray(FP.mails)) FP.mails = [];
   FP.mails = FP.mails.filter(m => m && m.id && (m.kind === 'bill' || m.kind === 'note' || m.kind === 'call' || JOBS.some(j => j.id === (m.jobId | 0)))).map(m => ({
     id: String(m.id),
@@ -1400,19 +1400,51 @@ function deliverInquiry(j, at) {
   log('Post: ' + L.person + ' — ' + L.subject);
   return mail;
 }
-function pushBillMail(model, html) {
+function clientTone(model) {
+  if (!model.ranFull) return 'Wir machen hier Schluss. Das Event ist zu früh zu Ende, die Zahlung fällt klein aus.';
+  if (model.hardFail) return 'Pflichtpunkte sind gerissen. Wir überweisen gekürzt und geben dafür keinen Ruf.';
+  if (model.repDelta >= 2) return 'So soll das laufen. Pflicht und der Rest haben gestimmt. Damit steigt Ihr Ruf.';
+  if (model.repDelta === 1) return 'Solide. Die Zahlung geht raus, der Ruf steigt um einen Punkt. Für mehr hätten Stimmung, Budget und die weichen Wünsche sitzen müssen.';
+  return 'Danke für den Einsatz. Diesen Auftrag kennen wir schon, der Ruf bleibt. Die Zahlung kommt trotzdem.';
+}
+function clientBillSubject(model) {
+  if (!model.ranFull) return 'Abbruch — ' + model.name;
+  if (model.hardFail) return 'Das war unter dem Vereinbarten';
+  if (model.repDelta >= 2) return 'Danke, das hat gesessen';
+  if (model.repDelta === 1) return 'Abrechnung ' + model.name;
+  return 'Zahlung zu ' + model.name;
+}
+function clientBillHtml(model) {
+  const L = LETTERS[model.jobId] || { person: model.client };
+  const repTxt = model.repBefore + ' → ' + model.repAfter + (model.repDelta ? ' (' + (model.repDelta > 0 ? '+' : '') + model.repDelta + ')' : ', unverändert');
+  return '<div class="letter"><p>' + esc(clientTone(model)) + '</p>' +
+    '<p>Überweisung an Ihre Firma: <b>' + money(model.gain) + '</b>. ' +
+    'Budget-Rest ' + money(model.left) + ', Zufriedenheit ' + model.sat + ' %, Vorfälle ' + model.incidents +
+    ', Pflicht ' + model.hardOk + '/' + model.hardN + '. Ruf ' + esc(repTxt) + '.</p>' +
+    '<p class="sig">' + esc(L.person) + '\n' + esc(model.client) + '</p></div>' +
+    '<div class="bill">' +
+    '<div class="rowl"><span>Budget</span><b>' + money(model.bud) + '</b></div>' +
+    '<div class="rowl"><span>Ausgaben</span><b>' + money(model.spent) + '</b></div>' +
+    '<div class="rowl"><span>Eintritt / Food / Merch</span><b>' + money(model.tickets) + ' / ' + money(model.food) + ' / ' + money(model.merch) + '</b></div>' +
+    '<div class="rowl tot ' + (model.gain >= 0 ? 'good' : 'bad') + '"><span>Zahlung</span><b>' + money(model.gain) + '</b></div>' +
+    '<div class="rowl"><span>Kasse jetzt</span><b class="' + (model.cashNow < 0 ? 'bad' : '') + '">' + money(model.cashNow) + '</b></div>' +
+    '</div>' +
+    (model.cashNow < 0 ? '<p class="bad">Die Firmenkasse ist im Minus. Die Gnadenfrist läuft.</p>' : '');
+}
+function pushBillMail(model) {
+  const L = LETTERS[model.jobId] || { person: model.client };
   FP.mailSeq = (FP.mailSeq | 0) + 1;
   const mail = {
     id: String(FP.mailSeq),
     kind: 'bill',
     jobId: model.jobId,
-    status: 'unread',
+    status: 'read',
     at: FP.worldMin,
     day: FP.day,
-    subject: (model.ranFull ? 'Abrechnung: ' : 'Abbruch: ') + model.name,
-    person: 'Buchhaltung',
+    subject: clientBillSubject(model),
+    person: L.person,
     org: model.client,
-    html: html
+    html: clientBillHtml(model)
   };
   FP.mails.unshift(mail);
   trimMails();
@@ -1463,7 +1495,25 @@ function acceptMail(id) {
   if (FP.over) return;
   const m = FP.mails.find(x => x.id === String(id));
   if (!m || m.kind !== 'inquiry') return;
-  if (m.status === 'accepted' || m.status === 'declined') return;
+  if (m.status === 'accepted' || m.status === 'declined' || m.status === 'offer') return;
+  if (FP.live || FP.hasContract) {
+    log('Es liegt schon ein Auftrag auf dem Tisch. Erst abrechnen.', 'warn');
+    return;
+  }
+  const j = JOBS[m.jobId];
+  if (!j || FP.rep < j.unlockAt) return;
+  if (!j.nego || !j.nego.length) { confirmAccept(id, false); return; }
+  m.status = 'offer';
+  FP.openMailId = m.id;
+  FP.desk = 'inbox';
+  log(j.client + ' fragt nach einem Zusatz, bevor die Zusage fest ist.');
+  sync();
+  save();
+}
+function confirmAccept(id, extra) {
+  if (FP.over) return;
+  const m = FP.mails.find(x => x.id === String(id));
+  if (!m || m.kind !== 'inquiry' || m.status === 'accepted' || m.status === 'declined') return;
   if (FP.live || FP.hasContract) {
     log('Es liegt schon ein Auftrag auf dem Tisch. Erst abrechnen.', 'warn');
     return;
@@ -1479,10 +1529,13 @@ function acceptMail(id) {
   FP.planAct = null;
   FP.removeMode = false;
   FP.tool = 'gate';
+  FP.nego[j.id] = {};
+  const n = j.nego[0];
+  if (n) FP.nego[j.id][n.id] = !!extra;
   FP.hasContract = true;
   m.status = 'accepted';
   FP.openMailId = m.id;
-  log('Zusage an ' + j.client + ': ' + j.name + '.');
+  log('Zusage an ' + j.client + ': ' + j.name + (n && extra ? (' mit ' + n.label) : ' ohne Zusatz') + '.');
   pushContractMail();
   FP.desk = 'event';
   sync();
@@ -1521,6 +1574,15 @@ function mailActions(m) {
     const spec = CALL_SPEC[c.id];
     return '<div class="mail-actions"><button type="button" class="primary" data-call="' + esc(c.id) + '" data-choice="pay">' +
       esc(spec.payLabel) + ' · ' + money(c.cost) + '</button><button type="button" data-call="' + esc(c.id) + '" data-choice="ignore">Laufen lassen</button></div>';
+  }
+  if (m.status === 'offer') {
+    const j = JOBS[m.jobId];
+    const n = j && j.nego && j.nego[0];
+    if (!n) return '';
+    return '<p>Bevor die Zusage fest wird, eine Frage: <b>' + esc(n.label) + '</b>. ' + esc(n.detail) +
+      '. Ohne Zusatz bleibt das Budget bei ' + money(j.budget) + '.</p>' +
+      '<div class="mail-actions"><button type="button" class="primary" id="offerYes">' + esc(n.label) + ' dazu</button>' +
+      '<button type="button" id="offerNo">Ohne Zusatz zusagen</button></div>';
   }
   if (m.status === 'accepted') {
     if ((FP.hasContract || FP.live) && m.jobId === FP.jobId) {
@@ -1567,7 +1629,7 @@ function renderInbox() {
     read.innerHTML = '<p class="muted">' + (FP.mails.length ? 'Wähle eine Nachricht oder einen Zettel vom Schreibtisch.' : 'Keine Kundenpost. Der Schreibtisch oben ist freiwillig.') + '</p>';
     return;
   }
-  const tag = m.kind === 'bill' ? 'Abrechnung' : (m.kind === 'call' ? 'Lage' : (m.kind === 'note' ? 'Intern' : (m.status === 'unread' ? 'Neu' : m.status === 'later' ? 'Offen' : m.status === 'accepted' ? 'Angenommen' : m.status === 'declined' ? 'Abgelehnt' : 'Gelesen')));
+  const tag = m.kind === 'bill' ? 'Abrechnung' : (m.kind === 'call' ? 'Lage' : (m.kind === 'note' ? 'Intern' : (m.status === 'offer' ? 'Rückfrage' : (m.status === 'unread' ? 'Neu' : m.status === 'later' ? 'Offen' : m.status === 'accepted' ? 'Angenommen' : m.status === 'declined' ? 'Abgelehnt' : 'Gelesen'))));
   read.innerHTML = '<div class="mail-kicker">' + esc(tag) + ' · ' + esc(mailStamp(m)) + '</div>' +
     '<h2>' + esc(m.subject) + '</h2>' +
     '<p class="muted">' + esc(m.person) + (m.org ? ' · ' + esc(m.org) : '') + '</p>' +
@@ -1579,6 +1641,10 @@ function renderInbox() {
   if (acc) acc.onclick = () => acceptMail(m.id);
   if (dec) dec.onclick = () => declineMail(m.id);
   if (later) later.onclick = () => laterMail(m.id);
+  const yes = $('offerYes');
+  const no = $('offerNo');
+  if (yes) yes.onclick = () => confirmAccept(m.id, true);
+  if (no) no.onclick = () => confirmAccept(m.id, false);
   if (toEv) toEv.onclick = () => setDesk('event');
   const goBtn = $('mailGo');
   if (goBtn && m.go) goBtn.onclick = () => setDesk(m.go);
@@ -2047,7 +2113,7 @@ function pushContractMail() {
     org: 'Intern',
     go: 'crew',
     goLabel: 'Zur Crew',
-    html: '<div class="letter"><p>Die Zusage an ' + esc(j.client) + ' ist raus. Auf der Fläche: ' + esc(needLine(j)) + '. Personal: ' + esc(staffLine(j)) + '.</p><p>Du kannst am Plan bleiben oder zuerst Leute holen. Beides ist offen. Start erst, wenn Fläche und Köpfe stehen.</p><p class="sig">Disposition\nIntern</p></div>'
+    html: '<div class="letter"><p>Die Zusage an ' + esc(j.client) + ' ist raus' + (j.nego[0] && negoOn(j.nego[0]) ? (', mit ' + esc(j.nego[0].label) + '. Budget jetzt ' + money(effBudget()) + '.') : ', ohne Zusatz.') + ' Auf der Fläche: ' + esc(needLine(j)) + '. Personal: ' + esc(staffLine(j)) + '.</p><p>Du kannst am Plan bleiben oder zuerst Leute holen. Beides ist offen. Start erst, wenn Fläche und Köpfe stehen.</p><p class="sig">Disposition\nIntern</p></div>'
   });
 }
 function checkRow(ok, text) {
@@ -2857,7 +2923,8 @@ function settle(auto) {
   FP.tool = 'gate';
   const body = billHtml(model);
   FP.lastBill = body;
-  pushBillMail(model, body);
+  const bill = pushBillMail(model);
+  FP.openMailId = bill.id;
   const newTier = JOBS.some(x => x.unlockAt > repBefore && x.unlockAt <= FP.rep);
   const gap = newTier ? Math.round((3 + Math.random() * 5) * 60) : inquiryGap();
   if (!(FP.nextMailAt > FP.worldMin)) FP.nextMailAt = FP.worldMin + gap;
@@ -2873,10 +2940,6 @@ function settle(auto) {
   FP.desk = 'inbox';
   sync();
   save();
-  if (!FP.over) {
-    openModal(body + '<button type="button" class="primary" id="billClose">Weiter</button>');
-    $('billClose').onclick = closeModal;
-  }
 }
 function askEnd() {
   if (!FP.live || FP.over) return;
@@ -3580,6 +3643,8 @@ function coachText() {
   if (FP.grace && FP.cash < 0) return 'Die Kasse ist im Minus. Die Gnadenfrist läuft — unter Bank tilgen oder einen Kredit prüfen.';
   if (FP.live) return nextActionText();
   if (FP.hasContract) return job().name + ' liegt auf dem Tisch. Die Lage steht am Gelände — wohin du gehst, bleibt dir überlassen.';
+  const offer = FP.mails.find(function (m) { return m.status === 'offer'; });
+  if (offer) return (JOBS[offer.jobId] ? JOBS[offer.jobId].client : 'Der Auftraggeber') + ' fragt nach einem Zusatz, bevor die Zusage fest ist.';
   const unread = FP.mails.filter(function (m) { return m.status === 'unread'; }).length;
   if (unread === 1) return 'Eine neue Nachricht liegt im Posteingang.';
   if (unread > 1) return unread + ' neue Nachrichten im Posteingang.';

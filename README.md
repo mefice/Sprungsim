@@ -11,7 +11,9 @@ Eine einzelne HTML-Datei, kein Build. Start: `index.html` im Browser öffnen.
 
 Du sitzt im Büro. Die Uhr läuft (Leertaste pausiert, Tasten 1, 2 und 5 ändern das Tempo). Aufträge kommen als E-Mail, nicht als Liste.
 
-Die erste Anfrage liegt schon im Posteingang. Aufmachen, lesen, annehmen, ablehnen oder liegen lassen. Eine Zusage öffnet das aktive Event. Oben bleiben Posteingang, Gelände, Crew, Zentrale, Bank und Log — du springst dorthin, wo Arbeit liegt. Tempo und Pause sitzen in der Kopfzeile.
+Die erste Anfrage liegt schon im Posteingang. Aufmachen, lesen, annehmen, ablehnen oder liegen lassen. Annehmen stellt eine einzige Rückfrage zum Zusatz (Fotobox, DJ, Feuerwerk …). Danach liegt der Auftrag auf dem Tisch. Oben bleiben Posteingang, Gelände, Crew, Zentrale, Bank und Log. Tempo und Pause sitzen in der Kopfzeile.
+
+Nach dem Event schreibt der Auftraggeber die Abrechnung: Lob oder Kritik, die Zahlung, der Ruf. Du landest wieder im Posteingang.
 
 Am Event steht eine Lagezeile: was auf der Fläche oder bei der Crew als Nächstes sinnvoll ist. Start, Bank und Zentrale bleiben klickbar. Fehlt Geld oder reißt das Auftragsbudget, schreibt die Buchhaltung eine interne Mail.
 
