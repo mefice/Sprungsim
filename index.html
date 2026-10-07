@@ -214,6 +214,16 @@ body:not(.is-live) .live-only{display:none !important}
   background:var(--off);
   border-left:3px solid var(--sage);
 }
+.live-calls{display:flex; flex-direction:column; gap:8px; margin:10px 0}
+.call{
+  border:1px solid var(--line);
+  border-left:3px solid var(--warn);
+  background:var(--card);
+  padding:12px 14px;
+}
+.call h3{margin:0 0 6px; font-size:1.02rem}
+.call-actions{display:flex; flex-wrap:wrap; gap:8px; margin-top:10px}
+.call-actions button{min-width:160px}
 .active-chip{margin:0 0 12px}
 .active-chip button{margin-left:8px}
 .mail{
@@ -496,6 +506,7 @@ details{margin-top:8px}
           <button type="button" class="primary plan-only" id="startBtn">Event starten</button>
         </div>
         <p class="lage plan-only" id="lage"></p>
+        <div id="liveCalls" class="live-calls live-only" hidden></div>
         <div class="event-grid">
           <div class="event-side">
             <div class="kpi"><span>Auftraggeber</span><b id="cliName">—</b></div>
@@ -813,7 +824,7 @@ const SAVE_FIELDS = [
   'sat','spent','gateAt','actAt','planGate','planAct','eventsDone','weight','day',
   'logLines','bankLines','tool','lastBill','setupLogged','welcomed','pro','step','pendingDebrief','paused',
   'mails','mailSeq','nextMailAt','openMailId','declineUntil','hasContract','desk',
-  'officeNext','noted','deskSlip'
+  'officeNext','noted','deskSlip','calls','liveMods','techCover','techMiss'
 ];
 
 function emptyExt() { return { Security: 0, Technik: 0, Orga: 0, Catering: 0, Aufbau: 0 }; }
@@ -835,7 +846,8 @@ const FP = {
   eventsDone: 0, people: [], spawnAcc: 0, tool: 'gate', removeMode: false,
   logLines: [], bankLines: [], lastBill: '', cd: {}, alertCache: '', tab: 'zentrale',
   mails: [], mailSeq: 0, nextMailAt: null, openMailId: null, declineUntil: {}, hasContract: false, desk: 'inbox',
-  officeNext: null, noted: {}, deskSlip: ''
+  officeNext: null, noted: {}, deskSlip: '',
+  calls: [], liveMods: { crowd: 1, food: 1 }, techCover: false, techMiss: false
 };
 
 let canvas, ctx, frameNow = 0, planPointer = null;
@@ -933,7 +945,10 @@ function calcSetup() {
 function actDelay() {
   if (!job().wishes.some(w => w.type === 'actStart')) return 0;
   const rec = Math.max(2, job().needStaff.Technik * 2);
-  return Math.max(0, rec - techPower()) * 24;
+  let delay = Math.max(0, rec - techPower()) * 24;
+  if (FP.techMiss) delay += 18;
+  if (FP.techCover) delay = Math.max(0, delay - 16);
+  return delay;
 }
 function assumedStartAbs() {
   if (FP.live && FP.eventStart) return FP.eventStart;
@@ -1235,6 +1250,12 @@ function ensureShape() {
   if (!FP.declineUntil || typeof FP.declineUntil !== 'object' || Array.isArray(FP.declineUntil)) FP.declineUntil = {};
   if (!FP.noted || typeof FP.noted !== 'object' || Array.isArray(FP.noted)) FP.noted = {};
   if (typeof FP.deskSlip !== 'string') FP.deskSlip = '';
+  if (!FP.liveMods || typeof FP.liveMods !== 'object') FP.liveMods = { crowd: 1, food: 1 };
+  FP.liveMods.crowd = Number(FP.liveMods.crowd) || 1;
+  FP.liveMods.food = Number(FP.liveMods.food) || 1;
+  FP.techCover = !!FP.techCover;
+  FP.techMiss = !!FP.techMiss;
+  sanitizeCalls();
   sanitizeMails();
   const desks = { inbox: 1, event: 1, crew: 1, hq: 1, bank: 1, log: 1 };
   if (!desks[FP.desk]) {
@@ -1243,6 +1264,12 @@ function ensureShape() {
     else FP.desk = 'inbox';
   }
   ensureInbox();
+  if (FP.live && (!FP.calls || !FP.calls.length) && FP.endMin > FP.worldMin + 25) {
+    planLiveCalls();
+    FP.calls.forEach(function (c, i) {
+      if (c.fireAt < FP.worldMin + 5) c.fireAt = FP.worldMin + 10 + i * 35;
+    });
+  }
   FP.cash = Math.round(FP.cash);
   FP.rep = Math.max(0, FP.rep | 0);
 }
@@ -1282,9 +1309,9 @@ function inquiryGap() {
 function sanitizeMails() {
   const okStatus = { unread: 1, read: 1, later: 1, accepted: 1, declined: 1 };
   if (!Array.isArray(FP.mails)) FP.mails = [];
-  FP.mails = FP.mails.filter(m => m && m.id && (m.kind === 'bill' || m.kind === 'note' || JOBS.some(j => j.id === (m.jobId | 0)))).map(m => ({
+  FP.mails = FP.mails.filter(m => m && m.id && (m.kind === 'bill' || m.kind === 'note' || m.kind === 'call' || JOBS.some(j => j.id === (m.jobId | 0)))).map(m => ({
     id: String(m.id),
-    kind: m.kind === 'bill' ? 'bill' : (m.kind === 'note' ? 'note' : 'inquiry'),
+    kind: m.kind === 'bill' ? 'bill' : (m.kind === 'note' ? 'note' : (m.kind === 'call' ? 'call' : 'inquiry')),
     jobId: m.jobId | 0,
     status: okStatus[m.status] ? m.status : 'read',
     at: +m.at || 0,
@@ -1294,7 +1321,8 @@ function sanitizeMails() {
     org: String(m.org || ''),
     html: typeof m.html === 'string' ? m.html : '',
     go: ['event', 'crew', 'bank', 'hq', 'inbox', 'log'].includes(m.go) ? m.go : '',
-    goLabel: String(m.goLabel || '')
+    goLabel: String(m.goLabel || ''),
+    callId: String(m.callId || '')
   }));
   FP.mailSeq = Math.max(FP.mailSeq | 0, FP.mails.reduce((a, m) => Math.max(a, parseInt(m.id, 10) || 0), 0));
   if (FP.openMailId != null && !FP.mails.some(m => m.id === String(FP.openMailId))) FP.openMailId = null;
@@ -1303,7 +1331,7 @@ function sanitizeMails() {
 function trimMails() {
   const pending = [];
   const rest = [];
-  FP.mails.forEach(m => ((isPendingMail(m) || (m.kind === 'note' && m.status === 'unread')) ? pending : rest).push(m));
+  FP.mails.forEach(m => ((isPendingMail(m) || ((m.kind === 'note' || m.kind === 'call') && m.status === 'unread')) ? pending : rest).push(m));
   FP.mails = pending.concat(rest).slice(0, 30);
 }
 function mailStamp(m) {
@@ -1319,7 +1347,7 @@ function staffLine(j) {
   return DEPTS.filter(d => j.needStaff[d]).map(d => d + ' ' + j.needStaff[d]).join(', ');
 }
 function letterBody(m) {
-  if (m.kind === 'bill' || m.kind === 'note') return m.html || '<p class="muted">Keine Notiz gespeichert.</p>';
+  if (m.kind === 'bill' || m.kind === 'note' || m.kind === 'call') return m.html || '<p class="muted">Keine Notiz gespeichert.</p>';
   const j = JOBS[m.jobId];
   const L = LETTERS[j.id] || { opener: j.blurb, close: 'Eine Zu- oder Absage reicht.', person: m.person };
   const wishes = j.wishes.map(w => '<li>' + esc(w.label) + (w.hard ? ' (Pflicht)' : ' (Wunsch)') + '</li>').join('');
@@ -1487,6 +1515,13 @@ function mailActions(m) {
     if (!m.go) return '';
     return '<div class="mail-actions"><button type="button" id="mailGo">' + esc(m.goLabel || 'Öffnen') + '</button></div>';
   }
+  if (m.kind === 'call') {
+    const c = (FP.calls || []).find(x => x.id === m.callId && x.status === 'open');
+    if (!c) return '';
+    const spec = CALL_SPEC[c.id];
+    return '<div class="mail-actions"><button type="button" class="primary" data-call="' + esc(c.id) + '" data-choice="pay">' +
+      esc(spec.payLabel) + ' · ' + money(c.cost) + '</button><button type="button" data-call="' + esc(c.id) + '" data-choice="ignore">Laufen lassen</button></div>';
+  }
   if (m.status === 'accepted') {
     if ((FP.hasContract || FP.live) && m.jobId === FP.jobId) {
       return '<div class="mail-actions"><button type="button" class="primary" id="mailToEvent">Zum Gelände</button></div>';
@@ -1532,7 +1567,7 @@ function renderInbox() {
     read.innerHTML = '<p class="muted">' + (FP.mails.length ? 'Wähle eine Nachricht oder einen Zettel vom Schreibtisch.' : 'Keine Kundenpost. Der Schreibtisch oben ist freiwillig.') + '</p>';
     return;
   }
-  const tag = m.kind === 'bill' ? 'Abrechnung' : (m.kind === 'note' ? 'Intern' : (m.status === 'unread' ? 'Neu' : m.status === 'later' ? 'Offen' : m.status === 'accepted' ? 'Angenommen' : m.status === 'declined' ? 'Abgelehnt' : 'Gelesen'));
+  const tag = m.kind === 'bill' ? 'Abrechnung' : (m.kind === 'call' ? 'Lage' : (m.kind === 'note' ? 'Intern' : (m.status === 'unread' ? 'Neu' : m.status === 'later' ? 'Offen' : m.status === 'accepted' ? 'Angenommen' : m.status === 'declined' ? 'Abgelehnt' : 'Gelesen')));
   read.innerHTML = '<div class="mail-kicker">' + esc(tag) + ' · ' + esc(mailStamp(m)) + '</div>' +
     '<h2>' + esc(m.subject) + '</h2>' +
     '<p class="muted">' + esc(m.person) + (m.org ? ' · ' + esc(m.org) : '') + '</p>' +
@@ -1548,6 +1583,9 @@ function renderInbox() {
   const goBtn = $('mailGo');
   if (goBtn && m.go) goBtn.onclick = () => setDesk(m.go);
   bindSlip(read);
+  read.querySelectorAll('[data-call]').forEach(b => {
+    b.onclick = () => resolveCall(b.dataset.call, b.dataset.choice, false);
+  });
 }
 
 function wagePreview() {
@@ -1736,8 +1774,214 @@ function pumpOffice() {
   applyChrome();
   save();
 }
+const CALL_SPEC = {
+  rush: {
+    subject: 'Andrang am Eingang',
+    person: 'Einlass',
+    payLabel: 'Einlass verstärken',
+    paySat: 7,
+    ignoreSat: 9,
+    lage: 'Andrang am Eingang.',
+    body: 'Am Eingang staut es sich. Zusätzliche Kräfte halten die Schlange kurz und lassen mehr Leute durch. Wer es laufen lässt, kassiert einen Vorfall, verliert Stimmung und spürbar Zulauf.',
+    payLog: 'Einlass verstärkt. Zulauf steigt, gezahlt aus dem Auftragsbudget.',
+    ignoreLog: 'Andrang ohne Verstärkung. Vorfall, Stimmung und Zulauf leiden.'
+  },
+  food: {
+    subject: 'Catering kommt nicht nach',
+    person: 'Küche',
+    payLabel: 'Notdienst ordern',
+    paySat: 6,
+    ignoreSat: 8,
+    lage: 'Die Ausgabe stockt.',
+    body: 'Die Ausgabe kommt nicht hinterher. Ein Notdienst hebt Stimmung und Food-Umsatz. Liegenlassen drückt beides und wird ein Vorfall.',
+    payLog: 'Notdienst in der Küche. Food-Umsatz und Stimmung ziehen an.',
+    ignoreLog: 'Catering bleibt eng. Vorfall, Stimmung und Food-Umsatz sinken.'
+  },
+  tech: {
+    subject: 'Störung an der Bühne',
+    person: 'Technik',
+    payLabel: 'Techniker nachlegen',
+    paySat: 5,
+    ignoreSat: 8,
+    lage: 'Störung an der Bühne.',
+    body: 'Die Bühne meldet eine Störung. Nachlegen hält den Act näher am Fenster. Liegenlassen kostet Stimmung, einen Vorfall, und der Act rutscht.',
+    payLog: 'Technik nachgelegt. Der Act bleibt näher am Fenster.',
+    ignoreLog: 'Störung bleibt liegen. Vorfall, Stimmung, der Act verzögert sich.'
+  },
+  sec: {
+    subject: 'Unruhige Ecke',
+    person: 'Security',
+    payLabel: 'Streife verstärken',
+    paySat: 5,
+    ignoreSat: 7,
+    lage: 'Security meldet eine unruhige Ecke.',
+    body: 'Die Streife will Verstärkung. Das kostet Auftragsbudget und hält die Ecke ruhig. Liegenlassen wird ein Vorfall und kostet Stimmung.',
+    payLog: 'Streife verstärkt. Die Ecke bleibt ruhig.',
+    ignoreLog: 'Unruhige Ecke ohne Verstärkung. Vorfall und Stimmung leiden.'
+  }
+};
+function callCost(id) {
+  const rate = { rush: 0.055, food: 0.06, tech: 0.07, sec: 0.05 };
+  return Math.max(280, Math.min(4200, Math.round(job().budget * (rate[id] || 0.05))));
+}
+function sanitizeCalls() {
+  const ok = { wait: 1, open: 1, paid: 1, ignored: 1 };
+  if (!Array.isArray(FP.calls)) FP.calls = [];
+  FP.calls = FP.calls.filter(c => c && CALL_SPEC[c.id]).map(c => ({
+    id: c.id,
+    fireAt: +c.fireAt || 0,
+    deadline: c.deadline == null ? null : +c.deadline,
+    status: ok[c.status] ? c.status : 'wait',
+    cost: Math.max(0, c.cost | 0)
+  }));
+}
+function planLiveCalls() {
+  FP.liveMods = { crowd: 1, food: 1 };
+  FP.techCover = false;
+  FP.techMiss = false;
+  const gateT = scheduledGateAt() || (FP.setupReadyAt + 10);
+  let rushAt = Math.max(FP.setupReadyAt + 8, gateT + 12);
+  const secondId = job().wishes.some(w => w.type === 'actStart') ? 'tech' : ((job().need.food || 0) > 0 ? 'food' : 'sec');
+  let secondAt = secondId === 'tech'
+    ? Math.max(rushAt + 50, (scheduledActAt() || (rushAt + 70)) - 20)
+    : rushAt + Math.max(45, Math.round(job().hours * 60 * 0.28));
+  const latest = FP.endMin - 20;
+  if (rushAt > latest - 40) rushAt = Math.max(FP.setupReadyAt + 6, latest - 70);
+  if (secondAt < rushAt + 25) secondAt = rushAt + 40;
+  if (secondAt > latest) secondAt = latest;
+  FP.calls = [
+    { id: 'rush', fireAt: rushAt, deadline: null, status: 'wait', cost: 0 },
+    { id: secondId, fireAt: secondAt, deadline: null, status: 'wait', cost: 0 }
+  ];
+}
+function callLeftMin(c) {
+  return Math.max(0, Math.ceil((c.deadline || FP.worldMin) - FP.worldMin));
+}
+function openCall(c) {
+  const spec = CALL_SPEC[c.id];
+  c.status = 'open';
+  c.deadline = FP.worldMin + 70;
+  c.cost = callCost(c.id);
+  const after = budgetLeftNow() - c.cost;
+  const html = '<div class="letter"><p>' + esc(spec.body) + '</p><p>Nachlegen kostet <b>' + money(c.cost) + '</b> aus dem Auftragsbudget. Rest danach ca. ' + money(after) + '. Laufen lassen ist erlaubt und hat Folgen.</p><p class="sig">' + esc(spec.person) + '\nGelände</p></div>';
+  FP.mailSeq = (FP.mailSeq | 0) + 1;
+  FP.mails.unshift({
+    id: String(FP.mailSeq),
+    kind: 'call',
+    jobId: job().id,
+    callId: c.id,
+    status: 'unread',
+    at: FP.worldMin,
+    day: FP.day,
+    subject: spec.subject,
+    person: spec.person,
+    org: job().client,
+    html: html,
+    go: 'event',
+    goLabel: 'Zum Gelände'
+  });
+  trimMails();
+  if (FP.speed > 1) setSpeed(1);
+  log(spec.subject + '. ' + money(c.cost) + ' oder laufen lassen.', 'warn');
+}
+function resolveCall(id, choice, auto) {
+  const c = (FP.calls || []).find(x => x.id === id);
+  if (!c || c.status !== 'open' || !FP.live) return;
+  const spec = CALL_SPEC[c.id];
+  const pay = choice === 'pay';
+  c.status = pay ? 'paid' : 'ignored';
+  if (pay) {
+    FP.spent += c.cost;
+    FP.sat = Math.min(100, FP.sat + spec.paySat);
+    if (id === 'rush') FP.liveMods.crowd = 1.12;
+    if (id === 'food') FP.liveMods.food = 1.22;
+    if (id === 'tech') FP.techCover = true;
+    log(spec.payLog + ' ' + money(c.cost) + '.', 'good');
+  } else {
+    FP.sat = Math.max(8, FP.sat - spec.ignoreSat);
+    FP.incidents += 1;
+    if (id === 'rush') FP.liveMods.crowd = 0.8;
+    if (id === 'food') FP.liveMods.food = 0.65;
+    if (id === 'tech') FP.techMiss = true;
+    log((auto ? 'Frist um. ' : '') + spec.ignoreLog, 'bad');
+  }
+  const mail = FP.mails.find(m => m.kind === 'call' && m.callId === id);
+  if (mail) {
+    mail.status = 'read';
+    mail.html = '<div class="letter"><p>' + esc(pay ? spec.payLog : spec.ignoreLog) + '</p><p>' +
+      (pay ? ('Ausgegeben ' + money(c.cost) + ' aus dem Auftragsbudget.') : 'Keine Ausgabe. Vorfall und Stimmung sind verbucht.') +
+      '</p><p>Stimmung jetzt ' + Math.round(FP.sat) + ' %. Vorfälle ' + FP.incidents + '.</p></div>';
+  }
+  FP._callSig = '';
+  renderCalls();
+  renderInbox();
+  applyChrome();
+  save();
+}
+function pumpCalls() {
+  if (!FP.live || FP.over) return;
+  let dirty = false;
+  (FP.calls || []).forEach(c => {
+    if (c.status === 'wait' && FP.worldMin >= c.fireAt) {
+      const busy = FP.calls.some(x => x.status === 'open');
+      if (busy) {
+        if (c.fireAt <= FP.worldMin) c.fireAt = FP.worldMin + 12;
+        return;
+      }
+      openCall(c);
+      dirty = true;
+    } else if (c.status === 'open' && FP.worldMin >= c.deadline) {
+      resolveCall(c.id, 'ignore', true);
+      dirty = true;
+    }
+  });
+  if (dirty) {
+    renderCalls();
+    renderInbox();
+    applyChrome();
+    save();
+  }
+}
+function callSig() {
+  return (FP.calls || []).map(c => c.id + c.status + (c.status === 'open' ? callLeftMin(c) : '')).join('|') + (FP.paused ? 'p' : '');
+}
+function renderCalls() {
+  const el = $('liveCalls');
+  if (!el) return;
+  const open = (FP.calls || []).filter(c => c.status === 'open');
+  if (!FP.live || !open.length) {
+    el.innerHTML = '';
+    el.hidden = true;
+    FP._callSig = callSig();
+    return;
+  }
+  el.hidden = false;
+  el.innerHTML = open.map(c => {
+    const spec = CALL_SPEC[c.id];
+    const left = callLeftMin(c);
+    const after = budgetLeftNow() - c.cost;
+    return '<article class="call"><h3>' + esc(spec.subject) + '</h3><p>' + esc(spec.body) + '</p><p class="muted">Noch ' +
+      left + ' Min' + (FP.paused ? ' · Uhr steht' : '') + '. Nachlegen ' + money(c.cost) + ', Rest danach ca. ' + money(after) + '.</p><div class="call-actions"><button type="button" class="primary" data-call="' +
+      esc(c.id) + '" data-choice="pay">' + esc(spec.payLabel) + ' · ' + money(c.cost) + '</button><button type="button" data-call="' +
+      esc(c.id) + '" data-choice="ignore">Laufen lassen</button></div></article>';
+  }).join('');
+  el.querySelectorAll('[data-call]').forEach(b => {
+    b.onclick = () => resolveCall(b.dataset.call, b.dataset.choice, false);
+  });
+  FP._callSig = callSig();
+}
+function paintCalls() {
+  const sig = callSig();
+  if (sig === FP._callSig) return;
+  renderCalls();
+  const line = coachText();
+  const coach = $('coachLine');
+  if (coach && coach.textContent !== line) coach.textContent = line;
+}
 function nextActionText() {
   if (FP.live) {
+    const open = (FP.calls || []).find(c => c.status === 'open');
+    if (open) return CALL_SPEC[open.id].lage + ' Nachlegen kostet ' + money(open.cost) + ' aus dem Auftragsbudget, laufen lassen wird ein Vorfall. Noch ' + callLeftMin(open) + ' Min.';
     if (FP.worldMin < FP.setupReadyAt) return 'Aufbau läuft. Der Eingang bleibt zu, bis die Fläche steht.';
     if (FP.gateAt == null) return 'Aufbau steht. Eingang öffnen oder auf die geplante Zeit warten.';
     if (job().wishes.some(w => w.type === 'actStart') && FP.actAt == null) return 'Gäste können rein. Den Act zur geplanten Zeit starten.';
@@ -2033,6 +2277,7 @@ function sync() {
   renderClient();
   renderTools();
   renderWishes($('wishLive'));
+  renderCalls();
   renderBankLog();
   paintHireHint();
   const bill = FP.lastBill || '<p class="muted">Noch keine Abrechnung.</p>';
@@ -2175,6 +2420,7 @@ function paintNumbers() {
   }
   paintAmbient();
   paintOffice();
+  paintCalls();
   const pb = $('pauseBtn');
   if (pb) { pb.textContent = FP.paused ? 'Fortsetzen' : 'Pause'; pb.classList.toggle('on', !!FP.paused); }
   document.body.classList.remove('is-day', 'is-peak', 'is-night');
@@ -2453,6 +2699,7 @@ function startEvent(ignoreWarnings) {
   else if (load === 0) log('Das Büro läuft ohne dich.', 'good');
   FP.paused = false;
   FP.desk = 'event';
+  planLiveCalls();
   sync();
   save();
 }
@@ -2526,6 +2773,7 @@ function billHtml(model) {
 }
 function settle(auto) {
   if (!FP.live || FP.over) return;
+  (FP.calls || []).filter(c => c.status === 'open').forEach(c => resolveCall(c.id, 'ignore', true));
   const j = job();
   const results = j.wishes.map(w => ({ w, st: evalWish(w, true) }));
   let hardFail = 0, hardOk = 0, hardN = 0, softFail = 0;
@@ -2704,7 +2952,8 @@ function tickLive(dtMin) {
   }
   const j = job();
   if (FP.gateAt != null) {
-    const rate = (j.crowd / FP.weight) * ph.crowd * mktMult();
+    const mods = FP.liveMods || { crowd: 1, food: 1 };
+    const rate = (j.crowd / FP.weight) * ph.crowd * mktMult() * (mods.crowd || 1);
     const room = j.crowd * 1.35 - FP.visitors;
     const add = Math.max(0, Math.min(room, rate * dtMin));
     FP.visitors += add;
@@ -2712,7 +2961,7 @@ function tickLive(dtMin) {
     const catPow = strength('Catering') + hq().effects.cat;
     const pop = Math.min(1.25, FP.visitors / Math.max(20, j.crowd * 0.35));
     const quality = 1 + catPow * 0.1;
-    FP.foodRev += countId('food') * 2.4 * ph.food * quality * Math.max(0.35, pop) * dtMin;
+    FP.foodRev += countId('food') * 2.4 * ph.food * quality * Math.max(0.35, pop) * dtMin * ((FP.liveMods && FP.liveMods.food) || 1);
     FP.merchRev += countId('stand') * 1.6 * ph.crowd * Math.max(0.35, pop) * (1 + bestSkill('buero_mkt') * 0.04) * dtMin;
   }
   const secWish = j.wishes.find(w => w.type === 'secMin');
@@ -2738,6 +2987,7 @@ function tickLive(dtMin) {
   if (undelegated().length >= 4) target -= 8;
   FP.sat += (target - FP.sat) * 0.0015 * dtMin;
   FP.sat = Math.max(8, Math.min(100, FP.sat));
+  pumpCalls();
   movePeople(dtMin);
   if (Math.floor(FP.worldMin) !== FP.wishBucket) {
     FP.wishBucket = Math.floor(FP.worldMin);
@@ -3444,7 +3694,7 @@ function boot() {
   sync();
   window.FPDebug = {
     get state() { return FP; },
-    checkSolvency, strength, heads, money, job, advance
+    checkSolvency, strength, heads, money, job, advance, tickLive
   };
   requestAnimationFrame(frame);
 }

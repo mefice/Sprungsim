@@ -15,6 +15,10 @@ Die erste Anfrage liegt schon im Posteingang. Aufmachen, lesen, annehmen, ablehn
 
 Am Event steht eine Lagezeile: was auf der Fläche oder bei der Crew als Nächstes sinnvoll ist. Start, Bank und Zentrale bleiben klickbar. Fehlt Geld oder reißt das Auftragsbudget, schreibt die Buchhaltung eine interne Mail.
 
+## Live
+
+Läuft das Festival, kommen ein bis zwei Lagen: Andrang am Eingang, und danach Catering oder eine Bühnenstörung. Nachlegen zahlt das Auftragsbudget und hebt Stimmung, Zulauf oder Umsatz. Laufen lassen — oder die Frist verstreichen lassen — wird ein Vorfall und drückt die Abrechnung. Tempo und Pause bleiben oben. Es bleibt ein Festival gleichzeitig.
+
 ## Post und Wartezeit
 
 Neue Anfragen sind selten, solange Ruf und Firma klein sind — oft viele Stunden bis über ein Tag Spielzeit, und nie alle Jobs auf einmal. Abgelehnte Auftraggeber melden sich nicht sofort wieder. Mit Ruf werden die Mails etwas häufiger und die Jobs größer. Liegt schon eine offene Anfrage, kommt nicht noch ein Stapel hinterher.
