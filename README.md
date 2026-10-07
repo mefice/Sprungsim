@@ -4,19 +4,21 @@ Eine einzelne HTML-Datei, kein Build. Start: `index.html` im Browser öffnen.
 
 Öffentliche Vorschau:
 
-- https://raw.githack.com/mefice/Sprungsim/cursor/2d-gelaendeplan-ca34/index.html
-- https://htmlpreview.github.io/?https://raw.githubusercontent.com/mefice/Sprungsim/cursor/2d-gelaendeplan-ca34/index.html
+- https://raw.githack.com/mefice/Sprungsim/cursor/inbox-buero-0d25/index.html
+- https://htmlpreview.github.io/?https://raw.githubusercontent.com/mefice/Sprungsim/cursor/inbox-buero-0d25/index.html
 
 ## So startest du
 
-Die Seite führt in Schritten: Hallo, Auftrag, Briefing, Gelände, Crew, Start, Live, Abrechnung. Die Uhr steht am Anfang auf Pause (Button „Fortsetzen“ oder Leertaste). Tempo: Tasten 1, 2 und 5.
+Du sitzt im Büro. Die Uhr läuft (Leertaste pausiert, Tasten 1, 2 und 5 ändern das Tempo). Aufträge kommen als E-Mail, nicht als Liste.
 
-## Oberfläche
+Die erste Anfrage liegt schon im Posteingang. Aufmachen, lesen, annehmen, ablehnen oder liegen lassen. Eine Zusage öffnet das aktive Event: Briefing, 2D-Gelände, Crew, Start. Es gibt keine Schritt-Leiste mehr.
 
-Gedeckte Farben (Charcoal, Sage, Sand, Off-White), Systemschrift, wenig Dekor. Das Gelände ist eine 2D-Draufsicht: Wiese mit Raster, Wege, Bauten als Grundriss. Crew, Büro und Guide bleiben fotografisch. Ablauf, Texte der Schritte und Spielregeln sind unverändert.
+## Post und Wartezeit
 
-## Bedienung
+Neue Anfragen sind selten, solange Ruf und Firma klein sind — oft viele Stunden bis über ein Tag Spielzeit, und nie alle Jobs auf einmal. Abgelehnte Auftraggeber melden sich nicht sofort wieder. Mit Ruf werden die Mails etwas häufiger und die Jobs größer. Liegt schon eine offene Anfrage, kommt nicht noch ein Stapel hinterher.
 
-- Ein Schritt zur Zeit, klare Flächen, kurze Sätze vom Guide.
-- Firma, Bank und Log liegen unter „Mehr“ und bleiben erreichbar, auch wenn die Kasse ins Minus rutscht.
-- Dieselben Regeln: ein Festival, Firmenkasse gegen Auftragsbudget, feste Crew und Externe, Echtzeit, Gnadenfrist.
+Ist der Posteingang leer, vergeht Bürozeit. Tempo hochdrehen, wenn du auf Post wartest. Es läuft weiter nur ein Festival gleichzeitig.
+
+## Was bleibt
+
+Gedeckte Farben, Systemschrift, Gelände als 2D-Draufsicht. Dieselben Regeln: Firmenkasse gegen Auftragsbudget, feste Rollen, eigene Crew und Externe, Echtzeit, Bank, Gnadenfrist, Insolvenz. Crew, Zentrale, Bank und Log sind eigene Flächen im Büro, kein verstecktes Menü.

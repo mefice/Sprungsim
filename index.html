@@ -122,7 +122,7 @@ body.show-debt .statgrid{grid-template-columns:repeat(2,minmax(0,1fr))}
 .speeds{grid-column:2; display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:6px}
 .speeds button{min-height:36px; padding:6px 4px}
 .phase-row{display:none; margin:4px 0 0}
-body[data-step="live"] .phase-row{
+body.is-live .phase-row{
   display:grid;
   grid-template-columns:repeat(6,minmax(0,1fr));
   border:1px solid var(--line);
@@ -143,14 +143,14 @@ body[data-step="live"] .phase-row{
   padding:12px 14px;
   margin:12px 0;
 }
-.steps{
+.desk{
   display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(86px,1fr));
+  grid-template-columns:repeat(6,minmax(0,1fr));
   margin:12px 0;
   border:1px solid var(--line);
   background:var(--card);
 }
-.steps button{
+.desk button{
   border:0;
   border-right:1px solid var(--line);
   border-radius:0;
@@ -160,23 +160,80 @@ body[data-step="live"] .phase-row{
   font-size:13px;
   color:var(--muted);
 }
-.steps button:last-child{border-right:0}
-.steps button:hover{background:#f3f0e8}
-.steps button.now{background:var(--charcoal); color:var(--off)}
-.steps button.now:hover{background:#323832}
-.steps button.done{color:var(--ink)}
-.steps button.done::before{content:"✓ "}
+.desk button:last-child{border-right:0}
+.desk button:hover{background:#f3f0e8}
+.desk button.now{background:var(--charcoal); color:var(--off)}
+.desk button.now:hover{background:#323832}
+.desk button.attn{box-shadow:inset 0 -2px 0 var(--bad)}
+.desk button .badge{
+  display:inline-block;
+  min-width:1.15rem;
+  margin-left:6px;
+  padding:0 5px;
+  background:var(--sand);
+  color:var(--charcoal);
+  font-size:11px;
+  font-weight:600;
+  line-height:1.45;
+  vertical-align:1px;
+}
+.desk button.now .badge{background:var(--off)}
 [data-panel]{display:none}
-body[data-step="welcome"] [data-panel~="welcome"],
-body[data-step="job"] [data-panel~="job"],
-body[data-step="brief"] [data-panel~="brief"],
-body[data-step="build"] [data-panel~="build"],
-body[data-step="crew"] [data-panel~="crew"],
-body[data-step="ready"] [data-panel~="ready"],
-body[data-step="live"] [data-panel~="live"],
-body[data-step="debrief"] [data-panel~="debrief"]{display:block}
-body:not([data-step="build"]) .build-only{display:none !important}
-body:not([data-step="live"]) .live-only{display:none !important}
+body[data-desk="inbox"] [data-panel~="inbox"],
+body[data-desk="event"] [data-panel~="event"],
+body[data-desk="crew"] [data-panel~="crew"],
+body[data-desk="hq"] [data-panel~="hq"],
+body[data-desk="bank"] [data-panel~="bank"],
+body[data-desk="log"] [data-panel~="log"]{display:block}
+body.is-live .build-only,
+body.is-live .plan-only{display:none !important}
+body:not(.is-live) .live-only{display:none !important}
+.inbox-head{display:flex; justify-content:space-between; gap:12px; align-items:baseline}
+.inbox-head h2,.event-head h2{margin:0}
+.ambient{color:var(--muted); margin:0 0 12px}
+.active-chip{margin:0 0 12px}
+.active-chip button{margin-left:8px}
+.mail{
+  display:grid;
+  grid-template-columns:minmax(240px,320px) minmax(0,1fr);
+  min-height:460px;
+  border:1px solid var(--line);
+  background:var(--off);
+}
+.mail-list{border-right:1px solid var(--line); overflow:auto; max-height:680px; background:var(--card)}
+.mail-item{
+  display:block; width:100%; text-align:left;
+  border:0; border-bottom:1px solid var(--line); border-radius:0;
+  background:transparent; padding:12px 14px; min-height:0;
+}
+.mail-item:hover{background:#f6f3ec}
+.mail-item.on{background:var(--off); box-shadow:inset 3px 0 0 var(--sage)}
+.mail-item.unread .mail-subj{font-weight:600}
+.mail-item.unread .mail-subj::before{
+  content:"";
+  display:inline-block;
+  width:7px; height:7px;
+  margin-right:7px;
+  background:var(--sage);
+  border-radius:50%;
+  vertical-align:middle;
+}
+.mail-item.dead{color:var(--muted)}
+.mail-from,.mail-subj{display:block}
+.mail-subj{font-size:14.5px}
+.mail-when{display:block; color:var(--muted); font-size:12px; font-variant-numeric:tabular-nums; margin-top:2px}
+.mail-read{padding:22px 26px 28px; background:var(--card); min-width:0}
+.mail-kicker{font-size:12px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); margin-bottom:6px}
+.letter{max-width:66ch}
+.letter ul{margin:8px 0 12px; padding-left:1.15rem}
+.letter li{margin:3px 0}
+.letter .sig{white-space:pre-line; margin-top:18px}
+.mail-actions{display:flex; flex-wrap:wrap; gap:8px; margin:4px 0 18px}
+.mail-actions button{min-width:148px}
+.event-head{display:flex; justify-content:space-between; gap:16px; align-items:flex-end; margin-bottom:14px}
+.event-head .primary{min-width:168px}
+.event-grid{display:grid; grid-template-columns:minmax(250px,330px) minmax(0,1fr); gap:20px; align-items:start}
+.event-side h2{margin-top:18px}
 .hero{
   width:100%; max-height:320px; object-fit:cover; object-position:center 22%;
   border-radius:2px; border:1px solid var(--line); background:#c8c6bf; margin-bottom:16px;
@@ -319,20 +376,27 @@ details{margin-top:8px}
   .face{width:56px; height:48px}
   .live-stat{grid-template-columns:1fr 1fr}
   .phase-row i{font-size:9px; letter-spacing:0; text-transform:none}
+  .desk{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .desk button{border-bottom:1px solid var(--line); font-size:12px}
+  .mail{grid-template-columns:1fr; min-height:0}
+  .mail-list{max-height:240px; border-right:0; border-bottom:1px solid var(--line)}
+  .mail-read{padding:16px}
+  .event-grid{grid-template-columns:1fr}
+  .event-head{flex-direction:column; align-items:stretch}
 }
 @media(min-width:760px){
   .live-stat{grid-template-columns:repeat(3,1fr)}
 }
 </style>
 </head>
-<body data-step="welcome">
+<body data-desk="inbox">
 <div class="app">
   <header class="panel top">
     <div class="coach">
       <img id="ceoMini" class="ceo-mini" alt="">
       <div>
-        <div class="kicker">Guide</div>
-        <p id="coachLine">Du leitest die Firma. Immer nur ein Festival.</p>
+        <div class="kicker">Büro</div>
+        <p id="coachLine">Das Büro ist offen. Post kommt, wenn sie kommt.</p>
       </div>
     </div>
     <div class="meta">
@@ -360,104 +424,117 @@ details{margin-top:8px}
     <i data-ph="Nachmittag">Nachmittag</i><i data-ph="Abend-Peak">Abend</i><i data-ph="Nacht-Acts">Nacht-Acts</i>
   </div>
   <div class="grace" id="grace" hidden>Kasse im Minus. Gnadenfrist noch <b id="graceLeft">—</b>. Danach ist die Firma insolvent. <button type="button" id="graceBank">Zur Bank</button></div>
-  <nav class="steps" id="stepNav" aria-label="Schritte">
-    <button type="button" data-go="welcome">Hallo</button>
-    <button type="button" data-go="job">Auftrag</button>
-    <button type="button" data-go="brief">Briefing</button>
-    <button type="button" data-go="build">Gelände</button>
-    <button type="button" data-go="crew">Crew</button>
-    <button type="button" data-go="ready">Start</button>
-    <button type="button" data-go="live">Live</button>
-    <button type="button" data-go="debrief" id="stepDebrief" hidden>Abrechnung</button>
+  <nav class="desk" id="deskNav" aria-label="Büro">
+    <button type="button" data-desk="inbox">Posteingang<span class="badge" id="unreadBadge" hidden>0</span></button>
+    <button type="button" data-desk="event">Gelände</button>
+    <button type="button" data-desk="crew">Crew</button>
+    <button type="button" data-desk="hq">Zentrale</button>
+    <button type="button" data-desk="bank" id="deskBank">Bank</button>
+    <button type="button" data-desk="log">Log</button>
   </nav>
   <main>
-    <section class="panel" data-panel="welcome">
-      <img id="ceoHero" class="hero" alt="Guide mit Headset">
-      <h2>Willkommen</h2>
-      <p class="lead">Du planst ein Festival. Immer nur eines.</p>
-      <ol class="steps-ol">
-        <li>Auftrag wählen</li>
-        <li>Wiese bauen</li>
-        <li>Crew holen</li>
-        <li>Event starten</li>
-      </ol>
-      <button type="button" class="primary xl" id="goJobs" data-go="job">Ersten Auftrag ansehen</button>
-      <p class="muted">Die Uhr steht auf Pause. Fortsetzen lässt die Zeit laufen — auch die Löhne.</p>
-    </section>
-    <section class="panel" data-panel="job">
-      <h2>Auftrag wählen</h2>
-      <p class="lead">Der erste Abschluss bringt Ruf. Gesperrte Aufträge warten.</p>
-      <div id="jobs" class="stack"></div>
-      <div class="bar"><i id="repBar"></i></div>
-      <p class="muted" id="nextHint"></p>
-      <button type="button" class="primary xl" id="takeJob" data-go="brief">Briefing zu diesem Auftrag</button>
-    </section>
-    <section class="panel" data-panel="brief">
-      <h2>Briefing</h2>
-      <p class="lead">Pflicht muss klappen. Weiche Wünsche bringen extra Ruf.</p>
-      <div class="kpi"><span>Auftraggeber</span><b id="cliName">—</b></div>
-      <p class="muted" id="cliBlurb"></p>
-      <div class="kpi"><span>Budget</span><b id="cliBud">—</b></div>
-      <div class="kpi"><span>Honorar an die Firma</span><b id="cliFee">—</b></div>
-      <div class="kpi"><span>Budget nach Extra</span><b id="cliEff">—</b></div>
-      <h2>Wünsche</h2>
-      <div id="wishList"></div>
-      <h2>Extra</h2>
-      <div id="nego"></div>
-      <h2>Zeiten</h2>
-      <p class="muted">Die Crew hält diese Uhrzeit. Du kannst sie um 15 Minuten schieben.</p>
-      <div id="planBox"></div>
-      <details>
-        <summary>Genauere Prognose</summary>
-        <div id="forecastBox"></div>
-      </details>
-      <p style="margin-top:12px"><button type="button" class="primary xl" id="briefBtn">Verstanden — zur Wiese</button></p>
-      <button type="button" id="toMap" hidden>Zur Wiese</button>
-    </section>
-    <section class="panel" data-panel="build live">
-      <div id="buildBar" class="build-only">
-        <p class="lead">Die Fläche ist eine Draufsicht. Kosten gehen vom Auftragsbudget ab, nicht von der Kasse.</p>
-        <div id="tools" class="tools"></div>
-        <p style="margin-top:8px"><button type="button" id="btnRemove">Abriss</button></p>
+    <section class="panel" data-panel="inbox">
+      <div class="inbox-head">
+        <h2>Posteingang</h2>
+        <span class="muted" id="inboxCount"></span>
       </div>
-      <canvas id="c" width="900" height="520" aria-label="Geländeplan von oben. Antippen setzt das gewählte Teil."></canvas>
-      <div id="setupWrap" class="live-only" hidden>
-        <p id="setupLabel">Aufbau</p>
-        <div class="bar"><i id="setupBar"></i></div>
+      <p class="ambient" id="ambient" hidden></p>
+      <p id="activeChip" class="active-chip" hidden></p>
+      <div id="victory" hidden>
+        <strong>Die Firma steht.</strong>
+        <p>Stadion-Ruf, Fahrzeugflotte, Büro delegiert, Kasse nicht rot. Weiterarbeiten ist freiwillig.</p>
       </div>
-      <div id="buildNeed" class="build-only"></div>
-      <p class="legend build-only wc-line"><span class="pic mini" id="wcKey" aria-hidden="true"></span> Das WC steht fest oben rechts auf dem Plan.</p>
-      <p class="legend" id="fieldLegend"></p>
-      <div id="liveActions" class="live-only" hidden>
-        <div class="tools">
-          <button type="button" class="primary xl" id="openGates">Eingang öffnen</button>
-          <button type="button" class="primary xl" id="startAct">Act starten</button>
+      <div class="mail">
+        <div class="mail-list" id="mailList" aria-label="Nachrichten"></div>
+        <article class="mail-read" id="mailRead"></article>
+      </div>
+      <div id="lastBill" hidden></div>
+    </section>
+    <section class="panel" data-panel="event">
+      <div id="eventEmpty">
+        <h2>Kein Event in Arbeit</h2>
+        <p class="lead">Aufträge kommen als E-Mail. Solange nichts angenommen ist, gibt es hier nichts zu bauen. Die Uhr läuft trotzdem.</p>
+        <button type="button" data-desk="inbox">Zum Posteingang</button>
+      </div>
+      <div id="eventWork" hidden>
+        <div class="event-head">
+          <div>
+            <div class="kicker">Aktives Event</div>
+            <h2 id="eventTitle">—</h2>
+            <p class="muted" id="eventClient"></p>
+          </div>
+          <button type="button" class="primary plan-only" id="startBtn">Event starten</button>
         </div>
-        <p id="timingHint"></p>
+        <div class="event-grid">
+          <div class="event-side">
+            <div class="kpi"><span>Auftraggeber</span><b id="cliName">—</b></div>
+            <p class="muted" id="cliBlurb"></p>
+            <div class="kpi"><span>Budget</span><b id="cliBud">—</b></div>
+            <div class="kpi"><span>Honorar an die Firma</span><b id="cliFee">—</b></div>
+            <div class="kpi"><span>Budget nach Extra</span><b id="cliEff">—</b></div>
+            <h2>Wünsche</h2>
+            <div id="wishList"></div>
+            <h2>Extra</h2>
+            <div id="nego"></div>
+            <h2>Zeiten</h2>
+            <p class="muted">Die Crew hält diese Uhrzeit. Du kannst sie um 15 Minuten schieben.</p>
+            <div id="planBox"></div>
+            <details>
+              <summary>Genauere Prognose</summary>
+              <div id="forecastBox"></div>
+            </details>
+            <div class="plan-only" id="readyBox">
+              <h2>Vor dem Start</h2>
+              <div id="checklist"></div>
+              <p class="muted" id="parallelNote"></p>
+            </div>
+          </div>
+          <div>
+            <div id="buildBar" class="build-only">
+              <p class="lead">Draufsicht auf die Fläche. Kosten gehen vom Auftragsbudget ab, nicht von der Kasse.</p>
+              <div id="tools" class="tools"></div>
+              <p style="margin-top:8px"><button type="button" id="btnRemove">Abriss</button></p>
+            </div>
+            <canvas id="c" width="900" height="520" aria-label="Geländeplan von oben. Antippen setzt das gewählte Teil."></canvas>
+            <div id="setupWrap" class="live-only" hidden>
+              <p id="setupLabel">Aufbau</p>
+              <div class="bar"><i id="setupBar"></i></div>
+            </div>
+            <div id="buildNeed" class="build-only"></div>
+            <p class="legend build-only wc-line"><span class="pic mini" id="wcKey" aria-hidden="true"></span> Das WC steht fest oben rechts auf dem Plan.</p>
+            <p class="legend" id="fieldLegend"></p>
+            <div id="liveActions" class="live-only" hidden>
+              <div class="tools">
+                <button type="button" class="primary xl" id="openGates">Eingang öffnen</button>
+                <button type="button" class="primary xl" id="startAct">Act starten</button>
+              </div>
+              <p id="timingHint"></p>
+            </div>
+            <div class="budget-line">
+              <div class="tile"><span>Budget frei</span><b id="budLive">—</b></div>
+              <div class="tile"><span>Ausgegeben</span><b id="spentLive">—</b></div>
+            </div>
+            <div class="bar budget"><i id="budBar"></i></div>
+            <div class="live-stat live-only">
+              <div class="tile"><span>Besucher</span><b id="vis">—</b></div>
+              <div class="tile"><span>Eintritt</span><b id="ticketEst">—</b></div>
+              <div class="tile"><span>Food</span><b id="foodLive">—</b></div>
+              <div class="tile"><span>Merch</span><b id="merchLive">—</b></div>
+              <div class="tile"><span>Stimmung</span><b id="sat">—</b></div>
+              <div class="tile"><span>Vorfälle</span><b id="inc">—</b></div>
+            </div>
+            <div id="wishLive" class="live-only"></div>
+            <div id="alerts" class="live-only"></div>
+            <p class="live-only" style="margin-top:10px"><button type="button" id="endBtn">Jetzt abrechnen</button></p>
+          </div>
+        </div>
       </div>
-      <div class="budget-line">
-        <div class="tile"><span>Budget frei</span><b id="budLive">—</b></div>
-        <div class="tile"><span>Ausgegeben</span><b id="spentLive">—</b></div>
-      </div>
-      <div class="bar budget"><i id="budBar"></i></div>
-      <div class="live-stat live-only">
-        <div class="tile"><span>Besucher</span><b id="vis">—</b></div>
-        <div class="tile"><span>Eintritt</span><b id="ticketEst">—</b></div>
-        <div class="tile"><span>Food</span><b id="foodLive">—</b></div>
-        <div class="tile"><span>Merch</span><b id="merchLive">—</b></div>
-        <div class="tile"><span>Stimmung</span><b id="sat">—</b></div>
-        <div class="tile"><span>Vorfälle</span><b id="inc">—</b></div>
-      </div>
-      <div id="wishLive" class="live-only"></div>
-      <div id="alerts" class="live-only"></div>
-      <p class="build-only" style="margin-top:10px"><button type="button" class="primary xl" id="toCrew" data-go="crew">Weiter zur Crew</button></p>
-      <p class="live-only" style="margin-top:10px"><button type="button" id="endBtn">Jetzt abrechnen</button></p>
     </section>
     <section class="panel" data-panel="crew">
       <h2>Crew</h2>
-      <p class="lead">Externe: Budget dieses Fests, kein Lernen. Festangestellte: deine Kasse, sie werden besser.</p>
+      <p class="lead">Externe: Budget dieses Fests, kein Lernen. Festangestellte: deine Kasse, sie werden besser. Die Rolle bleibt fest.</p>
       <div id="extBox"></div>
-      <details>
+      <details open>
         <summary>Fest einstellen (Firmenkasse)</summary>
         <select id="hireRole" aria-label="Rolle"></select>
         <p id="hireHint" class="muted"></p>
@@ -465,37 +542,8 @@ details{margin-top:8px}
       </details>
       <p id="crewCap" class="muted"></p>
       <div id="crewList"></div>
-      <button type="button" class="primary xl" id="toReady" data-go="ready">Weiter zur Prüfung</button>
     </section>
-    <section class="panel" data-panel="ready">
-      <h2>Startklar?</h2>
-      <p class="lead">Rot fehlt noch. Danach springt die Uhr zum Eventbeginn.</p>
-      <div id="checklist"></div>
-      <p class="muted" id="parallelNote"></p>
-      <button type="button" class="primary xl" id="startBtn">Event starten</button>
-      <p class="row-links">
-        <button type="button" data-go="build">Gelände ändern</button>
-        <button type="button" data-go="crew">Crew ändern</button>
-      </p>
-    </section>
-    <section class="panel" data-panel="debrief">
-      <div id="lastBill"><p class="muted">Noch keine Abrechnung.</p></div>
-      <div id="victory" hidden>
-        <strong>Die Firma steht.</strong>
-        <p>Stadion-Ruf, Fahrzeugflotte, Büro delegiert, Kasse nicht rot. Weiterbuchen ist freiwillig.</p>
-      </div>
-      <button type="button" class="primary xl" id="nextJob" data-go="job">Nächsten Auftrag wählen</button>
-    </section>
-  </main>
-  <details class="panel" id="more">
-    <summary id="moreSummary">Mehr: Firma, Bank, Log</summary>
-    <div class="tabs" role="tablist">
-      <button type="button" id="tab-zentrale">Firma</button>
-      <button type="button" id="tab-client">Briefing</button>
-      <button type="button" id="tab-fest">Log</button>
-      <button type="button" id="tab-bank">Bank</button>
-    </div>
-    <div id="view-zentrale">
+    <section class="panel" data-panel="hq">
       <img id="hqHero" class="hq-hero" alt="Büro der Zentrale">
       <p id="welcome" class="muted">Marketing, Buchhaltung, Personal, Disposition und Empfang liegen bei dir, bis du die Rolle fest einstellst.</p>
       <p id="gfChip"></p>
@@ -505,9 +553,10 @@ details{margin-top:8px}
       <h2>Zentrale</h2>
       <p>Aktuell: <b id="hqName">Homeoffice</b></p>
       <div id="hqList"></div>
-      <p class="muted">Personal stellst du im Schritt Crew ein.</p>
-    </div>
-    <div id="view-bank" hidden>
+      <p class="muted">Festes Personal stellst du unter Crew ein. Externe gehören zum angenommenen Event.</p>
+    </section>
+    <section class="panel" data-panel="bank">
+      <h2>Bank</h2>
       <div class="kpi"><span>Kontostand</span><b id="bankCash">—</b></div>
       <div class="kpi"><span>Offene Kredite</span><b id="bankDebt" class="bad">—</b></div>
       <div class="kpi"><span>Zinssatz pro Tag</span><b id="bankRate">—</b></div>
@@ -527,20 +576,20 @@ details{margin-top:8px}
         <button type="button" class="primary" id="repayAll">Alles tilgen, was die Kasse hergibt</button>
       </div>
       <div class="log" id="bankLog"></div>
-    </div>
-    <div id="view-log" hidden>
+    </section>
+    <section class="panel" data-panel="log">
+      <h2>Log</h2>
       <div class="kpi"><span>Events geschafft</span><b id="kpiEvents">0</b></div>
       <div class="kpi"><span>Crew</span><b id="kpiCrew">0/4</b></div>
       <div class="kpi"><span>Büro bei dir</span><b id="kpiLoad">5/5</b></div>
       <div class="kpi"><span>Externe gebucht</span><b id="kpiExt">0</b></div>
       <div class="kpi"><span>Nächste Löhne</span><b id="kpiPay">—</b></div>
       <div class="kpi"><span>Zins</span><b id="kpiRate">—</b></div>
-      <h2>Log</h2>
       <div class="log" id="log" aria-live="polite"></div>
       <p><button type="button" id="newGameBtn">Neues Spiel</button></p>
-    </div>
-  </details>
-  <p class="foot">Leertaste pausiert · Tasten 1, 2 und 5 ändern das Tempo.</p>
+    </section>
+  </main>
+  <p class="foot">Leertaste pausiert · 1, 2 und 5 ändern das Tempo. Aufträge kommen per E-Mail, nicht auf Knopfdruck.</p>
 </div>
 <div id="modal" class="overlay" hidden>
   <div class="modal-box" id="modalBox" role="dialog" aria-modal="true"></div>
@@ -699,12 +748,45 @@ const JOBS = [
     ],
     nego: [{ id: 'led', label: 'LED-Wall', detail: '+9.000 € Budget, 6.000 € Kosten', budgetPlus: 9000, cost: 6000 }] }
 ];
+const LETTERS = [
+  {
+    subject: 'Gartenhochzeit — kurze Anfrage',
+    person: 'Helena Berger',
+    opener: 'wir heiraten im Garten meiner Eltern, kleiner Kreis, kein Programm über die Maßen. Was wir brauchen, ist jemand, der Einlass, Essen und den Ablauf hält, ohne dass wir selbst die Disposition machen.',
+    close: 'Wenn Sie den Auftrag annehmen, liegt die Fläche bei Ihnen. Eine Absage ist in Ordnung; wir fragen dann eine andere Firma. Extras können wir vor dem Start noch dazunehmen, das Budget steigt dann entsprechend.'
+  },
+  {
+    subject: 'Hochzeit im Hotel — Bühne und Act',
+    person: 'Thomas Reber',
+    opener: 'für eine Hochzeit im Haus brauchen wir erstmals eine richtige Bühne und einen Act. Die Gäste erwarten einen sauberen Einlass und einen pünktlichen Start, nicht ein Gartenfest.',
+    close: 'Sagen Sie uns, ob Sie das übernehmen. Wir vergeben das Event nicht parallel an eine zweite Firma.'
+  },
+  {
+    subject: 'Volksfest Nord — Beauftragung der Fläche',
+    person: 'Karin Ostermann',
+    opener: 'das Volksfest läuft über den Tag, mit Food, Branding und einem Abend-Peak. Die Stadt erwartet, dass Gates, Hauptact und Security stehen, ohne dass wir vor Ort improvisieren.',
+    close: 'Das Budget ist fest. Was Sie zusätzlich verhandeln, rechnen wir als Extra gegen Aufpreis.'
+  },
+  {
+    subject: 'Open Air — zwei Bühnen, Nachtprogramm',
+    person: 'Sven Adler',
+    opener: 'wir bringen ein Open Air mit zwei Bühnen und Nacht-Acts. Die Fläche ist groß, die Security muss tragen, der Headliner hat ein enges Fenster.',
+    close: 'Wenn Ihre Firma das stemmt, reicht eine Zusage. Wir buchen nicht zwei Planer auf dasselbe Event.'
+  },
+  {
+    subject: 'Stadion-Show — Anfrage Produktion',
+    person: 'Dr. Lena Vogt',
+    opener: 'eine Show im Stadion, massive Security, enges Zeitfenster. Wir suchen die Firma, die Fläche, Personal und Ablauf aus einer Hand hält.',
+    close: 'Eine Zusage gilt für dieses eine Event. Das Honorar steht, das Budget auch — Nachforderungen nur über die genannten Extras.'
+  }
+];
 const SAVE_FIELDS = [
   'cash','loans','rep','hq','crew','nameI','jobId','placed','ext','nego','cleared',
   'briefed','live','speed','worldMin','sincePay','grace','graceLeft','graceMax',
   'endMin','setupReadyAt','eventStart','visitors','foodRev','merchRev','incidents',
   'sat','spent','gateAt','actAt','planGate','planAct','eventsDone','weight','day',
-  'logLines','bankLines','tool','lastBill','setupLogged','welcomed','pro','step','pendingDebrief','paused'
+  'logLines','bankLines','tool','lastBill','setupLogged','welcomed','pro','step','pendingDebrief','paused',
+  'mails','mailSeq','nextMailAt','openMailId','declineUntil','hasContract','desk'
 ];
 
 function emptyExt() { return { Security: 0, Technik: 0, Orga: 0, Catering: 0, Aufbau: 0 }; }
@@ -724,7 +806,8 @@ const FP = {
   visitors: 0, foodRev: 0, merchRev: 0, incidents: 0, sat: 74, spent: 0,
   gateAt: null, actAt: null, planGate: null, planAct: null,
   eventsDone: 0, people: [], spawnAcc: 0, tool: 'gate', removeMode: false,
-  logLines: [], bankLines: [], lastBill: '', cd: {}, alertCache: '', tab: 'zentrale'
+  logLines: [], bankLines: [], lastBill: '', cd: {}, alertCache: '', tab: 'zentrale',
+  mails: [], mailSeq: 0, nextMailAt: null, openMailId: null, declineUntil: {}, hasContract: false, desk: 'inbox'
 };
 
 let canvas, ctx, frameNow = 0, planPointer = null;
@@ -901,7 +984,10 @@ function evalWish(w, final) {
     }
     return Math.abs(at - target) <= WINDOW_MIN ? 'done' : 'fail';
   }
-  if (w.type === 'secMin') return strength('Security') >= w.val ? 'done' : 'fail';
+  if (w.type === 'secMin') {
+    if (strength('Security') >= w.val) return 'done';
+    return (final || FP.live) ? 'fail' : 'pend';
+  }
   if (w.type === 'foodMin' || w.type === 'standMin') {
     const id = w.type === 'foodMin' ? 'food' : 'stand';
     if (countId(id) >= w.val) return 'done';
@@ -912,7 +998,7 @@ function evalWish(w, final) {
 function requirementReport() {
   const gaps = [];
   const warnings = [];
-  if (!FP.briefed) gaps.push('Briefing');
+  if (!FP.hasContract && !FP.live) gaps.push('Angenommener Auftrag');
   Object.entries(job().need).forEach(([id, n]) => {
     if (countId(id) < n) {
       const tool = TOOLS.find(t => t.id === id);
@@ -971,23 +1057,9 @@ function setText(id, text) {
   const el = $(id);
   if (el) el.textContent = text;
 }
-function showTab(name, quiet) {
-  if (name === 'client') { setStep('brief'); return; }
-  const map = { zentrale: 'view-zentrale', bank: 'view-bank', fest: 'view-log' };
-  const which = map[name] || 'view-zentrale';
-  Object.keys(map).forEach(n => {
-    const el = $(map[n]);
-    const tab = $('tab-' + n);
-    const on = map[n] === which;
-    if (el) el.hidden = !on;
-    if (tab) {
-      tab.classList.toggle('on', on);
-      tab.setAttribute('aria-selected', on ? 'true' : 'false');
-    }
-  });
-  if (map[name]) FP.tab = name;
-  const more = $('more');
-  if (more && map[name] && !quiet) more.open = true;
+function showTab(name) {
+  const map = { zentrale: 'hq', client: 'event', fest: 'log', bank: 'bank' };
+  setDesk(map[name] || 'hq');
 }
 
 function openModal(html) {
@@ -1073,6 +1145,7 @@ function advance(dt) {
       payroll();
     }
   }
+  pumpMail();
 }
 function save() {
   if (FP.over) return;
@@ -1125,11 +1198,20 @@ function ensureShape() {
   if (typeof FP.pro !== 'boolean') FP.pro = !!(FP.eventsDone || FP.hq > 0 || (FP.loans && FP.loans.length));
   if (FP.pendingDebrief !== true) FP.pendingDebrief = false;
   if (typeof FP.paused !== 'boolean') FP.paused = false;
-  const stepList = { welcome: 1, job: 1, brief: 1, build: 1, crew: 1, ready: 1, live: 1, debrief: 1 };
-  if (FP.live) FP.step = 'live';
-  else if (!stepList[FP.step]) FP.step = FP.welcomed ? 'job' : 'welcome';
-  if (!FP.live && FP.step === 'live') FP.step = 'job';
-  if (FP.step === 'welcome' && FP.welcomed && !FP.live) FP.step = 'job';
+  if (typeof FP.hasContract !== 'boolean') {
+    FP.hasContract = !!(FP.live || FP.briefed || (FP.placed && FP.placed.length));
+  }
+  if (FP.live) FP.hasContract = true;
+  if (FP.pendingDebrief && !FP.live) FP.hasContract = false;
+  if (!FP.declineUntil || typeof FP.declineUntil !== 'object' || Array.isArray(FP.declineUntil)) FP.declineUntil = {};
+  sanitizeMails();
+  const desks = { inbox: 1, event: 1, crew: 1, hq: 1, bank: 1, log: 1 };
+  if (!desks[FP.desk]) {
+    if (FP.live || FP.hasContract) FP.desk = 'event';
+    else if (FP.step === 'crew') FP.desk = 'crew';
+    else FP.desk = 'inbox';
+  }
+  ensureInbox();
   FP.cash = Math.round(FP.cash);
   FP.rep = Math.max(0, FP.rep | 0);
 }
@@ -1143,28 +1225,293 @@ function load() {
     return true;
   } catch (e) { return false; }
 }
-function renderJobs() {
-  $('jobs').innerHTML = JOBS.map(j => {
-    const lock = FP.rep < j.unlockAt;
-    const sel = j.id === FP.jobId;
-    const live = FP.live && sel;
-    const done = !!FP.cleared[j.id];
-    const meta = lock ? ('Braucht Ruf ' + j.unlockAt) : (done ? 'Geschafft' : ('Honorar ' + money(j.fee)));
-    return '<button type="button" class="job' + (sel ? ' sel' : '') + (lock ? ' locked' : '') + (live ? ' live' : '') + '" data-job="' + j.id + '">' +
-      '<span class="job-name">' + esc(j.name) + '</span>' +
-      '<span class="job-meta">' + esc(j.client) + '</span>' +
-      '<span class="job-blurb">' + esc(j.blurb) + '</span>' +
-      '<span class="job-meta">' + money(j.budget) + ' Budget · ' + esc(meta) + '</span></button>';
-  }).join('');
-  $('jobs').querySelectorAll('[data-job]').forEach(b => { b.onclick = () => selectJob(+b.dataset.job); });
+function isPendingMail(m) {
+  return !!m && m.kind === 'inquiry' && (m.status === 'unread' || m.status === 'read' || m.status === 'later');
+}
+function inquiryCap() {
+  return FP.rep >= 2 ? 2 : 1;
+}
+function inquiryGap() {
+  const mkt = bestSkill('buero_mkt');
+  const empf = bestSkill('buero_empf');
+  const load = undelegated().length;
+  let minH;
+  let maxH;
+  if (FP.rep <= 0) { minH = 16; maxH = 36; }
+  else if (FP.rep === 1) { minH = 10; maxH = 22; }
+  else if (FP.rep === 2) { minH = 8; maxH = 16; }
+  else if (FP.rep === 3) { minH = 6; maxH = 12; }
+  else { minH = 4; maxH = 9; }
+  minH += load * 0.7;
+  maxH += load * 0.9;
+  minH = Math.max(2.5, minH - mkt * 0.45 - empf * 0.2);
+  if (maxH < minH + 1) maxH = minH + 1;
+  return Math.round((minH + Math.random() * (maxH - minH)) * 60);
+}
+function sanitizeMails() {
+  const okStatus = { unread: 1, read: 1, later: 1, accepted: 1, declined: 1 };
+  if (!Array.isArray(FP.mails)) FP.mails = [];
+  FP.mails = FP.mails.filter(m => m && m.id && (m.kind === 'bill' || JOBS.some(j => j.id === (m.jobId | 0)))).map(m => ({
+    id: String(m.id),
+    kind: m.kind === 'bill' ? 'bill' : 'inquiry',
+    jobId: m.jobId | 0,
+    status: okStatus[m.status] ? m.status : 'read',
+    at: +m.at || 0,
+    day: Math.max(1, m.day | 0 || 1),
+    subject: String(m.subject || 'Nachricht'),
+    person: String(m.person || ''),
+    org: String(m.org || ''),
+    html: typeof m.html === 'string' ? m.html : ''
+  }));
+  FP.mailSeq = Math.max(FP.mailSeq | 0, FP.mails.reduce((a, m) => Math.max(a, parseInt(m.id, 10) || 0), 0));
+  if (FP.openMailId != null && !FP.mails.some(m => m.id === String(FP.openMailId))) FP.openMailId = null;
+  else if (FP.openMailId != null) FP.openMailId = String(FP.openMailId);
+}
+function trimMails() {
+  const pending = [];
+  const rest = [];
+  FP.mails.forEach(m => (isPendingMail(m) ? pending : rest).push(m));
+  FP.mails = pending.concat(rest).slice(0, 30);
+}
+function mailStamp(m) {
+  return 'Tag ' + m.day + ' · ' + fmtTime(m.at);
+}
+function needLine(j) {
+  return Object.entries(j.need).map(pair => {
+    const t = TOOLS.find(x => x.id === pair[0]);
+    return (t ? t.label : pair[0]) + ' ×' + pair[1];
+  }).join(', ');
+}
+function staffLine(j) {
+  return DEPTS.filter(d => j.needStaff[d]).map(d => d + ' ' + j.needStaff[d]).join(', ');
+}
+function letterBody(m) {
+  if (m.kind === 'bill') return m.html || '<p class="muted">Keine Abrechnung gespeichert.</p>';
+  const j = JOBS[m.jobId];
+  const L = LETTERS[j.id] || { opener: j.blurb, close: 'Eine Zu- oder Absage reicht.', person: m.person };
+  const wishes = j.wishes.map(w => '<li>' + esc(w.label) + (w.hard ? ' (Pflicht)' : ' (Wunsch)') + '</li>').join('');
+  return '<div class="letter"><p>Guten Tag,</p><p>' + esc(L.opener) + '</p>' +
+    '<p>Das Budget liegt bei <b>' + money(j.budget) + '</b>. Das Honorar für Ihre Firma beträgt <b>' + money(j.fee) + '</b>, sofern die Pflichtpunkte halten. Beginn gegen ' +
+    fmtTime(j.startHour * 60) + ', Dauer etwa ' + j.hours + ' Stunden, grob ' + j.crowd + ' Gäste.</p>' +
+    '<p>Auf der Fläche brauchen wir: ' + esc(needLine(j)) + '.</p>' +
+    '<p>Personal vor Ort: ' + esc(staffLine(j) || 'keine feste Vorgabe') + '.</p>' +
+    '<p>Festgehalten:</p><ul>' + wishes + '</ul>' +
+    '<p>' + esc(L.close) + '</p>' +
+    '<p class="sig">' + esc(L.person || m.person) + '\n' + esc(j.client) + '</p></div>';
+}
+function pickInquiryJob() {
+  const openIds = {};
+  FP.mails.forEach(m => { if (isPendingMail(m)) openIds[m.jobId] = true; });
+  const pool = JOBS.filter(j => {
+    if (FP.rep < j.unlockAt) return false;
+    if (openIds[j.id]) return false;
+    if ((FP.hasContract || FP.live) && j.id === FP.jobId) return false;
+    if ((FP.declineUntil[j.id] || 0) > FP.worldMin) return false;
+    return true;
+  });
+  if (!pool.length) return null;
+  const fresh = pool.filter(j => !FP.cleared[j.id]);
+  const src = fresh.length ? fresh : pool;
+  src.sort((a, b) => b.unlockAt - a.unlockAt || a.id - b.id);
+  if (src.length > 1 && Math.random() < 0.35) return src[1];
+  return src[0];
+}
+function deliverInquiry(j, at) {
+  if (!j) return null;
+  const L = LETTERS[j.id];
+  if (!L) return null;
+  FP.mailSeq = (FP.mailSeq | 0) + 1;
+  const when = at == null ? FP.worldMin : at;
+  const mail = {
+    id: String(FP.mailSeq),
+    kind: 'inquiry',
+    jobId: j.id,
+    status: 'unread',
+    at: when,
+    day: FP.day,
+    subject: L.subject,
+    person: L.person,
+    org: j.client,
+    html: ''
+  };
+  FP.mails.unshift(mail);
+  trimMails();
+  log('Post: ' + L.person + ' — ' + L.subject);
+  return mail;
+}
+function pushBillMail(model, html) {
+  FP.mailSeq = (FP.mailSeq | 0) + 1;
+  const mail = {
+    id: String(FP.mailSeq),
+    kind: 'bill',
+    jobId: model.jobId,
+    status: 'unread',
+    at: FP.worldMin,
+    day: FP.day,
+    subject: (model.ranFull ? 'Abrechnung: ' : 'Abbruch: ') + model.name,
+    person: 'Buchhaltung',
+    org: model.client,
+    html: html
+  };
+  FP.mails.unshift(mail);
+  trimMails();
+  return mail;
+}
+function ensureInbox() {
+  sanitizeMails();
+  const freshFirm = FP.eventsDone === 0 && FP.rep === 0 && !FP.mails.length && !FP.hasContract && !FP.live;
+  if (freshFirm) deliverInquiry(JOBS[0], Math.max(0, FP.worldMin - 18));
+  if (typeof FP.nextMailAt !== 'number' || !isFinite(FP.nextMailAt) || FP.nextMailAt <= 0) {
+    FP.nextMailAt = FP.worldMin + inquiryGap();
+  }
+}
+function pumpMail() {
+  if (FP.over) return;
+  if (typeof FP.nextMailAt !== 'number' || !isFinite(FP.nextMailAt) || FP.nextMailAt <= 0) {
+    FP.nextMailAt = FP.worldMin + inquiryGap();
+    return;
+  }
+  if (FP.worldMin < FP.nextMailAt) return;
+  const pending = FP.mails.filter(isPendingMail).length;
+  if (pending >= inquiryCap()) {
+    FP.nextMailAt = FP.worldMin + Math.round(inquiryGap() * 0.65);
+    return;
+  }
+  const j = pickInquiryJob();
+  if (!j) {
+    FP.nextMailAt = FP.worldMin + inquiryGap();
+    return;
+  }
+  const when = Math.min(FP.worldMin, FP.nextMailAt);
+  deliverInquiry(j, when);
+  FP.nextMailAt = FP.worldMin + inquiryGap();
+  renderInbox();
+  applyChrome();
+  save();
+}
+function openMail(id) {
+  const m = FP.mails.find(x => x.id === String(id));
+  if (!m) return;
+  FP.openMailId = m.id;
+  if (m.status === 'unread') m.status = 'read';
+  renderInbox();
+  applyChrome();
+  save();
+}
+function acceptMail(id) {
+  if (FP.over) return;
+  const m = FP.mails.find(x => x.id === String(id));
+  if (!m || m.kind !== 'inquiry') return;
+  if (m.status === 'accepted' || m.status === 'declined') return;
+  if (FP.live || FP.hasContract) {
+    log('Es liegt schon ein Auftrag auf dem Tisch. Erst abrechnen.', 'warn');
+    return;
+  }
+  const j = JOBS[m.jobId];
+  if (!j || FP.rep < j.unlockAt) return;
+  FP.jobId = j.id;
+  FP.placed = [];
+  FP.ext = emptyExt();
+  FP.spent = 0;
+  FP.briefed = true;
+  FP.planGate = null;
+  FP.planAct = null;
+  FP.removeMode = false;
+  FP.tool = 'gate';
+  FP.hasContract = true;
+  m.status = 'accepted';
+  FP.openMailId = m.id;
+  log('Zusage an ' + j.client + ': ' + j.name + '.');
+  FP.desk = 'event';
+  sync();
+  save();
+}
+function declineMail(id) {
+  if (FP.over) return;
+  const m = FP.mails.find(x => x.id === String(id));
+  if (!m || !isPendingMail(m)) return;
+  m.status = 'declined';
+  const waitH = 36 + Math.random() * 36;
+  FP.declineUntil[m.jobId] = FP.worldMin + waitH * 60;
+  log('Abgesagt: ' + (JOBS[m.jobId] ? JOBS[m.jobId].name : m.subject) + '.');
+  sync();
+  save();
+}
+function laterMail(id) {
+  const m = FP.mails.find(x => x.id === String(id));
+  if (!m || !isPendingMail(m)) return;
+  m.status = 'later';
+  FP.openMailId = m.id;
+  log('Liegen gelassen: ' + m.subject);
+  renderInbox();
+  applyChrome();
+  save();
+}
+function mailActions(m) {
+  if (m.kind === 'bill') return '';
+  if (m.status === 'accepted') {
+    if ((FP.hasContract || FP.live) && m.jobId === FP.jobId) {
+      return '<div class="mail-actions"><button type="button" class="primary" id="mailToEvent">Zum Gelände</button></div>';
+    }
+    return '<p class="muted">Angenommen.</p>';
+  }
+  if (m.status === 'declined') return '<p class="muted">Abgelehnt. Der Auftraggeber fragt woanders an.</p>';
+  const blocked = FP.hasContract || FP.live;
+  const note = blocked ? '<p class="muted">Zusage erst, wenn das laufende Event abgerechnet ist. Ablehnen kannst du trotzdem.</p>' : '';
+  return note + '<div class="mail-actions">' +
+    '<button type="button" class="primary" id="mailAccept"' + (blocked ? ' disabled' : '') + '>Annehmen</button>' +
+    '<button type="button" id="mailDecline">Ablehnen</button>' +
+    '<button type="button" id="mailLater">Später entscheiden</button></div>';
+}
+function renderInbox() {
+  const list = $('mailList');
+  const read = $('mailRead');
+  if (!list || !read) return;
+  const unread = FP.mails.filter(m => m.status === 'unread').length;
+  const pending = FP.mails.filter(isPendingMail).length;
+  setText('inboxCount', unread ? (unread + ' ungelesen') : (pending ? 'nichts Neues' : 'keine offene Anfrage'));
+  if (!FP.mails.length) {
+    list.innerHTML = '<p class="muted" style="padding:14px">Der Posteingang ist leer.</p>';
+  } else {
+    list.innerHTML = FP.mails.map(m => {
+      const on = m.id === FP.openMailId;
+      const dead = m.status === 'declined';
+      const unreadCls = m.status === 'unread' ? ' unread' : '';
+      return '<button type="button" class="mail-item' + (on ? ' on' : '') + unreadCls + (dead ? ' dead' : '') + '" data-mail="' + esc(m.id) + '">' +
+        '<span class="mail-from">' + esc(m.person) + (m.org ? ' · ' + esc(m.org) : '') + '</span>' +
+        '<span class="mail-subj">' + esc(m.subject) + '</span>' +
+        '<span class="mail-when">' + esc(mailStamp(m)) + '</span></button>';
+    }).join('');
+    list.querySelectorAll('[data-mail]').forEach(b => { b.onclick = () => openMail(b.dataset.mail); });
+  }
+  const m = FP.mails.find(x => x.id === FP.openMailId);
+  if (!m) {
+    read.innerHTML = '<p class="muted">' + (FP.mails.length ? 'Wähle eine Nachricht.' : 'Keine Nachricht. Die Uhr oben ist die der Firma.') + '</p>';
+    return;
+  }
+  const tag = m.kind === 'bill' ? 'Abrechnung' : (m.status === 'unread' ? 'Neu' : m.status === 'later' ? 'Offen' : m.status === 'accepted' ? 'Angenommen' : m.status === 'declined' ? 'Abgelehnt' : 'Gelesen');
+  read.innerHTML = '<div class="mail-kicker">' + esc(tag) + ' · ' + esc(mailStamp(m)) + '</div>' +
+    '<h2>' + esc(m.subject) + '</h2>' +
+    '<p class="muted">' + esc(m.person) + (m.org ? ' · ' + esc(m.org) : '') + '</p>' +
+    mailActions(m) + letterBody(m);
+  const acc = $('mailAccept');
+  const dec = $('mailDecline');
+  const later = $('mailLater');
+  const toEv = $('mailToEvent');
+  if (acc) acc.onclick = () => acceptMail(m.id);
+  if (dec) dec.onclick = () => declineMail(m.id);
+  if (later) later.onclick = () => laterMail(m.id);
+  if (toEv) toEv.onclick = () => setDesk('event');
 }
 
 function checkRow(ok, text) {
   return '<div class="check ' + (ok ? 'good' : 'bad') + '"><span>' + (ok ? '✓' : '○') + '</span><span>' + esc(text) + '</span></div>';
 }
 function renderChecklist() {
+  const box = $('checklist');
+  if (!box) return;
+  if (!FP.hasContract && !FP.live) { box.innerHTML = ''; return; }
   const rows = [];
-  rows.push(checkRow(FP.briefed, 'Briefing gelesen'));
   Object.entries(job().need).forEach(([id, n]) => {
     const tool = TOOLS.find(t => t.id === id);
     const have = countId(id);
@@ -1240,6 +1587,10 @@ function renderCrew() {
       '<button type="button" data-ext-sub="' + esc(d) + '"' + (n && !FP.live ? '' : ' disabled') + '>−</button>' +
       '<button type="button" class="' + (hot ? 'primary' : '') + '" data-ext-add="' + esc(d) + '">+ Extern · ' + money(price) + '</button></div></article>';
   };
+  if (!FP.hasContract && !FP.live) {
+    $('extBox').innerHTML = '<p class="muted">Externe buchst du auf ein angenommenes Event. Festangestellte laufen über die Firmenkasse, auch ohne Auftrag.</p>';
+    return;
+  }
   const needed = FIELD.filter(d => (job().needStaff[d] || 0) > 0);
   const rest = FIELD.filter(d => !(job().needStaff[d] || 0));
   let html = needed.map(card).join('');
@@ -1315,6 +1666,7 @@ function renderForecast() {
   $('forecastBox').innerHTML = lines.map(l => '<div>' + esc(l) + '</div>').join('');
 }
 function renderClient() {
+  if (!FP.hasContract && !FP.live) return;
   const j = job();
   setText('cliName', j.client);
   setText('cliBlurb', j.blurb);
@@ -1325,9 +1677,10 @@ function renderClient() {
   renderNego();
   renderPlan();
   renderForecast();
-  $('toMap').hidden = true;
 }
 function renderTools() {
+  if (!$('tools')) return;
+  if (!FP.hasContract && !FP.live) return;
   const order = ['gate', 'food', 'stand', 'stage', 'act'];
   $('tools').innerHTML = order.map(id => TOOLS.find(t => t.id === id)).map(t => {
     const need = job().need[t.id] || 0;
@@ -1349,20 +1702,15 @@ function renderTools() {
 }
 
 function renderActions() {
-  const rep = requirementReport();
-  const ready = FP.briefed && !rep.gaps.length && !FP.live && !FP.over;
-  $('startBtn').disabled = FP.live || FP.over;
-  $('startBtn').classList.add('primary');
-  $('startBtn').textContent = FP.live ? 'Festival läuft' : 'Event starten';
-  $('endBtn').disabled = !FP.live || FP.over;
-  $('briefBtn').textContent = FP.briefed ? 'Zur Wiese' : 'Verstanden — zur Wiese';
-  const nxt = JOBS.find(j => j.unlockAt > FP.rep);
-  const max = JOBS[JOBS.length - 1].unlockAt || 1;
-  $('repBar').style.width = Math.min(100, FP.rep / max * 100) + '%';
-  setText('nextHint', nxt
-    ? ('Nächster neuer Auftrag: ' + nxt.name + ' bei Ruf ' + nxt.unlockAt + ' (du hast ' + FP.rep + '). Erstabschluss zählt.')
-    : ('Alle Aufträge frei · Ruf ' + FP.rep + '.'));
-  setText('parallelNote', 'Es läuft immer nur ein Festival.');
+  const start = $('startBtn');
+  if (start) {
+    start.disabled = FP.live || FP.over || !FP.hasContract;
+    start.classList.add('primary');
+    start.textContent = FP.live ? 'Festival läuft' : 'Event starten';
+  }
+  const end = $('endBtn');
+  if (end) end.disabled = !FP.live || FP.over;
+  setText('parallelNote', 'Nur ein Festival gleichzeitig. Die Uhr springt beim Start zum Beginn.');
 }
 function paintHireHint() {
   const role = ROLES.find(r => r.id === $('hireRole').value);
@@ -1374,7 +1722,7 @@ function paintHireHint() {
   $('hireBtn').textContent = full ? 'Crew-Limit erreicht' : ('Einstellen · ' + money(price));
 }
 function sync() {
-  renderJobs();
+  renderInbox();
   renderChecklist();
   renderActions();
   renderCeo();
@@ -1462,10 +1810,11 @@ function paintNumbers() {
   if (cashEl) cashEl.className = FP.cash < 0 ? 'bad' : 'good';
   setText('debtTop', money(sumLoans()));
   setText('repTop', String(FP.rep));
-  setText('budTop', money(budgetLeftNow()));
+  const budOn = FP.hasContract || FP.live;
+  setText('budTop', budOn ? money(budgetLeftNow()) : '—');
   const budEl = $('budTop');
-  if (budEl) budEl.className = budgetLeftNow() < 0 ? 'bad' : 'good';
-  setText('budCaption', FP.live ? 'Budget-Rest' : 'Budget frei');
+  if (budEl) budEl.className = !budOn ? '' : (budgetLeftNow() < 0 ? 'bad' : 'good');
+  setText('budCaption', FP.live ? 'Budget-Rest' : (budOn ? 'Budget frei' : 'Budget'));
   setText('bankCash', money(FP.cash));
   setText('bankDebt', money(sumLoans()));
   setText('bankRate', pct(interestRate()));
@@ -1522,6 +1871,7 @@ function paintNumbers() {
     const box = $('alerts');
     if (box) box.innerHTML = html;
   }
+  paintAmbient();
   const pb = $('pauseBtn');
   if (pb) { pb.textContent = FP.paused ? 'Fortsetzen' : 'Pause'; pb.classList.toggle('on', !!FP.paused); }
   document.body.classList.remove('is-day', 'is-peak', 'is-night');
@@ -1556,13 +1906,9 @@ function selectJob(id) {
   save();
 }
 function confirmBrief() {
-  if (FP.over) return;
-  if (!FP.live) {
-    const was = FP.briefed;
-    FP.briefed = true;
-    if (!was) log('Briefing: ' + job().client + '. Budget ' + money(effBudget()) + '. ' + job().blurb);
-  }
-  FP.step = 'build';
+  if (FP.over || !FP.hasContract) return;
+  FP.briefed = true;
+  FP.desk = 'event';
   sync();
   save();
 }
@@ -1613,10 +1959,8 @@ function bookExt(dept, dir) {
     FP.spent = Math.max(0, FP.spent - price);
     log('Externe ' + dept + ' storniert, ' + money(price) + ' zurück ins Budget.', 'good');
   } else {
-    if (!FP.briefed && !FP.live) {
-      log('Erst das Briefing — dann Externe aufs Budget.', 'warn');
-      FP.step = 'brief';
-      applyChrome();
+    if (!FP.hasContract && !FP.live) {
+      log('Externe buchst du erst, wenn ein Auftrag angenommen ist.', 'warn');
       return;
     }
     const price = FP.live ? Math.round(EXT_PRICE[dept] * 1.65) : EXT_PRICE[dept];
@@ -1688,7 +2032,7 @@ function repay(amount) {
 function placeAt(x, y) {
   if (FP.live || FP.over) return;
   if (FP.removeMode) { removeAt(x, y); return; }
-  if (!FP.briefed) { log('Erst das Briefing öffnen.', 'warn'); FP.step = 'brief'; applyChrome(); return; }
+  if (!FP.hasContract) { log('Kein Auftrag auf dem Tisch. Anfragen liegen im Posteingang.', 'warn'); return; }
   const tool = TOOLS.find(t => t.id === FP.tool);
   if (!tool) { log('Erst ein Werkzeug wählen.'); return; }
   if (countId(tool.id) >= 8) { log('Mehr davon passt nicht sinnvoll aufs Gelände.', 'warn'); return; }
@@ -1788,7 +2132,7 @@ function startEvent(ignoreWarnings) {
   if (load >= 4) log('Du trägst noch ' + load + ' Büro-Aufgaben. Das bremst das Event.', 'warn');
   else if (load === 0) log('Das Büro läuft ohne dich.', 'good');
   FP.paused = false;
-  FP.step = 'live';
+  FP.desk = 'event';
   sync();
   save();
 }
@@ -1918,12 +2262,13 @@ function settle(auto) {
   }
   addCash(gain);
   const model = {
-    ranFull, client: j.client, name: j.name, bud, spent: FP.spent, left,
+    ranFull, client: j.client, name: j.name, jobId: j.id, bud, spent: FP.spent, left,
     tickets, food, merch, incidents: FP.incidents, sat: Math.round(FP.sat),
     hardOk, hardN, hardFail, repBefore, repAfter: FP.rep, repDelta, gain,
     cashNow: FP.cash, leveled
   };
   FP.live = false;
+  FP.hasContract = false;
   FP.eventStart = 0;
   FP.placed = [];
   FP.ext = emptyExt();
@@ -1944,6 +2289,11 @@ function settle(auto) {
   FP.tool = 'gate';
   const body = billHtml(model);
   FP.lastBill = body;
+  pushBillMail(model, body);
+  const newTier = JOBS.some(x => x.unlockAt > repBefore && x.unlockAt <= FP.rep);
+  const gap = newTier ? Math.round((3 + Math.random() * 5) * 60) : inquiryGap();
+  if (!(FP.nextMailAt > FP.worldMin)) FP.nextMailAt = FP.worldMin + gap;
+  else if (newTier && FP.nextMailAt > FP.worldMin + gap) FP.nextMailAt = FP.worldMin + gap;
   if (ranFull) {
     if (repDelta > 0) log('Abgerechnet. Ruf +' + repDelta + '.', 'good');
     else if (hardFail) log('Abgerechnet. Pflichtwünsche verfehlt, kein Ruf.', 'bad');
@@ -1952,7 +2302,7 @@ function settle(auto) {
   checkSolvency();
   FP.pendingDebrief = true;
   FP.pro = true;
-  FP.step = 'debrief';
+  FP.desk = 'inbox';
   sync();
   save();
   if (!FP.over) {
@@ -2412,7 +2762,7 @@ function footAt(x, y) {
   return best;
 }
 function planGhost() {
-  if (!planPointer || FP.live || FP.over || FP.removeMode || !FP.briefed || !FP.tool || !FOOT[FP.tool]) return null;
+  if (!planPointer || FP.live || FP.over || FP.removeMode || !FP.hasContract || !FP.tool || !FOOT[FP.tool]) return null;
   const x = planPointer.x;
   const y = planPointer.y;
   if (footAt(x, y) >= 0) return null;
@@ -2505,7 +2855,7 @@ function draw() {
     }
   }
   if (!FP.placed.length && !FP.live) {
-    drawHint(FP.briefed ? 'Symbol wählen, dann hier tippen' : 'Zuerst das Briefing', lay, pal);
+    drawHint(FP.hasContract ? 'Symbol wählen, dann hier tippen' : 'Kein Auftrag', lay, pal);
   }
   if (frameNow < (FP.flashUntil || 0)) {
     ctx.fillStyle = 'rgba(140,51,44,.22)';
@@ -2589,21 +2939,17 @@ function canvasPoint(e) {
   };
 }
 function bind() {
-  $('tab-zentrale').onclick = () => showTab('zentrale');
-  $('tab-client').onclick = () => showTab('client');
-  $('tab-fest').onclick = () => showTab('fest');
-  $('tab-bank').onclick = () => showTab('bank');
+  document.querySelectorAll('#deskNav [data-desk], #eventEmpty [data-desk]').forEach(b => {
+    b.onclick = () => setDesk(b.dataset.desk);
+  });
   document.querySelectorAll('[data-speed]').forEach(b => { b.onclick = () => setSpeed(+b.dataset.speed); });
   $('pauseBtn').onclick = togglePause;
-  $('briefBtn').onclick = confirmBrief;
   $('startBtn').onclick = () => startEvent(false);
   $('endBtn').onclick = askEnd;
   $('hireBtn').onclick = () => hire($('hireRole').value);
   $('hireRole').onchange = paintHireHint;
-  $('toMap').onclick = () => setStep('build');
-  document.querySelectorAll('[data-go]').forEach(b => { b.onclick = () => setStep(b.dataset.go); });
   const gb = $('graceBank');
-  if (gb) gb.onclick = () => { const m = $('more'); if (m) m.open = true; showTab('bank'); };
+  if (gb) gb.onclick = () => setDesk('bank');
   $('btnRemove').onclick = () => {
     FP.removeMode = !FP.removeMode;
     if (FP.removeMode) FP.tool = '';
@@ -2651,83 +2997,84 @@ function fillHireSelect() {
   });
   sel.value = 'sec_gate';
 }
-function stepAllowed(id) {
-  if (FP.live) return id === 'live' || id === 'crew' || id === 'brief';
-  if (id === 'live') return false;
-  if (id === 'debrief') return !!(FP.lastBill || FP.pendingDebrief);
-  return true;
-}
-function stepDone(id) {
-  if (FP.step === id) return false;
-  if (id === 'welcome') return !!FP.welcomed;
-  if (id === 'job' || id === 'brief') return !!FP.briefed;
-  if (id === 'build') return !!FP.briefed && Object.entries(job().need).every(function (pair) { return countId(pair[0]) >= pair[1]; });
-  if (id === 'crew') return !!FP.briefed && DEPTS.every(function (d) { return heads(d) >= (job().needStaff[d] || 0); });
-  return false;
-}
+const AMBIENT = {
+  Nacht: 'Nachtschicht. Der Posteingang ist leer.',
+  Morgen: 'Kaffee, Belege, keine neue Post.',
+  Mittag: 'Mittag im Büro. Es hat niemand geschrieben.',
+  Nachmittag: 'Du arbeitest die offenen Punkte ab. Das Telefon bleibt still.',
+  'Abend-Peak': 'Draußen wäre jetzt Betrieb. Hier ist es still.',
+  'Nacht-Acts': 'Spät im Büro. Die Inbox bleibt zu.'
+};
 function coachText() {
-  if (FP.grace && FP.cash < 0) return 'Die Kasse ist im Minus. Tippe auf Zur Bank. Die Frist läuft.';
-  const s = FP.step;
-  if (s === 'welcome') return 'Du leitest die Firma. Immer nur ein Festival. Ich zeige dir den nächsten Schritt.';
-  if (s === 'job') return job().name + ' · ' + job().client + '. Budget ' + money(job().budget) + ', Honorar ' + money(job().fee) + '.';
-  if (s === 'brief') return 'Pflichtwünsche müssen klappen, sonst sinkt später der Gewinn.';
-  if (s === 'build') {
-    if (!FP.briefed) return 'Erst das Briefing lesen, dann bauen.';
-    const gap = Object.entries(job().need).find(function (pair) { return countId(pair[0]) < pair[1]; });
-    if (gap) {
-      const t = TOOLS.find(function (x) { return x.id === gap[0]; });
-      return 'Als Nächstes: ' + t.label + ' (' + countId(gap[0]) + '/' + gap[1] + '). Symbol wählen, dann auf den Plan tippen.';
-    }
-    return 'Die Teile stehen. Weiter zur Crew — oder noch etwas setzen.';
-  }
-  if (s === 'crew') {
-    const d = DEPTS.find(function (x) { return (job().needStaff[x] || 0) > heads(x); });
-    if (d) return d + ' fehlt noch (' + heads(d) + '/' + job().needStaff[d] + '). Ein Externer ist der schnelle Weg.';
-    return 'Personal reicht. Als Nächstes prüfen und starten.';
-  }
-  if (s === 'ready') {
-    const rep = requirementReport();
-    if (rep.gaps.length) return 'Noch offen: ' + rep.gaps.slice(0, 3).join(', ') + '.';
-    if (rep.warnings.length) return 'Start geht. Achtung: ' + rep.warnings[0];
-    return 'Alles Nötige steht. Event starten — die Uhr springt zum Beginn.';
-  }
-  if (s === 'live') {
-    if (FP.worldMin < FP.setupReadyAt) return 'Aufbau läuft. Der Eingang bleibt zu, bis alles steht.';
-    if (FP.gateAt == null) return 'Aufbau steht. Eingang öffnen — oder auf die Wunschzeit warten.';
-    if (job().wishes.some(function (w) { return w.type === 'actStart'; }) && FP.actAt == null) return 'Gäste können rein. Den Act zur Wunschzeit starten.';
+  if (FP.over) return 'Die Firma ist insolvent.';
+  if (FP.grace && FP.cash < 0) return 'Die Kasse ist im Minus. Die Gnadenfrist läuft — unter Bank tilgen oder einen Kredit prüfen.';
+  if (FP.live) {
+    if (FP.worldMin < FP.setupReadyAt) return 'Aufbau läuft. Der Eingang bleibt zu, bis die Fläche steht.';
+    if (FP.gateAt == null) return 'Aufbau steht. Eingang öffnen oder auf die geplante Zeit warten.';
+    if (job().wishes.some(function (w) { return w.type === 'actStart'; }) && FP.actAt == null) return 'Gäste können rein. Den Act zur geplanten Zeit starten.';
     return 'Das Festival läuft. Tempo hoch, wenn du zusehen willst.';
   }
-  if (s === 'debrief') return victoryOn() ? 'Die Firma steht. Du kannst weiterbuchen.' : 'Das ist die Abrechnung. Danach suchst du den nächsten Auftrag.';
-  return 'Ein Schritt nach dem anderen.';
+  if (FP.hasContract) {
+    const rep = requirementReport();
+    if (rep.gaps.length) return job().client + ' ist zugesagt. Offen: ' + rep.gaps.slice(0, 2).join(', ') + '.';
+    if (rep.warnings.length) return 'Start ginge. Achtung: ' + rep.warnings[0];
+    return job().name + ' liegt auf dem Tisch. Starten, wenn es trägt — oder noch nachlegen.';
+  }
+  const unread = FP.mails.filter(function (m) { return m.status === 'unread'; }).length;
+  if (unread === 1) return 'Eine neue Nachricht liegt im Posteingang.';
+  if (unread > 1) return unread + ' neue Nachrichten im Posteingang.';
+  if (FP.mails.some(isPendingMail)) return 'Eine Anfrage liegt noch unentschieden.';
+  return 'Keine offene Anfrage. Die Uhr läuft, Post kommt unregelmäßig.';
 }
-function setStep(id) {
-  if (!stepAllowed(id)) return;
-  if (id !== 'welcome') FP.welcomed = true;
-  if (id !== 'debrief') FP.pendingDebrief = false;
-  FP.step = id;
+function setDesk(id) {
+  const desks = { inbox: 1, event: 1, crew: 1, hq: 1, bank: 1, log: 1 };
+  if (!desks[id]) return;
+  FP.desk = id;
   applyChrome();
   save();
 }
 function applyChrome() {
-  const step = FP.step || 'welcome';
-  document.body.dataset.step = step;
+  const desk = FP.desk || 'inbox';
+  document.body.dataset.desk = desk;
+  document.body.classList.toggle('is-live', !!FP.live);
   const line = coachText();
   const coach = $('coachLine');
   if (coach && coach.textContent !== line) coach.textContent = line;
-  document.querySelectorAll('#stepNav [data-go]').forEach(function (b) {
-    const id = b.dataset.go;
-    const on = id === step;
+  document.querySelectorAll('#deskNav [data-desk]').forEach(function (b) {
+    const on = b.dataset.desk === desk;
     b.classList.toggle('now', on);
-    b.classList.toggle('done', stepDone(id));
-    b.disabled = !stepAllowed(id);
-    if (on) b.setAttribute('aria-current', 'step');
+    if (on) b.setAttribute('aria-current', 'page');
     else b.removeAttribute('aria-current');
   });
-  const sd = $('stepDebrief');
-  if (sd) sd.hidden = !(FP.lastBill || FP.pendingDebrief);
+  const unread = FP.mails.filter(function (m) { return m.status === 'unread'; }).length;
+  const badge = $('unreadBadge');
+  if (badge) {
+    badge.hidden = unread <= 0;
+    badge.textContent = String(unread);
+  }
+  const bankBtn = $('deskBank');
+  if (bankBtn) bankBtn.classList.toggle('attn', !!(FP.grace && FP.cash < 0));
+  const onJob = !!(FP.hasContract || FP.live);
+  const empty = $('eventEmpty');
+  const work = $('eventWork');
+  if (empty) empty.hidden = onJob;
+  if (work) work.hidden = !onJob;
+  if (onJob) {
+    setText('eventTitle', job().name);
+    setText('eventClient', job().client + ' · Budget ' + money(effBudget()) + ' · Honorar ' + money(job().fee));
+  }
+  const chip = $('activeChip');
+  if (chip) {
+    chip.hidden = !onJob;
+    if (onJob) {
+      chip.innerHTML = 'Auf dem Tisch: <button type="button" id="chipEvent">' + esc(job().name) + (FP.live ? ' · live' : '') + '</button>';
+      const chipBtn = $('chipEvent');
+      if (chipBtn) chipBtn.onclick = function () { setDesk('event'); };
+    }
+  }
   const bn = $('buildNeed');
   if (bn) {
-    bn.innerHTML = Object.entries(job().need).map(function (pair) {
+    bn.innerHTML = !onJob ? '' : Object.entries(job().need).map(function (pair) {
       const t = TOOLS.find(function (x) { return x.id === pair[0]; });
       const have = countId(pair[0]);
       return '<div class="check ' + (have >= pair[1] ? 'good' : 'bad') + '"><span>' + (have >= pair[1] ? '✓' : '○') + '</span><span>' + esc(t.label) + ' ' + have + '/' + pair[1] + '</span></div>';
@@ -2739,12 +3086,16 @@ function applyChrome() {
       ? 'Eintritt, Food und Merch kommen erst mit der Abrechnung auf die Kasse.'
       : 'Draufsicht. Symbol wählen, dann auf die Fläche tippen. Rechtsklick gibt das Geld ins Budget zurück.';
   }
-  const sum = $('moreSummary');
-  if (sum) {
-    sum.textContent = (FP.grace && FP.cash < 0) ? 'Bank nötig — Kasse im Minus' : 'Mehr: Firma, Bank, Log';
-    sum.classList.toggle('attn', !!(FP.grace && FP.cash < 0));
-  }
   document.body.classList.toggle('show-debt', !!(FP.pro || sumLoans() > 0 || FP.cash < 0));
+}
+function paintAmbient() {
+  const amb = $('ambient');
+  if (!amb) return;
+  const pending = FP.mails.some(isPendingMail);
+  amb.hidden = pending;
+  if (pending) return;
+  const t = AMBIENT[phaseAt(FP.worldMin).name] || AMBIENT.Morgen;
+  if (amb.textContent !== t) amb.textContent = t;
 }
 
 function boot() {
@@ -2760,14 +3111,12 @@ function boot() {
   if ($('ceoHero')) $('ceoHero').src = ART_SRC.ceo;
   if ($('ceoMini')) $('ceoMini').src = ART_SRC.ceo;
   if ($('hqHero')) $('hqHero').src = ART_SRC.hq;
-  if (!loaded) FP.paused = true;
   fillHireSelect();
   bind();
   setSpeed(FP.speed);
   if (!loaded) {
-    log('Neue Firma. Die Uhr steht, bis du fortsetzt.');
+    log('Büro auf. Die Uhr läuft. Die erste Anfrage liegt im Posteingang.');
   } else log('Spielstand geladen.', 'good');
-  showTab('zentrale', true);
   FP.saveBucket = Math.floor(FP.worldMin / 10);
   sync();
   window.FPDebug = {
