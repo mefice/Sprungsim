@@ -191,6 +191,29 @@ body:not(.is-live) .live-only{display:none !important}
 .inbox-head{display:flex; justify-content:space-between; gap:12px; align-items:baseline}
 .inbox-head h2,.event-head h2{margin:0}
 .ambient{color:var(--muted); margin:0 0 12px}
+.office-strip{
+  border:1px solid var(--line);
+  background:var(--off);
+  padding:14px 16px 10px;
+  margin:0 0 12px;
+}
+.office-strip .kicker{margin-bottom:4px}
+.office-cards{display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; margin-top:10px}
+.office-card{
+  display:block; width:100%; text-align:left; background:var(--card);
+  border:1px solid var(--line); border-radius:2px; padding:10px 12px; min-height:0;
+}
+.office-card b{display:block; font-weight:600}
+.office-card span{display:block; color:var(--muted); font-size:13px; margin-top:3px}
+.office-card.on{box-shadow:inset 3px 0 0 var(--sage)}
+.office-log{margin-top:10px; font-size:14px}
+.office-log div{padding:4px 0; border-top:1px solid var(--line); color:var(--muted)}
+.lage{
+  margin:0 0 14px;
+  padding:10px 12px;
+  background:var(--off);
+  border-left:3px solid var(--sage);
+}
 .active-chip{margin:0 0 12px}
 .active-chip button{margin-left:8px}
 .mail{
@@ -383,6 +406,7 @@ details{margin-top:8px}
   .mail-read{padding:16px}
   .event-grid{grid-template-columns:1fr}
   .event-head{flex-direction:column; align-items:stretch}
+  .office-cards{grid-template-columns:1fr}
 }
 @media(min-width:760px){
   .live-stat{grid-template-columns:repeat(3,1fr)}
@@ -439,6 +463,12 @@ details{margin-top:8px}
         <span class="muted" id="inboxCount"></span>
       </div>
       <p class="ambient" id="ambient" hidden></p>
+      <div id="officeStrip" class="office-strip" hidden>
+        <div class="kicker">Schreibtisch</div>
+        <p class="muted" id="officeLead">Freiwillig. Davon kommt die nächste Anfrage nicht früher.</p>
+        <div class="office-cards" id="officeCards"></div>
+        <div class="office-log" id="officeLog"></div>
+      </div>
       <p id="activeChip" class="active-chip" hidden></p>
       <div id="victory" hidden>
         <strong>Die Firma steht.</strong>
@@ -465,6 +495,7 @@ details{margin-top:8px}
           </div>
           <button type="button" class="primary plan-only" id="startBtn">Event starten</button>
         </div>
+        <p class="lage plan-only" id="lage"></p>
         <div class="event-grid">
           <div class="event-side">
             <div class="kpi"><span>Auftraggeber</span><b id="cliName">—</b></div>
@@ -483,11 +514,6 @@ details{margin-top:8px}
               <summary>Genauere Prognose</summary>
               <div id="forecastBox"></div>
             </details>
-            <div class="plan-only" id="readyBox">
-              <h2>Vor dem Start</h2>
-              <div id="checklist"></div>
-              <p class="muted" id="parallelNote"></p>
-            </div>
           </div>
           <div>
             <div id="buildBar" class="build-only">
@@ -500,7 +526,7 @@ details{margin-top:8px}
               <p id="setupLabel">Aufbau</p>
               <div class="bar"><i id="setupBar"></i></div>
             </div>
-            <div id="buildNeed" class="build-only"></div>
+            <p class="build-only muted" id="buildNeed"></p>
             <p class="legend build-only wc-line"><span class="pic mini" id="wcKey" aria-hidden="true"></span> Das WC steht fest oben rechts auf dem Plan.</p>
             <p class="legend" id="fieldLegend"></p>
             <div id="liveActions" class="live-only" hidden>
@@ -786,7 +812,8 @@ const SAVE_FIELDS = [
   'endMin','setupReadyAt','eventStart','visitors','foodRev','merchRev','incidents',
   'sat','spent','gateAt','actAt','planGate','planAct','eventsDone','weight','day',
   'logLines','bankLines','tool','lastBill','setupLogged','welcomed','pro','step','pendingDebrief','paused',
-  'mails','mailSeq','nextMailAt','openMailId','declineUntil','hasContract','desk'
+  'mails','mailSeq','nextMailAt','openMailId','declineUntil','hasContract','desk',
+  'officeNext','noted','deskSlip'
 ];
 
 function emptyExt() { return { Security: 0, Technik: 0, Orga: 0, Catering: 0, Aufbau: 0 }; }
@@ -807,7 +834,8 @@ const FP = {
   gateAt: null, actAt: null, planGate: null, planAct: null,
   eventsDone: 0, people: [], spawnAcc: 0, tool: 'gate', removeMode: false,
   logLines: [], bankLines: [], lastBill: '', cd: {}, alertCache: '', tab: 'zentrale',
-  mails: [], mailSeq: 0, nextMailAt: null, openMailId: null, declineUntil: {}, hasContract: false, desk: 'inbox'
+  mails: [], mailSeq: 0, nextMailAt: null, openMailId: null, declineUntil: {}, hasContract: false, desk: 'inbox',
+  officeNext: null, noted: {}, deskSlip: ''
 };
 
 let canvas, ctx, frameNow = 0, planPointer = null;
@@ -1145,7 +1173,8 @@ function advance(dt) {
       payroll();
     }
   }
-  pumpMail();
+    pumpMail();
+    pumpOffice();
 }
 function save() {
   if (FP.over) return;
@@ -1204,6 +1233,8 @@ function ensureShape() {
   if (FP.live) FP.hasContract = true;
   if (FP.pendingDebrief && !FP.live) FP.hasContract = false;
   if (!FP.declineUntil || typeof FP.declineUntil !== 'object' || Array.isArray(FP.declineUntil)) FP.declineUntil = {};
+  if (!FP.noted || typeof FP.noted !== 'object' || Array.isArray(FP.noted)) FP.noted = {};
+  if (typeof FP.deskSlip !== 'string') FP.deskSlip = '';
   sanitizeMails();
   const desks = { inbox: 1, event: 1, crew: 1, hq: 1, bank: 1, log: 1 };
   if (!desks[FP.desk]) {
@@ -1251,9 +1282,9 @@ function inquiryGap() {
 function sanitizeMails() {
   const okStatus = { unread: 1, read: 1, later: 1, accepted: 1, declined: 1 };
   if (!Array.isArray(FP.mails)) FP.mails = [];
-  FP.mails = FP.mails.filter(m => m && m.id && (m.kind === 'bill' || JOBS.some(j => j.id === (m.jobId | 0)))).map(m => ({
+  FP.mails = FP.mails.filter(m => m && m.id && (m.kind === 'bill' || m.kind === 'note' || JOBS.some(j => j.id === (m.jobId | 0)))).map(m => ({
     id: String(m.id),
-    kind: m.kind === 'bill' ? 'bill' : 'inquiry',
+    kind: m.kind === 'bill' ? 'bill' : (m.kind === 'note' ? 'note' : 'inquiry'),
     jobId: m.jobId | 0,
     status: okStatus[m.status] ? m.status : 'read',
     at: +m.at || 0,
@@ -1261,7 +1292,9 @@ function sanitizeMails() {
     subject: String(m.subject || 'Nachricht'),
     person: String(m.person || ''),
     org: String(m.org || ''),
-    html: typeof m.html === 'string' ? m.html : ''
+    html: typeof m.html === 'string' ? m.html : '',
+    go: ['event', 'crew', 'bank', 'hq', 'inbox', 'log'].includes(m.go) ? m.go : '',
+    goLabel: String(m.goLabel || '')
   }));
   FP.mailSeq = Math.max(FP.mailSeq | 0, FP.mails.reduce((a, m) => Math.max(a, parseInt(m.id, 10) || 0), 0));
   if (FP.openMailId != null && !FP.mails.some(m => m.id === String(FP.openMailId))) FP.openMailId = null;
@@ -1270,7 +1303,7 @@ function sanitizeMails() {
 function trimMails() {
   const pending = [];
   const rest = [];
-  FP.mails.forEach(m => (isPendingMail(m) ? pending : rest).push(m));
+  FP.mails.forEach(m => ((isPendingMail(m) || (m.kind === 'note' && m.status === 'unread')) ? pending : rest).push(m));
   FP.mails = pending.concat(rest).slice(0, 30);
 }
 function mailStamp(m) {
@@ -1286,7 +1319,7 @@ function staffLine(j) {
   return DEPTS.filter(d => j.needStaff[d]).map(d => d + ' ' + j.needStaff[d]).join(', ');
 }
 function letterBody(m) {
-  if (m.kind === 'bill') return m.html || '<p class="muted">Keine Abrechnung gespeichert.</p>';
+  if (m.kind === 'bill' || m.kind === 'note') return m.html || '<p class="muted">Keine Notiz gespeichert.</p>';
   const j = JOBS[m.jobId];
   const L = LETTERS[j.id] || { opener: j.blurb, close: 'Eine Zu- oder Absage reicht.', person: m.person };
   const wishes = j.wishes.map(w => '<li>' + esc(w.label) + (w.hard ? ' (Pflicht)' : ' (Wunsch)') + '</li>').join('');
@@ -1422,6 +1455,7 @@ function acceptMail(id) {
   m.status = 'accepted';
   FP.openMailId = m.id;
   log('Zusage an ' + j.client + ': ' + j.name + '.');
+  pushContractMail();
   FP.desk = 'event';
   sync();
   save();
@@ -1449,6 +1483,10 @@ function laterMail(id) {
 }
 function mailActions(m) {
   if (m.kind === 'bill') return '';
+  if (m.kind === 'note') {
+    if (!m.go) return '';
+    return '<div class="mail-actions"><button type="button" id="mailGo">' + esc(m.goLabel || 'Öffnen') + '</button></div>';
+  }
   if (m.status === 'accepted') {
     if ((FP.hasContract || FP.live) && m.jobId === FP.jobId) {
       return '<div class="mail-actions"><button type="button" class="primary" id="mailToEvent">Zum Gelände</button></div>';
@@ -1459,7 +1497,7 @@ function mailActions(m) {
   const blocked = FP.hasContract || FP.live;
   const note = blocked ? '<p class="muted">Zusage erst, wenn das laufende Event abgerechnet ist. Ablehnen kannst du trotzdem.</p>' : '';
   return note + '<div class="mail-actions">' +
-    '<button type="button" class="primary" id="mailAccept"' + (blocked ? ' disabled' : '') + '>Annehmen</button>' +
+    '<button type="button" class="primary" id="mailAccept">Annehmen</button>' +
     '<button type="button" id="mailDecline">Ablehnen</button>' +
     '<button type="button" id="mailLater">Später entscheiden</button></div>';
 }
@@ -1486,10 +1524,15 @@ function renderInbox() {
   }
   const m = FP.mails.find(x => x.id === FP.openMailId);
   if (!m) {
-    read.innerHTML = '<p class="muted">' + (FP.mails.length ? 'Wähle eine Nachricht.' : 'Keine Nachricht. Die Uhr oben ist die der Firma.') + '</p>';
+    if (FP.deskSlip && !FP.mails.some(isPendingMail)) {
+      read.innerHTML = slipHtml(FP.deskSlip);
+      bindSlip(read);
+      return;
+    }
+    read.innerHTML = '<p class="muted">' + (FP.mails.length ? 'Wähle eine Nachricht oder einen Zettel vom Schreibtisch.' : 'Keine Kundenpost. Der Schreibtisch oben ist freiwillig.') + '</p>';
     return;
   }
-  const tag = m.kind === 'bill' ? 'Abrechnung' : (m.status === 'unread' ? 'Neu' : m.status === 'later' ? 'Offen' : m.status === 'accepted' ? 'Angenommen' : m.status === 'declined' ? 'Abgelehnt' : 'Gelesen');
+  const tag = m.kind === 'bill' ? 'Abrechnung' : (m.kind === 'note' ? 'Intern' : (m.status === 'unread' ? 'Neu' : m.status === 'later' ? 'Offen' : m.status === 'accepted' ? 'Angenommen' : m.status === 'declined' ? 'Abgelehnt' : 'Gelesen'));
   read.innerHTML = '<div class="mail-kicker">' + esc(tag) + ' · ' + esc(mailStamp(m)) + '</div>' +
     '<h2>' + esc(m.subject) + '</h2>' +
     '<p class="muted">' + esc(m.person) + (m.org ? ' · ' + esc(m.org) : '') + '</p>' +
@@ -1502,8 +1545,267 @@ function renderInbox() {
   if (dec) dec.onclick = () => declineMail(m.id);
   if (later) later.onclick = () => laterMail(m.id);
   if (toEv) toEv.onclick = () => setDesk('event');
+  const goBtn = $('mailGo');
+  if (goBtn && m.go) goBtn.onclick = () => setDesk(m.go);
+  bindSlip(read);
 }
 
+function wagePreview() {
+  const wages = FP.crew.length * WAGE;
+  const debt = sumLoans();
+  const interest = debt > 0 ? Math.max(1, Math.round(debt * interestRate())) : 0;
+  return { wages: wages, interest: interest, after: FP.cash - wages - interest, crew: FP.crew.length };
+}
+function slipHtml(id) {
+  if (id === 'wages') {
+    const w = wagePreview();
+    return '<div class="mail-kicker">Schreibtisch · Lohn</div><h2>Lohnvorschau</h2>' +
+      '<p>In ' + esc(nextPayText()) + ' zieht die Tagesabrechnung. Festangestellte kosten ' + money(WAGE) + ' am Tag, Externe nicht.</p>' +
+      '<div class="kpi"><span>Festangestellte</span><b>' + w.crew + '</b></div>' +
+      '<div class="kpi"><span>Löhne</span><b>' + money(w.wages) + '</b></div>' +
+      '<div class="kpi"><span>Zinsen</span><b>' + money(w.interest) + '</b></div>' +
+      '<div class="kpi"><span>Kasse danach</span><b class="' + (w.after < 0 ? 'bad' : '') + '">' + money(w.after) + '</b></div>' +
+      (w.after < 0
+        ? '<p>Das reicht nicht. Unter Bank tilgen oder einen Kredit prüfen. Rot wird die Kasse erst, wenn die Abrechnung wirklich durch ist.</p><div class="mail-actions"><button type="button" data-slip-go="bank">Zur Bank</button></div>'
+        : '<p class="muted">Nichts davon ist Pflicht. Die nächste Kundenmail kommt davon nicht früher.</p>');
+  }
+  if (id === 'rep') {
+    const nxt = JOBS.find(j => j.unlockAt > FP.rep);
+    const open = JOBS.filter(j => FP.rep >= j.unlockAt).map(j => j.name).join(', ');
+    return '<div class="mail-kicker">Schreibtisch · Ruf</div><h2>Ruf ' + FP.rep + '</h2>' +
+      '<p>' + (nxt
+        ? (esc(nxt.name) + ' schreibt frühestens ab Ruf ' + nxt.unlockAt + '. Vorher liegt keine solche Anfrage im Posteingang.')
+        : 'Alle Größen sind erreichbar. Ob jemand schreibt, bleibt unregelmäßig.') + '</p>' +
+      '<p>Für Anfragen offen: ' + esc(open || 'noch nichts') + '.</p>' +
+      '<p class="muted">Ruf steigt durch bestandene Aufträge, nicht durch diesen Zettel.</p>' +
+      '<div class="mail-actions"><button type="button" data-slip-go="hq">Zur Zentrale</button></div>';
+  }
+  const w = wagePreview();
+  return '<div class="mail-kicker">Schreibtisch · Kasse</div><h2>Belege</h2>' +
+    '<div class="kpi"><span>Kasse</span><b class="' + (FP.cash < 0 ? 'bad' : '') + '">' + money(FP.cash) + '</b></div>' +
+    '<div class="kpi"><span>Schulden</span><b>' + money(sumLoans()) + '</b></div>' +
+    '<div class="kpi"><span>Zins am Tag</span><b>' + pct(interestRate()) + '</b></div>' +
+    '<div class="kpi"><span>Bonität</span><b>' + esc(bankScore()) + '</b></div>' +
+    '<div class="kpi"><span>Nächste Abrechnung</span><b>' + esc(nextPayText()) + ' · ' + money(w.wages + w.interest) + '</b></div>' +
+    '<p class="muted">Ablegen heißt: du hast hingesehen. Die Uhr läuft trotzdem.</p>' +
+    '<div class="mail-actions"><button type="button" data-slip-go="bank">Zur Bank</button><button type="button" data-slip-go="log">Zum Log</button></div>';
+}
+function bindSlip(root) {
+  if (!root) return;
+  root.querySelectorAll('[data-slip-go]').forEach(b => { b.onclick = () => setDesk(b.dataset.slipGo); });
+}
+function slipAck(id) {
+  if (id === 'wages') {
+    const w = wagePreview();
+    return 'Lohnvorschau angesehen. Nächste Abrechnung ' + money(w.wages + w.interest) + '.';
+  }
+  if (id === 'rep') return 'Ruf geprüft: ' + FP.rep + '.';
+  return 'Belege geprüft. Kasse ' + money(FP.cash) + ', Schulden ' + money(sumLoans()) + '.';
+}
+function openSlip(id) {
+  FP.deskSlip = id;
+  FP.openMailId = null;
+  FP.desk = 'inbox';
+  const key = 'slip:' + id + ':' + FP.day;
+  if (!FP.noted[key]) {
+    FP.noted[key] = true;
+    log(slipAck(id));
+  }
+  renderInbox();
+  renderOffice();
+  applyChrome();
+  save();
+}
+function renderOffice() {
+  const strip = $('officeStrip');
+  if (!strip) return;
+  const quiet = !FP.over && !FP.mails.some(isPendingMail);
+  strip.hidden = !quiet;
+  if (!quiet) return;
+  const w = wagePreview();
+  const nxt = JOBS.find(j => j.unlockAt > FP.rep);
+  const cards = [
+    { id: 'wages', title: 'Lohnvorschau', line: (w.crew ? money(w.wages + w.interest) : 'keine Löhne') + ' · in ' + nextPayText() },
+    { id: 'rep', title: 'Ruf', line: 'Ruf ' + FP.rep + (nxt ? (' · ' + nxt.name + ' ab ' + nxt.unlockAt) : ' · alle Größen') },
+    { id: 'cash', title: 'Belege', line: 'Kasse ' + money(FP.cash) + (sumLoans() ? (' · Schulden ' + money(sumLoans())) : '') }
+  ];
+  const box = $('officeCards');
+  box.innerHTML = cards.map(c => {
+    const on = FP.deskSlip === c.id && !FP.openMailId;
+    return '<button type="button" class="office-card' + (on ? ' on' : '') + '" data-slip="' + c.id + '"><b>' + esc(c.title) + '</b><span>' + esc(c.line) + '</span></button>';
+  }).join('');
+  box.querySelectorAll('[data-slip]').forEach(b => { b.onclick = () => openSlip(b.dataset.slip); });
+  const lines = (FP.logLines || []).slice(0, 4);
+  $('officeLog').innerHTML = lines.length
+    ? lines.map(l => '<div>' + esc(l.t) + '</div>').join('')
+    : '<div>Noch nichts auf dem Zettel.</div>';
+}
+const OFFICE_BEATS = {
+  Nacht: [
+    'Nachtschicht. Du lässt das Licht an, die Inbox bleibt still.',
+    'Du gehst die offenen Rechnungen durch. Niemand schreibt.'
+  ],
+  Morgen: [
+    'Du sortierst die Belege vom Vortag.',
+    'Kaffee, Stille, keine neue Anfrage.'
+  ],
+  Mittag: [
+    'Mittag im Büro. Das Telefon bleibt liegen.',
+    'Du rechnest die nächste Lohnrunde grob durch.'
+  ],
+  Nachmittag: [
+    'Du schiebst Papier. Die Kundenpost kommt nicht auf Zuruf.',
+    'Kurzer Blick auf den Ruf. Größere Aufträge schreiben erst, wenn er reicht.'
+  ],
+  'Abend-Peak': [
+    'Draußen wäre jetzt Betrieb. Hier ist Feierabendlicht und keine Post.',
+    'Du lässt die Uhr laufen. Wer warten kann, spart sich einen schlechten Auftrag.'
+  ],
+  'Nacht-Acts': [
+    'Spät. Die Kasse schläft, die Inbox auch.',
+    'Du machst das Licht aus. Morgen liegen vielleicht Belege, keine Garantie auf Post.'
+  ]
+};
+function pushRawNote(spec) {
+  FP.mailSeq = (FP.mailSeq | 0) + 1;
+  const mail = {
+    id: String(FP.mailSeq),
+    kind: 'note',
+    jobId: 0,
+    status: 'unread',
+    at: FP.worldMin,
+    day: FP.day,
+    subject: spec.subject,
+    person: spec.person,
+    org: spec.org || 'Intern',
+    html: spec.html,
+    go: spec.go || '',
+    goLabel: spec.goLabel || ''
+  };
+  FP.mails.unshift(mail);
+  trimMails();
+  return mail;
+}
+function noteSnapshot(kind) {
+  if (kind === 'wages') {
+    return {
+      subject: 'Lohnrunde voraus',
+      person: 'Buchhaltung',
+      go: 'bank',
+      goLabel: 'Zur Bank',
+      html: slipHtml('wages')
+    };
+  }
+  if (kind === 'rep') {
+    return {
+      subject: 'Ruf-Stand',
+      person: 'Empfang',
+      go: 'hq',
+      goLabel: 'Zur Zentrale',
+      html: slipHtml('rep')
+    };
+  }
+  return {
+    subject: 'Kassenbeleg',
+    person: 'Buchhaltung',
+    go: 'bank',
+    goLabel: 'Zur Bank',
+    html: slipHtml('cash')
+  };
+}
+function pumpOffice() {
+  if (FP.over || FP.live) return;
+  if (FP.mails.some(isPendingMail)) return;
+  if (typeof FP.officeNext !== 'number' || !isFinite(FP.officeNext) || FP.officeNext <= 0) {
+    FP.officeNext = FP.worldMin + 45 + Math.round(Math.random() * 75);
+    return;
+  }
+  if (FP.worldMin < FP.officeNext) return;
+  const ph = phaseAt(FP.worldMin).name;
+  const pool = OFFICE_BEATS[ph] || OFFICE_BEATS.Morgen;
+  const text = pool[Math.floor(Math.random() * pool.length)];
+  log(text);
+  const unreadNotes = FP.mails.filter(m => m.kind === 'note' && m.status === 'unread').length;
+  if (unreadNotes < 2) {
+    const kind = ['wages', 'rep', 'cash'][Math.floor(Math.random() * 3)];
+    pushRawNote(noteSnapshot(kind));
+  }
+  FP.officeNext = FP.worldMin + 110 + Math.round(Math.random() * 130);
+  renderInbox();
+  renderOffice();
+  applyChrome();
+  save();
+}
+function nextActionText() {
+  if (FP.live) {
+    if (FP.worldMin < FP.setupReadyAt) return 'Aufbau läuft. Der Eingang bleibt zu, bis die Fläche steht.';
+    if (FP.gateAt == null) return 'Aufbau steht. Eingang öffnen oder auf die geplante Zeit warten.';
+    if (job().wishes.some(w => w.type === 'actStart') && FP.actAt == null) return 'Gäste können rein. Den Act zur geplanten Zeit starten.';
+    return 'Das Festival läuft. Tempo hoch, wenn du zusehen willst.';
+  }
+  if (!FP.hasContract) return '';
+  const missing = Object.entries(job().need).filter(pair => countId(pair[0]) < pair[1]);
+  if (missing.length) {
+    const t = TOOLS.find(x => x.id === missing[0][0]);
+    const rest = missing.slice(1).map(function (pair) {
+      const tool = TOOLS.find(function (x) { return x.id === pair[0]; });
+      return tool ? tool.label : pair[0];
+    });
+    const more = rest.length ? (' Danach: ' + rest.join(', ') + '.') : '';
+    return 'Auf der Fläche fehlt ' + t.label + ' (' + countId(missing[0][0]) + '/' + missing[0][1] + ').' + more + ' Crew und Bank erreichst du oben, ohne hier fertig sein zu müssen.';
+  }
+  const staff = DEPTS.filter(d => (job().needStaff[d] || 0) > heads(d));
+  if (staff.length) return 'Personal fehlt: ' + staff.join(', ') + '. Externe gehen vom Auftragsbudget, Festangestellte von der Kasse — unter Crew.';
+  const rep = requirementReport();
+  if (rep.warnings.length) return rep.warnings[0] + ' Starten kannst du trotzdem.';
+  return 'Fläche und Köpfe tragen. Starten, wenn du es so lassen willst.';
+}
+function watchConflicts() {
+  if (FP.over || FP.live || !FP.hasContract) return;
+  const key = 'budget:' + FP.jobId + ':' + FP.eventsDone;
+  if (forecastLeft() < 0) {
+    if (!FP.noted[key]) {
+      FP.noted[key] = true;
+      pushRawNote({
+        subject: 'Auftragsbudget wird knapp',
+        person: 'Buchhaltung',
+        org: 'Intern',
+        go: 'event',
+        goLabel: 'Zum Gelände',
+        html: '<div class="letter"><p>Nach Miete und dem, was schon gesetzt ist, liegt der Rest bei <b>' + money(forecastLeft()) + '</b>. Das ist das Budget von ' + esc(job().client) + ', nicht die Firmenkasse.</p><p>Weniger setzen, ein Extra streichen oder die Kürzung bei der Abrechnung einplanen.</p><p class="sig">Buchhaltung\nIntern</p></div>'
+      });
+      log('Buchhaltung: Auftragsbudget wäre überzogen.', 'warn');
+      FP._notesDirty = true;
+    }
+  } else if (FP.noted[key]) {
+    delete FP.noted[key];
+  }
+}
+function noteStartBlocked(rep) {
+  const key = 'start:' + FP.jobId + ':' + rep.gaps.join('|');
+  if (FP.noted[key]) return;
+  FP.noted[key] = true;
+  pushRawNote({
+    subject: 'Start geht so noch nicht',
+    person: 'Disposition',
+    org: 'Intern',
+    go: 'crew',
+    goLabel: 'Zur Crew',
+    html: '<div class="letter"><p>Für ' + esc(job().name) + ' fehlt noch: ' + esc(rep.gaps.join(', ')) + '.</p><p>Fläche setzt du auf dem Gelände, Leute unter Crew. Die Bank ist nur die Firmenkasse, nicht das Auftragsbudget.</p><p class="sig">Disposition\nIntern</p></div>'
+  });
+  log('Disposition: noch nicht startklar.', 'warn');
+}
+function pushContractMail() {
+  const j = job();
+  pushRawNote({
+    subject: j.name + ' liegt auf dem Tisch',
+    person: 'Disposition',
+    org: 'Intern',
+    go: 'crew',
+    goLabel: 'Zur Crew',
+    html: '<div class="letter"><p>Die Zusage an ' + esc(j.client) + ' ist raus. Auf der Fläche: ' + esc(needLine(j)) + '. Personal: ' + esc(staffLine(j)) + '.</p><p>Du kannst am Plan bleiben oder zuerst Leute holen. Beides ist offen. Start erst, wenn Fläche und Köpfe stehen.</p><p class="sig">Disposition\nIntern</p></div>'
+  });
+}
 function checkRow(ok, text) {
   return '<div class="check ' + (ok ? 'good' : 'bad') + '"><span>' + (ok ? '✓' : '○') + '</span><span>' + esc(text) + '</span></div>';
 }
@@ -1551,9 +1853,8 @@ function renderHq() {
     if (current) action = '<div class="bonus">Aktuell</div>';
     else if (owned) action = '<div class="bonus">Erledigt</div>';
     else if (next) {
-      const can = FP.rep >= h.unlockAt && FP.cash >= h.cost && !FP.over;
       const why = FP.rep < h.unlockAt ? ('Ruf ' + h.unlockAt) : money(h.cost);
-      action = '<button type="button" data-up="' + i + '"' + (can ? '' : ' disabled') + '>Ausbauen · ' + esc(why) + '</button>';
+      action = '<button type="button" data-up="' + i + '">Ausbauen · ' + esc(why) + '</button>';
     } else action = '<div class="bonus">Danach · Ruf ' + h.unlockAt + '</div>';
     return '<article class="hq' + (current ? ' owned' : '') + '"><b>' + esc(h.name) + '</b><p>' + esc(h.blurb) + '</p>' +
       '<div class="bonus">Crew ' + h.effects.crewCap + ' · Miete ' + Math.round(h.effects.rental * 100) + ' % · Aufbau ' + h.setup + ' Min</div>' +
@@ -1710,7 +2011,7 @@ function renderActions() {
   }
   const end = $('endBtn');
   if (end) end.disabled = !FP.live || FP.over;
-  setText('parallelNote', 'Nur ein Festival gleichzeitig. Die Uhr springt beim Start zum Beginn.');
+  setText('lage', nextActionText());
 }
 function paintHireHint() {
   const role = ROLES.find(r => r.id === $('hireRole').value);
@@ -1718,11 +2019,12 @@ function paintHireHint() {
   $('hireHint').textContent = role.dept + ' · ' + role.label + '. ' + (ROLE_INFO[role.id] || '') + ' Lohn ' + money(WAGE) + ' pro Sim-Tag. Die Rolle bleibt fest.';
   const full = FP.crew.length >= hq().effects.crewCap;
   const price = hirePrice();
-  $('hireBtn').disabled = full || FP.cash < price || FP.over;
-  $('hireBtn').textContent = full ? 'Crew-Limit erreicht' : ('Einstellen · ' + money(price));
+  $('hireBtn').disabled = !!FP.over;
+  $('hireBtn').textContent = full ? ('Crew-Limit ' + hq().effects.crewCap) : ('Einstellen · ' + money(price));
 }
 function sync() {
   renderInbox();
+  renderOffice();
   renderChecklist();
   renderActions();
   renderCeo();
@@ -1872,6 +2174,7 @@ function paintNumbers() {
     if (box) box.innerHTML = html;
   }
   paintAmbient();
+  paintOffice();
   const pb = $('pauseBtn');
   if (pb) { pb.textContent = FP.paused ? 'Fortsetzen' : 'Pause'; pb.classList.toggle('on', !!FP.paused); }
   document.body.classList.remove('is-day', 'is-peak', 'is-night');
@@ -1923,6 +2226,20 @@ function hire(roleId) {
   const cost = hirePrice();
   if (FP.cash < cost) {
     log('Zu wenig Geld in der Firmenkasse.', 'bad');
+    const key = 'shortcash:' + FP.day;
+    if (!FP.noted[key]) {
+      FP.noted[key] = true;
+      pushRawNote({
+        subject: 'Firmenkasse reicht zum Einstellen nicht',
+        person: 'Buchhaltung',
+        org: 'Intern',
+        go: 'bank',
+        goLabel: 'Zur Bank',
+        html: '<div class="letter"><p>Eine Festanstellung kostet gerade ' + money(cost) + '. Auf dem Konto liegen ' + money(FP.cash) + '.</p><p>Externe für ein laufendes Event gehen vom Auftragsbudget, nicht von dieser Kasse.</p><p class="sig">Buchhaltung\nIntern</p></div>'
+      });
+      renderInbox();
+      applyChrome();
+    }
     return;
   }
   addCash(-cost);
@@ -2087,7 +2404,10 @@ function startEvent(ignoreWarnings) {
   const rep = requirementReport();
   if (rep.gaps.length) {
     log('Noch nicht startklar: ' + rep.gaps.join(', ') + '.', 'warn');
-    const box = $('checklist');
+    noteStartBlocked(rep);
+    renderInbox();
+    applyChrome();
+    const box = $('lage');
     if (box) {
       box.classList.remove('shake');
       void box.offsetWidth;
@@ -3008,23 +3328,13 @@ const AMBIENT = {
 function coachText() {
   if (FP.over) return 'Die Firma ist insolvent.';
   if (FP.grace && FP.cash < 0) return 'Die Kasse ist im Minus. Die Gnadenfrist läuft — unter Bank tilgen oder einen Kredit prüfen.';
-  if (FP.live) {
-    if (FP.worldMin < FP.setupReadyAt) return 'Aufbau läuft. Der Eingang bleibt zu, bis die Fläche steht.';
-    if (FP.gateAt == null) return 'Aufbau steht. Eingang öffnen oder auf die geplante Zeit warten.';
-    if (job().wishes.some(function (w) { return w.type === 'actStart'; }) && FP.actAt == null) return 'Gäste können rein. Den Act zur geplanten Zeit starten.';
-    return 'Das Festival läuft. Tempo hoch, wenn du zusehen willst.';
-  }
-  if (FP.hasContract) {
-    const rep = requirementReport();
-    if (rep.gaps.length) return job().client + ' ist zugesagt. Offen: ' + rep.gaps.slice(0, 2).join(', ') + '.';
-    if (rep.warnings.length) return 'Start ginge. Achtung: ' + rep.warnings[0];
-    return job().name + ' liegt auf dem Tisch. Starten, wenn es trägt — oder noch nachlegen.';
-  }
+  if (FP.live) return nextActionText();
+  if (FP.hasContract) return job().name + ' liegt auf dem Tisch. Die Lage steht am Gelände — wohin du gehst, bleibt dir überlassen.';
   const unread = FP.mails.filter(function (m) { return m.status === 'unread'; }).length;
   if (unread === 1) return 'Eine neue Nachricht liegt im Posteingang.';
   if (unread > 1) return unread + ' neue Nachrichten im Posteingang.';
   if (FP.mails.some(isPendingMail)) return 'Eine Anfrage liegt noch unentschieden.';
-  return 'Keine offene Anfrage. Die Uhr läuft, Post kommt unregelmäßig.';
+  return 'Keine Kundenanfrage. Auf dem Schreibtisch liegen Lohn, Ruf und Belege — freiwillig.';
 }
 function setDesk(id) {
   const desks = { inbox: 1, event: 1, crew: 1, hq: 1, bank: 1, log: 1 };
@@ -3034,6 +3344,9 @@ function setDesk(id) {
   save();
 }
 function applyChrome() {
+  FP._notesDirty = false;
+  watchConflicts();
+  if (FP._notesDirty) renderInbox();
   const desk = FP.desk || 'inbox';
   document.body.dataset.desk = desk;
   document.body.classList.toggle('is-live', !!FP.live);
@@ -3072,13 +3385,15 @@ function applyChrome() {
       if (chipBtn) chipBtn.onclick = function () { setDesk('event'); };
     }
   }
+  setText('lage', nextActionText());
   const bn = $('buildNeed');
   if (bn) {
-    bn.innerHTML = !onJob ? '' : Object.entries(job().need).map(function (pair) {
-      const t = TOOLS.find(function (x) { return x.id === pair[0]; });
-      const have = countId(pair[0]);
-      return '<div class="check ' + (have >= pair[1] ? 'good' : 'bad') + '"><span>' + (have >= pair[1] ? '✓' : '○') + '</span><span>' + esc(t.label) + ' ' + have + '/' + pair[1] + '</span></div>';
-    }).join('');
+    if (!onJob || FP.live) bn.textContent = '';
+    else {
+      const miss = Object.entries(job().need).find(function (pair) { return countId(pair[0]) < pair[1]; });
+      const t = miss && TOOLS.find(function (x) { return x.id === miss[0]; });
+      bn.textContent = t ? ('Als Nächstes auf der Fläche: ' + t.label + '.') : '';
+    }
   }
   const leg = $('fieldLegend');
   if (leg) {
@@ -3087,6 +3402,14 @@ function applyChrome() {
       : 'Draufsicht. Symbol wählen, dann auf die Fläche tippen. Rechtsklick gibt das Geld ins Budget zurück.';
   }
   document.body.classList.toggle('show-debt', !!(FP.pro || sumLoans() > 0 || FP.cash < 0));
+}
+function paintOffice() {
+  const quiet = !FP.over && !FP.mails.some(isPendingMail);
+  const head = (FP.logLines[0] && FP.logLines[0].t) || '';
+  const sig = (quiet ? '1' : '0') + '|' + FP.rep + '|' + FP.cash + '|' + sumLoans() + '|' + nextPayText() + '|' + head + '|' + FP.deskSlip + '|' + (FP.openMailId || '');
+  if (sig === FP._officeSig) return;
+  FP._officeSig = sig;
+  renderOffice();
 }
 function paintAmbient() {
   const amb = $('ambient');

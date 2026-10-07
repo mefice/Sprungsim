@@ -11,13 +11,15 @@ Eine einzelne HTML-Datei, kein Build. Start: `index.html` im Browser öffnen.
 
 Du sitzt im Büro. Die Uhr läuft (Leertaste pausiert, Tasten 1, 2 und 5 ändern das Tempo). Aufträge kommen als E-Mail, nicht als Liste.
 
-Die erste Anfrage liegt schon im Posteingang. Aufmachen, lesen, annehmen, ablehnen oder liegen lassen. Eine Zusage öffnet das aktive Event: Briefing, 2D-Gelände, Crew, Start. Es gibt keine Schritt-Leiste mehr.
+Die erste Anfrage liegt schon im Posteingang. Aufmachen, lesen, annehmen, ablehnen oder liegen lassen. Eine Zusage öffnet das aktive Event. Oben bleiben Posteingang, Gelände, Crew, Zentrale, Bank und Log — du springst dorthin, wo Arbeit liegt. Tempo und Pause sitzen in der Kopfzeile.
+
+Am Event steht eine Lagezeile: was auf der Fläche oder bei der Crew als Nächstes sinnvoll ist. Start, Bank und Zentrale bleiben klickbar. Fehlt Geld oder reißt das Auftragsbudget, schreibt die Buchhaltung eine interne Mail.
 
 ## Post und Wartezeit
 
 Neue Anfragen sind selten, solange Ruf und Firma klein sind — oft viele Stunden bis über ein Tag Spielzeit, und nie alle Jobs auf einmal. Abgelehnte Auftraggeber melden sich nicht sofort wieder. Mit Ruf werden die Mails etwas häufiger und die Jobs größer. Liegt schon eine offene Anfrage, kommt nicht noch ein Stapel hinterher.
 
-Ist der Posteingang leer, vergeht Bürozeit. Tempo hochdrehen, wenn du auf Post wartest. Es läuft weiter nur ein Festival gleichzeitig.
+Ist keine Kundenanfrage offen, liegt der Schreibtisch da: Lohnvorschau, Ruf, Belege. Das ist freiwillig und holt keinen Auftrag herbei. Dazu kommen mit der Uhr kurze Einträge im Log und ab und zu interne Zettel. Es läuft weiter nur ein Festival gleichzeitig.
 
 ## Was bleibt
 
